@@ -1,0 +1,20 @@
+# every view: rack, chip (NES, GB, SMS), song; HOME is the next view
+300 shot
+400 held 0x100
+450 held 0
+600 shot
+700 enc 6 1
+710 enc 6 1
+720 enc 6 1
+800 shot
+900 enc 6 1
+910 enc 6 1
+920 enc 6 1
+1000 shot
+1100 held 0x100
+1150 held 0
+1300 shot
+1400 held 0x100
+1450 held 0
+1600 shot
+2000 end

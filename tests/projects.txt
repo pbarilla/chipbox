@@ -1,0 +1,10 @@
+# a new device: the demo is project 1 and saves itself; the picker; open project 2 (blank)
+2600 held 0x100
+3300 held 0
+3500 shot
+3600 enc 0 1
+3700 btn 1
+4200 shot
+4300 btn 1
+4500 shot
+5000 end

@@ -1,41 +1,29 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* The sequencer, included by chips.c: patterns of steps per track, played by a clock in the audio ISR.
- *   a track is a chip channel (chip * 4 + channel: 12 tracks); a pattern is up to 64 steps of 1/16 note; 4 patterns, A..D
+/* The sequencer, included by chips.c: a page is 16 steps of 1/16 note for every channel, played by a clock in the audio ISR.
+ *   a song is a list of slots, each one a page (1 1 1 1 2 3 1 1 ...); PLAY goes down the list and round again, a held PLAY loops one page
+ *   a track is a channel (the same number); a step holds a note, its velocity and its length in clock ticks
  *   the clock ticks 24 times a beat (6 a step) and each tick lands on its own sample, not on the 60 Hz tick
- *   a step holds a note, its length in clock ticks and an optional arp: a chord run by the one voice
+ *   an arp is a channel's setting (chips.c), not a step's
  * The main loop edits the arrays and calls seq_play / seq_stop; one writer on each side, plain bytes. */
-#define SEQ_TRACKS 12u
-#define SEQ_PATS 4u
-#define SEQ_MAXLEN 64u
+#define SEQ_LEN 16u                             /* steps in a page */
+#define SEQ_PAGES 64u
 #define SEQ_PPS 6u                              /* clock ticks per step */
 
-typedef struct { uint8_t note, vel, gate, arp; } step_t;       /* note 0: nothing; gate in ticks; arp: bit 7 on, 6..5 rate, 4..3 direction, 2..0 shape */
-enum { ARP_UP, ARP_DOWN, ARP_UPDOWN };
-static const uint8_t ARP_RATE[4] = {6, 3, 2, 1};                /* ticks per arp note */
-static const uint8_t ARP_N[8] = {2, 4, 4, 4, 4, 4, 4, 4};
-static const int8_t ARP_IV[8][4] = {                            /* octave, major, minor, maj7, min7, sus4, power, dim */
-    {0, 12, 0, 12}, {0, 4, 7, 12}, {0, 3, 7, 12}, {0, 4, 7, 11}, {0, 3, 7, 10}, {0, 5, 7, 12}, {0, 7, 12, 19}, {0, 3, 6, 9},
-};
-#define ARP(shape, dir, rate) ((uint8_t)(0x80u | (rate) << 5 | (dir) << 3 | (shape)))
-
-static step_t pat[SEQ_PATS][SEQ_TRACKS][SEQ_MAXLEN];
-static uint8_t pat_len[SEQ_PATS] = {16, 16, 16, 16};
-static uint8_t song[16] = {0, 1, 2, 3}, song_len = 4;
+typedef struct { uint8_t note, vel, gate, spare; } step_t;      /* note 0: nothing; gate in ticks */
+#ifndef POOL
+#define POOL __attribute__((section(".pool")))        /* big arrays live in the pool (a native test build defines POOL as nothing) */
+#endif
+static step_t pat[SEQ_PAGES][MAXCH][SEQ_LEN] POOL;
+static uint32_t page_n = 1;                     /* pages in use */
 static volatile uint32_t seq_bpm = 120;
-static volatile uint8_t seq_run, seq_song_on, seq_pat, seq_next = 255, seq_pos, seq_step, seq_sub;
-static uint8_t seq_view;                        /* the page the screen shows and the keys edit; the player follows it at the end of the loop */
-static volatile uint16_t seq_mute;              /* bit per track */
+#define SONG_MAX 128
+static uint8_t song[SONG_MAX];                  /* the page of each slot */
+static uint32_t song_len = 1;
+static volatile uint8_t seq_run, seq_pat, seq_next = 255, seq_step, seq_sub, seq_slot, seq_loop, seq_follow;     /* seq_loop: one page round and round; seq_follow: the rack shows the page that plays */
+static uint8_t seq_view;                        /* the page the screen shows and the keys write; the player follows it at the end of the loop */
 static uint32_t seq_left, seq_frac;             /* samples to the next tick, and the fraction a tick keeps */
-static struct { uint8_t on, root, gate, arp, since, k; } tr[SEQ_TRACKS];
+static struct { uint8_t on, gate; } tr[MAXCH];
 
-static uint32_t arp_note(uint32_t root, uint32_t arp, uint32_t k)
-{
-    uint32_t n = ARP_N[arp & 7u], i;
-    if ((arp >> 3 & 3u) == ARP_UPDOWN) { k %= 2u * n - 2u; i = k < n ? k : 2u * n - 2u - k; }
-    else { i = k % n; if ((arp >> 3 & 3u) == ARP_DOWN) i = n - 1u - i; }
-    i = root + (uint32_t)ARP_IV[arp & 7u][i];
-    return i > 127u ? 127u : i;
-}
 static uint32_t seq_period(void)                /* samples in one tick at the tempo, the remainder carried so the tempo is exact */
 {
     uint32_t bpm = seq_bpm < 40u ? 40u : seq_bpm > 240u ? 240u : seq_bpm;
@@ -46,90 +34,169 @@ static uint32_t seq_period(void)                /* samples in one tick at the te
 static void seq_clock(void)                     /* one tick, in the audio ISR */
 {
     uint32_t t;
-    for (t = 0; t < SEQ_TRACKS; t++) {          /* what is already sounding: its length, its arp */
-        if (!tr[t].on) continue;
-        tr[t].since++;
-        if (tr[t].gate && !--tr[t].gate) { ev_do(EV_OFF, t, 0, 0); tr[t].on = 0; continue; }
-        if ((tr[t].arp & 0x80u) && tr[t].since % ARP_RATE[tr[t].arp >> 5 & 3u] == 0u)
-            ev_do(EV_PITCH, t, arp_note(tr[t].root, tr[t].arp, ++tr[t].k), 0);
-    }
+    for (t = 0; t < chan_n; t++)                /* what is already sounding: its length */
+        if (tr[t].on && tr[t].gate && !--tr[t].gate) { ev_do(EV_OFF, t, 0, 0); tr[t].on = 0; }
     if (!seq_sub) {                             /* a new step */
-        for (t = 0; t < SEQ_TRACKS; t++) {
+        for (t = 0; t < chan_n; t++) {
             const step_t *s = &pat[seq_pat][t][seq_step];
-            if (!s->note || (seq_mute >> t & 1u)) continue;
-            tr[t].on = 1; tr[t].root = s->note; tr[t].gate = s->gate; tr[t].arp = s->arp; tr[t].since = tr[t].k = 0;
-            ev_do(EV_ON, t, (s->arp & 0x80u) ? arp_note(s->note, s->arp, 0) : s->note, s->vel);
+            if (!s->note) continue;
+            tr[t].on = 1; tr[t].gate = s->gate;
+            ev_do(EV_ON, t, s->note, s->vel);
         }
     }
     if (++seq_sub >= SEQ_PPS) {
         seq_sub = 0;
-        if (++seq_step >= pat_len[seq_pat]) {
+        if (++seq_step >= SEQ_LEN) {
             seq_step = 0;
-            if (seq_song_on && song_len) { seq_pos = (uint8_t)((seq_pos + 1u) % song_len); seq_pat = (uint8_t)(song[seq_pos] % SEQ_PATS); }
-            else if (seq_next < SEQ_PATS) { seq_pat = seq_next; seq_next = 255; }
+            if (seq_loop == 2u) {                   /* a page played once (the song screen's preview): stop, let the notes ring out */
+                seq_run = 0;
+                for (t = 0; t < chan_n; t++) { ev_do(EV_OFF, t, 0, 0); tr[t].on = 0; }
+            }
+            else if (seq_loop) { if (seq_next < page_n) { seq_pat = seq_next; seq_next = 255; } }
+            else {                                  /* the next slot of the song, and round again at the end */
+                if (++seq_slot >= song_len) seq_slot = 0;
+                seq_pat = song[seq_slot] < page_n ? song[seq_slot] : 0;
+                if (seq_follow) seq_view = seq_pat;
+            }
         }
     }
 }
 
 /* ---- the main loop's side */
-static void seq_play(void)
+static void seq_play(uint32_t slot, uint32_t loop)      /* the song from a slot; loop 1: the page on show round and round; loop 2: that page once */
 {
     memset(tr, 0, sizeof tr);
     seq_step = seq_sub = 0; seq_left = seq_frac = 0;
-    seq_pat = seq_view; seq_next = 255;
-    if (seq_song_on) { seq_pos = 0; seq_pat = (uint8_t)(song[0] % SEQ_PATS); }
+    seq_next = 255; seq_loop = (uint8_t)loop;
+    if (loop) { seq_pat = seq_view; seq_follow = 0; }
+    else {
+        seq_slot = (uint8_t)(slot < song_len ? slot : 0u);
+        seq_pat = song[seq_slot] < page_n ? song[seq_slot] : 0;
+        seq_view = seq_pat; seq_follow = 1;
+    }
     seq_run = 1;
 }
 static void seq_stop(void)
 {
     uint32_t t;
     seq_run = 0;
-    for (t = 0; t < SEQ_TRACKS; t++) ev_push(EV_OFF, t, 0, 0);
+    for (t = 0; t < chan_n; t++) ev_push(EV_OFF, t, 0, 0);
 }
-
-static void seq_page(int32_t d)                 /* flip the page */
+static uint32_t page_empty(uint32_t p)
 {
-    seq_view = (uint8_t)((seq_view + (d < 0 ? SEQ_PATS - 1u : 1u)) % SEQ_PATS);
-    if (seq_run && !seq_song_on) seq_next = seq_view;
+    uint32_t t, s;
+    for (t = 0; t < MAXCH; t++)
+        for (s = 0; s < SEQ_LEN; s++)
+            if (pat[p][t][s].note) return 0;
+    return 1;
+}
+static void seq_page(int32_t d)                 /* flip the page on show through the pages there are */
+{
+    seq_view = (uint8_t)(d < 0 ? (seq_view ? seq_view - 1u : page_n - 1u) : (seq_view + 1u < page_n ? seq_view + 1u : 0u));
+    seq_follow = 0;
+    if (seq_run && seq_loop == 1u) seq_next = seq_view;
+}
+static uint32_t page_used(uint32_t p)
+{
+    uint32_t i;
+    for (i = 0; i < song_len; i++) if (song[i] == p) return 1;
+    return 0;
+}
+static void pages_trim(void)                    /* an empty last page that no slot holds goes */
+{
+    while (page_n > 1u && !page_used(page_n - 1u) && page_empty(page_n - 1u)) page_n--;
+    if (seq_view >= page_n) seq_view = (uint8_t)(page_n - 1u);
+}
+static void song_insert_blank(uint32_t at)      /* a new slot after slot `at` holding a new empty page; the cursor's new place, or `at` when full */
+{
+    uint32_t pos = at < song_len ? at + 1u : song_len;
+    if (page_n >= SEQ_PAGES || song_len >= SONG_MAX) return;
+    memmove(&song[pos + 1u], &song[pos], song_len - pos);
+    song[pos] = (uint8_t)page_n++;
+    song_len++;
+    seq_view = song[pos];
+}
+static void song_remove(uint32_t at)
+{
+    if (song_len <= 1u || at >= song_len) return;
+    memmove(&song[at], &song[at + 1u], song_len - at - 1u);
+    song_len--;
+    pages_trim();
+}
+static void song_cycle(uint32_t at, int32_t d)  /* the slot's page: the next one there is, or the one before */
+{
+    if (at >= song_len) return;
+    song[at] = (uint8_t)(d < 0 ? (song[at] ? song[at] - 1u : page_n - 1u) : (song[at] + 1u < page_n ? song[at] + 1u : 0u));
+    seq_view = song[at];
+    pages_trim();
+}
+static int seq_dup_page(uint32_t p)              /* a copy of page p as a new last page: its number, or -1 when full */
+{
+    if (page_n >= SEQ_PAGES || p >= page_n) return -1;
+    memcpy(pat[page_n], pat[p], sizeof pat[p]);
+    return (int)page_n++;
 }
 static void seq_toggle(uint32_t track, uint32_t step, uint32_t note)    /* a key on a step: set that note, or clear the step if it already has it */
 {
     step_t *x = &pat[seq_view][track][step];
     if (x->note == note) { x->note = 0; return; }
-    if (!x->note) { x->vel = 100; x->gate = 5; x->arp = 0; }
+    if (!x->note) { x->vel = 100; x->gate = 5; }
     x->note = (uint8_t)note;
 }
+static void seq_chan_removed(uint32_t c)        /* a channel is gone: the tracks above it move down */
+{
+    uint32_t p;
+    memset(tr, 0, sizeof tr);
+    for (p = 0; p < SEQ_PAGES; p++) {
+        memmove(&pat[p][c], &pat[p][c + 1u], (MAXCH - 1u - c) * sizeof pat[p][0]);
+        memset(&pat[p][MAXCH - 1u], 0, sizeof pat[p][0]);
+    }
+}
+static void seq_clear(void)                     /* an empty project: no channels, one page */
+{
+    chan_n = 0;
+    memset(pat, 0, sizeof pat);
+    memset(tr, 0, sizeof tr);
+    page_n = 1; seq_view = 0; seq_pat = 0; seq_next = 255; seq_step = seq_sub = 0; seq_slot = 0; seq_loop = 0; seq_follow = 0;
+    song_len = 1; memset(song, 0, sizeof song);
+    seq_bpm = 120;
+}
 
-/* a little tune to hear it with: A minor, F, C, G; every track has a job (hardcoded until the editor exists) */
-static void seq_put(uint32_t p, uint32_t t, uint32_t s, uint32_t note, uint32_t vel, uint32_t gate, uint32_t arp)
+/* a little tune to hear it with: A minor, F, C, G; the first project of a new device */
+static void seq_put(uint32_t p, uint32_t t, uint32_t s, uint32_t note, uint32_t vel, uint32_t gate)
 {
     step_t *x = &pat[p][t][s];
-    x->note = (uint8_t)note; x->vel = (uint8_t)vel; x->gate = (uint8_t)gate; x->arp = (uint8_t)arp;
+    x->note = (uint8_t)note; x->vel = (uint8_t)vel; x->gate = (uint8_t)gate;
 }
+static int chan_add(uint32_t kind);
 static void seq_demo(void)
 {
-    static const uint8_t ROOT[4] = {45, 41, 48, 43}, SHAPE[4] = {2, 1, 1, 1};
+    static const uint8_t ROOT[4] = {45, 41, 48, 43};
     static const uint8_t TUNE[16] = {0, 0, 2, 0, 4, 0, 2, 0, 3, 0, 2, 0, 1, 0, 0, 0};      /* chord tone per step for the leads, 0 = rest */
-    uint32_t p, s, r, sh;
-    memset(pat, 0, sizeof pat);
+    static const uint8_t KIND[9] = {KD_NES_PU, KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_SMS, KD_SMS};
+    uint32_t p, s, r, k;
+    seq_clear();
+    for (k = 0; k < 9u; k++) chan_add(KIND[k]);
+    chan[0].in.arp = 7; chan[0].in.arp_rate = 1;                                   /* NES pulse: arp stabs (power chord) */
+    chan[4].in.arp = 3; chan[4].in.arp_rate = 2; chan[4].in.arp_dir = 2;           /* Game Boy pulse: a long shimmer */
+    chan[7].in.arp = 2; chan[7].in.arp_rate = 1; chan[7].in.arp_dir = 1;           /* Master System: down arps */
+    page_n = 4;
+    song_len = 6; song[0] = 0; song[1] = 0; song[2] = 1; song[3] = 2; song[4] = 3; song[5] = 3;       /* A A B C D D */
     for (p = 0; p < 4u; p++) {
-        r = ROOT[p]; sh = SHAPE[p];
+        r = ROOT[p];
         for (s = 0; s < 16u; s++) {
             uint32_t n = TUNE[s];
             if (n) {
-                seq_put(p, 4, s, r + 24u + ((n * 3u) % 8u), 110, 4, 0);                      /* GB PU1: the tune */
-                if (!(s & 1u)) seq_put(p, 8, s, r + 12u + n * 2u, 100, 5, 0);                /* SMS TN1: a line under it */
+                seq_put(p, 3, s, r + 24u + ((n * 3u) % 8u), 110, 4);                        /* GB PU: the tune */
+                if (!(s & 1u)) seq_put(p, 6, s, r + 12u + n * 2u, 100, 5);                  /* SMS: a line under it */
             }
-            if (!(s & 3u)) seq_put(p, 6, s, r + 12u, 127, 5, 0);                             /* GB WAV: bass quarters */
+            if (!(s & 3u)) seq_put(p, 5, s, r + 12u, 127, 5);                               /* GB WAV: bass quarters */
         }
-        seq_put(p, 0, 0, r + 24u, 100, 11, ARP(sh, ARP_UP, 1));                              /* NES PU1: arp stabs */
-        seq_put(p, 0, 6, r + 24u, 100, 5, ARP(sh, ARP_UPDOWN, 1));
-        seq_put(p, 0, 10, r + 24u, 100, 5, ARP(sh, ARP_UP, 2));
-        seq_put(p, 1, 3, r + 31u, 90, 8, 0); seq_put(p, 1, 11, r + 36u, 90, 8, 0);           /* NES PU2: answers */
-        for (s = 0; s < 16u; s += 3u) seq_put(p, 2, s, r + ((s & 3u) ? 12u : 0u), 127, 5, 0);   /* NES TRI: bass */
-        seq_put(p, 9, 2, r + 24u, 90, 3, ARP(sh, ARP_DOWN, 1)); seq_put(p, 9, 10, r + 24u, 90, 3, ARP(sh, ARP_DOWN, 1));   /* SMS TN2: down arps */
-        seq_put(p, 5, 0, r + 24u, 80, 22, ARP(sh, ARP_UPDOWN, 2));                           /* GB PU2: a long shimmer */
-        seq_put(p, 10, 0, r + 12u, 127, 30, 0); seq_put(p, 10, 8, r + 19u, 127, 20, 0);             /* SMS TN3: low drone */
+        seq_put(p, 0, 0, r + 24u, 100, 11); seq_put(p, 0, 6, r + 24u, 100, 5); seq_put(p, 0, 10, r + 24u, 100, 5);    /* NES PU: arp stabs */
+        seq_put(p, 1, 3, r + 31u, 90, 8); seq_put(p, 1, 11, r + 36u, 90, 8);                /* NES PU: answers */
+        for (s = 0; s < 16u; s += 3u) seq_put(p, 2, s, r + ((s & 3u) ? 12u : 0u), 127, 5);  /* NES TRI: bass */
+        seq_put(p, 7, 2, r + 24u, 90, 3); seq_put(p, 7, 10, r + 24u, 90, 3);                /* SMS: down arps */
+        seq_put(p, 4, 0, r + 24u, 80, 22);                                                  /* GB PU: a long shimmer */
+        seq_put(p, 8, 0, r + 12u, 127, 30); seq_put(p, 8, 8, r + 19u, 127, 20);             /* SMS: low drone */
     }
-    song_len = 4; song[0] = 0; song[1] = 1; song[2] = 2; song[3] = 3; seq_song_on = 0;
 }

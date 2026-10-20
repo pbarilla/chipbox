@@ -1,8 +1,0 @@
-# run 4: HOME hold -> picker, SELECT to slot 3, OCT+ opens it, wait for the settings save
-50 held 0x100
-100 held 0
-200 held 0x100
-900 held 0
-1000 enc 0 2
-1100 btn 1
-4000 end

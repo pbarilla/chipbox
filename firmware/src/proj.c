@@ -1,17 +1,16 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* Projects: 8 slots in flash, each with two banks. A save writes the bank that is not the newest and puts its header
  * (magic, number, length, crc) last, so a power cut mid-save leaves the old version whole. Included by chipbox.c.
- *   bank: [header 16 B][payload]; payload: version, tempo, mutes, page lengths, song, every channel's sound, then the steps
+ *   bank: [header 16 B][payload]; payload: version, tempo, pages, channels (kind and sound), then every note as one event
  * An erase stalls the sound (~50 ms a sector), so saves happen when stopped, or when you press SAVE. */
-#define PROJ_MAGIC 0x31424A50u                  /* "PJB1" */
+#define PROJ_MAGIC 0x32424A50u                  /* "PJB2" */
 #define PROJ_HDR 16u
-#define PROJ_USED 9u                            /* channels in use: 3 per chip */
-#define PROJ_STEPS_AT 126u                      /* where the steps start in the payload */
+#define PROJ_INST 14u                           /* bytes of a channel's sound */
+#define PROJ_EV 6u                              /* bytes of a note: page, channel, step, note, velocity, length */
 
 static uint8_t proj_buf[PROJ_BANK];
 static uint8_t proj_cur;                        /* the open slot */
 static uint32_t proj_dirty, proj_t_edit, proj_t_saved, proj_t_fail, proj_loaded;   /* proj_loaded: the open project came from flash */
-static inst_t inst_def[CHIPS][3];               /* the sounds a blank project starts with */
 
 static uint32_t proj_crc(const uint8_t *p, uint32_t n)
 {
@@ -24,78 +23,80 @@ static uint32_t proj_crc(const uint8_t *p, uint32_t n)
 }
 static void proj_edited(void) { proj_dirty = 1; proj_t_edit = fm1_ms; }
 
-static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the length */
+static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the length, or 0 when it does not fit a bank */
 {
-    uint32_t n = 0, i, pg, c, ch, s;
-    p[n++] = 1;
+    uint32_t n = 0, pg, c, s, ev = 0, evat;
+    p[n++] = 2;
     p[n++] = (uint8_t)seq_bpm; p[n++] = (uint8_t)(seq_bpm >> 8);
-    p[n++] = (uint8_t)seq_mute; p[n++] = (uint8_t)(seq_mute >> 8);
-    for (pg = 0; pg < SEQ_PATS; pg++) p[n++] = pat_len[pg];
-    p[n++] = song_len;
-    for (i = 0; i < 16u; i++) p[n++] = song[i];
-    p[n++] = seq_song_on;
-    for (c = 0; c < CHIPS; c++)
-        for (ch = 0; ch < 3u; ch++) {
-            const inst_t *x = &inst[c][ch];
-            p[n++] = x->wave; p[n++] = x->duty; p[n++] = x->atk; p[n++] = x->dec; p[n++] = x->sus; p[n++] = x->rel;
-            p[n++] = x->vib_spd; p[n++] = x->vib_dep; p[n++] = (uint8_t)x->sweep; p[n++] = x->pan; p[n++] = x->vol;
-        }
-    for (pg = 0; pg < SEQ_PATS; pg++)
-        for (c = 0; c < CHIPS; c++)
-            for (ch = 0; ch < 3u; ch++)
-                for (s = 0; s < pat_len[pg]; s++) {
-                    const step_t *x = &pat[pg][c * 4u + ch][s];
-                    p[n++] = x->note; p[n++] = x->vel; p[n++] = x->gate; p[n++] = x->arp;
-                }
+    p[n++] = (uint8_t)page_n; p[n++] = (uint8_t)chan_n;
+    for (c = 0; c < chan_n; c++) {
+        const inst_t *x = &chan[c].in;
+        p[n++] = chan[c].kind;
+        p[n++] = x->wave; p[n++] = x->duty; p[n++] = x->atk; p[n++] = x->dec; p[n++] = x->sus; p[n++] = x->rel;
+        p[n++] = x->vib_spd; p[n++] = x->vib_dep; p[n++] = (uint8_t)x->sweep; p[n++] = x->pan; p[n++] = x->vol;
+        p[n++] = x->arp; p[n++] = x->arp_rate; p[n++] = x->arp_dir;
+    }
+    evat = n; n += 2;
+    for (pg = 0; pg < page_n; pg++)
+        for (c = 0; c < chan_n; c++)
+            for (s = 0; s < SEQ_LEN; s++) {
+                const step_t *x = &pat[pg][c][s];
+                if (!x->note) continue;
+                if (n + PROJ_EV > PROJ_BANK - PROJ_HDR) return 0;
+                p[n++] = (uint8_t)pg; p[n++] = (uint8_t)c; p[n++] = (uint8_t)s; p[n++] = x->note; p[n++] = x->vel; p[n++] = x->gate;
+                ev++;
+            }
+    p[evat] = (uint8_t)ev; p[evat + 1u] = (uint8_t)(ev >> 8);
+    if (n + 1u + song_len > PROJ_BANK - PROJ_HDR) return 0;
+    p[n++] = (uint8_t)song_len;                 /* the song: a page for each slot */
+    for (s = 0; s < song_len; s++) p[n++] = song[s];
     return n;
 }
 static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else nothing was changed */
 {
-    uint32_t n = 0, i, pg, c, ch, s, need;
-    uint8_t lens[SEQ_PATS];
-    if (len < PROJ_STEPS_AT || p[0] != 1u) return -1;
-    for (pg = 0; pg < SEQ_PATS; pg++) {
-        lens[pg] = p[5u + pg];
-        if (lens[pg] < 1u || lens[pg] > SEQ_MAXLEN) return -1;
+    uint32_t n, i, c, ev, pages, chans;
+    if (len < 7u || p[0] != 2u) return -1;
+    pages = p[3]; chans = p[4];
+    if (pages < 1u || pages > SEQ_PAGES || chans > MAXCH) return -1;
+    n = 5u + chans * (1u + PROJ_INST);
+    if (len < n + 2u) return -1;
+    for (c = 0; c < chans; c++) if (p[5u + c * (1u + PROJ_INST)] >= KINDS) return -1;
+    ev = (uint32_t)p[n] | (uint32_t)p[n + 1u] << 8;
+    n += 2u;
+    if (len < n + ev * PROJ_EV) return -1;
+    for (i = 0; i < ev; i++) {
+        const uint8_t *e = p + n + i * PROJ_EV;
+        if (e[0] >= pages || e[1] >= chans || e[2] >= SEQ_LEN) return -1;
     }
-    need = PROJ_STEPS_AT;
-    for (pg = 0; pg < SEQ_PATS; pg++) need += lens[pg] * PROJ_USED * 4u;
-    if (len < need) return -1;
+    seq_stop();
+    seq_clear();                                /* (the voices are silent while this runs; a sound is read when a note starts) */
     seq_bpm = (uint32_t)p[1] | (uint32_t)p[2] << 8;
-    seq_mute = (uint16_t)(p[3] | p[4] << 8);
-    for (pg = 0; pg < SEQ_PATS; pg++) pat_len[pg] = lens[pg];
-    song_len = p[9] > 16u ? 16u : p[9];
-    for (i = 0; i < 16u; i++) song[i] = p[10u + i];
-    seq_song_on = p[26];
-    n = 27;
-    for (c = 0; c < CHIPS; c++)
-        for (ch = 0; ch < 3u; ch++) {
-            inst_t *x = &inst[c][ch];
-            x->wave = p[n]; x->duty = p[n + 1]; x->atk = p[n + 2]; x->dec = p[n + 3]; x->sus = p[n + 4]; x->rel = p[n + 5];
-            x->vib_spd = p[n + 6]; x->vib_dep = p[n + 7]; x->sweep = (int8_t)p[n + 8]; x->pan = p[n + 9]; x->vol = p[n + 10];
-            n += 11;
-        }
-    memset(pat, 0, sizeof pat);
-    for (pg = 0; pg < SEQ_PATS; pg++)
-        for (c = 0; c < CHIPS; c++)
-            for (ch = 0; ch < 3u; ch++)
-                for (s = 0; s < pat_len[pg]; s++) {
-                    step_t *x = &pat[pg][c * 4u + ch][s];
-                    x->note = p[n]; x->vel = p[n + 1]; x->gate = p[n + 2]; x->arp = p[n + 3];
-                    n += 4;
-                }
-    seq_view = 0; seq_pat = 0; seq_next = 255; seq_pos = 0;
+    page_n = pages;
+    for (c = 0; c < chans; c++) {
+        const uint8_t *q = p + 5u + c * (1u + PROJ_INST);
+        chan_t *x;
+        chan_add(q[0]);
+        x = &chan[c];
+        x->in.wave = q[1]; x->in.duty = q[2]; x->in.atk = q[3]; x->in.dec = q[4]; x->in.sus = q[5]; x->in.rel = q[6];
+        x->in.vib_spd = q[7]; x->in.vib_dep = q[8]; x->in.sweep = (int8_t)q[9]; x->in.pan = q[10]; x->in.vol = q[11];
+        x->in.arp = q[12]; x->in.arp_rate = q[13]; x->in.arp_dir = q[14];
+    }
+    for (i = 0; i < ev; i++) {
+        const uint8_t *e = p + n + i * PROJ_EV;
+        step_t *x = &pat[e[0]][e[1]][e[2]];
+        x->note = e[3]; x->vel = e[4]; x->gate = e[5];
+    }
+    n += ev * PROJ_EV;
+    if (n < len && p[n] >= 1u && p[n] <= SONG_MAX && n + 1u + p[n] <= len) {       /* the song (older projects have none: the pages in order) */
+        song_len = p[n];
+        for (i = 0; i < song_len; i++) song[i] = p[n + 1u + i] < pages ? p[n + 1u + i] : (uint8_t)(pages - 1u);
+    } else {
+        song_len = pages < SONG_MAX ? pages : SONG_MAX;
+        for (i = 0; i < song_len; i++) song[i] = (uint8_t)i;
+    }
     return 0;
 }
-static void proj_blank(void)                    /* an empty project */
-{
-    uint32_t pg;
-    memset(pat, 0, sizeof pat);
-    for (pg = 0; pg < SEQ_PATS; pg++) pat_len[pg] = 16;
-    song_len = 4; song[0] = 0; song[1] = 1; song[2] = 2; song[3] = 3; seq_song_on = 0;
-    seq_bpm = 120; seq_mute = 0; seq_view = 0; seq_pat = 0; seq_next = 255; seq_pos = 0;
-    memcpy(inst, inst_def, sizeof inst);
-}
+static void proj_blank(void) { seq_stop(); chan_lock = 1; seq_clear(); chan_lock = 0; }      /* an empty project: no channels yet */
 
 /* ---- the banks */
 static uint32_t proj_base(uint32_t slot, uint32_t bank) { return PROJ_AT + (slot * 2u + bank) * PROJ_BANK; }
@@ -137,6 +138,7 @@ static int proj_save(uint32_t slot)
     proj_hdr_t h, nh;
     int b = proj_newest(slot, &h);
     uint32_t bank = b < 0 ? 0u : (uint32_t)(b ^ 1), len = proj_pack(proj_buf), i, sectors, base = proj_base(slot, bank);
+    if (!len) return -1;                        /* too big for a bank */
     sectors = (PROJ_HDR + len + 0xFFFu) / 0x1000u;
     for (i = 0; i < sectors; i++) if (pf_erase(base + i * 0x1000u)) return -1;
     if (pf_write(base + PROJ_HDR, proj_buf, len)) return -1;
@@ -158,27 +160,33 @@ static void proj_clear(uint32_t slot)           /* an empty slot: both banks' fi
     pf_erase(proj_base(slot, 1));
 }
 
-/* what a slot looks like in the picker: per channel, a bit a step on page A */
-static void proj_preview(uint32_t slot, uint16_t *rows)
+/* what a slot looks like in the picker: a row per channel (its chip), a bit per step of page 1 */
+static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t *nch)
 {
-    uint32_t c, s, len0 = 0;
+    uint32_t c, i, ev, n;
     proj_hdr_t h;
     int b;
-    memset(rows, 0, PROJ_USED * sizeof rows[0]);
+    *nch = 0;
+    memset(rows, 0, MAXCH * sizeof rows[0]);
     if (slot == proj_cur) {                     /* the open one: what is in memory, saved or not */
-        for (c = 0; c < PROJ_USED; c++)
-            for (s = 0; s < 16u && s < pat_len[0]; s++)
-                if (pat[0][(c / 3u) * 4u + c % 3u][s].note) rows[c] |= (uint16_t)(1u << s);
+        *nch = chan_n;
+        for (c = 0; c < chan_n; c++) {
+            chips[c] = KIND_CHIP[chan[c].kind];
+            for (i = 0; i < SEQ_LEN; i++) if (pat[0][c][i].note) rows[c] |= (uint16_t)(1u << i);
+        }
         return;
     }
     b = proj_newest(slot, &h);
-    if (b < 0 || pf_read(proj_base(slot, (uint32_t)b) + PROJ_HDR + 5u, &len0, 1)) return;
-    len0 &= 0xFFu;
-    if (len0 < 1u || len0 > SEQ_MAXLEN) return;
-    for (c = 0; c < PROJ_USED; c++) {
-        static uint8_t buf[SEQ_MAXLEN * 4u];
-        if (pf_read(proj_base(slot, (uint32_t)b) + PROJ_HDR + PROJ_STEPS_AT + c * len0 * 4u, buf, len0 * 4u)) return;
-        for (s = 0; s < 16u && s < len0; s++)
-            if (buf[s * 4u]) rows[c] |= (uint16_t)(1u << s);
+    if (b < 0 || pf_read(proj_base(slot, (uint32_t)b) + PROJ_HDR, proj_buf, h.len)) return;
+    if (h.len < 7u || proj_buf[0] != 2u || proj_buf[4] > MAXCH) return;
+    *nch = proj_buf[4];
+    for (c = 0; c < *nch; c++) chips[c] = proj_buf[5u + c * (1u + PROJ_INST)] < KINDS ? KIND_CHIP[proj_buf[5u + c * (1u + PROJ_INST)]] : 0u;
+    n = 5u + *nch * (1u + PROJ_INST);
+    if (h.len < n + 2u) { *nch = 0; return; }
+    ev = (uint32_t)proj_buf[n] | (uint32_t)proj_buf[n + 1u] << 8;
+    n += 2u;
+    for (i = 0; i < ev && n + (i + 1u) * PROJ_EV <= h.len; i++) {
+        const uint8_t *e = proj_buf + n + i * PROJ_EV;
+        if (e[0] == 0u && e[1] < *nch && e[2] < SEQ_LEN) rows[e[1]] |= (uint16_t)(1u << e[2]);
     }
 }

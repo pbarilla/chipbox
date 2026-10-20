@@ -5,19 +5,33 @@ typedef struct { const char *text; uint8_t head; } mline_t;      /* head: a head
 #define ML(s) {s, 0}
 #define MENU_ROWS 12                            /* 20 px a line */
 static const mline_t HELP_CHIP[] = {
-    MH("Knobs"), ML("Presets - Change Channel"), ML("Algorithm - Controls Page"), ML("Knobs 1-4 - Adjust Controls"),
-    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Rack"), ML("HOME Hold - Projects"), ML("PLAY - Play Stop"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+    MH("Knobs"), ML("Presets - Change Channel"), ML("Algorithm - Flip Page"), ML("Knobs 1-4 - Adjust Controls"),
+    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
 };
 static const mline_t HELP_RACK[] = {
-    MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Move Cursor"), ML("Algorithm - Flip Page"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("HOME - Back"), ML("HOME Hold - Projects"), ML("PLAY - Play Stop"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+    MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Move Cursor"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
+    MH("Buttons"), ML("Keys - Set Note"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+};
+static const mline_t HELP_SONG[] = {
+    MH("Knobs"), ML("Select - Move Cursor"), ML("Presets - Change Page"), ML("Knob 1 - Tempo"),
+    MH("Buttons"), ML("OCT+ - New Page"), ML("OCT- - Remove Page"), ML("EDIT - Open Page"), ML("EDIT Hold - Copy Page"), ML("HOME - Next View"), ML("PLAY - Play Song"), ML("SAVE - Save"), ML("GLO - Help"),
+};
+static const mline_t ADD_MENU[] = {                      /* in the order of the kinds in chips.c */
+    MH("Add Channel"), ML("NES Pulse"), ML("NES Triangle"), ML("GB Pulse"), ML("GB Wave"), ML("SMS Tone"),
 };
 static const mline_t *menu_lines;
-static uint32_t menu_n, menu_top, menu_on, menu_dirty;
+static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     /* menu_pick: a list you choose from (SELECT moves the bar, OCT+ yes) */
 
-static void menu_open(const mline_t *l, uint32_t n) { menu_lines = l; menu_n = n; menu_top = 0; menu_on = 1; menu_dirty = 1; }
+static void menu_open(const mline_t *l, uint32_t n) { menu_lines = l; menu_n = n; menu_top = 0; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
+static void menu_open_pick(const mline_t *l, uint32_t n) { menu_open(l, n); menu_pick = 1; menu_sel = 1; }
 static void menu_scroll(int32_t d)
 {
+    if (menu_pick) {                            /* the bar moves over the lines that are not headings */
+        uint32_t v = menu_sel;
+        do { v = (v + (d < 0 ? menu_n - 1u : 1u)) % menu_n; } while (menu_lines[v].head);
+        menu_sel = v; menu_dirty = 1;
+        return;
+    }
     uint32_t max = menu_n > MENU_ROWS ? menu_n - MENU_ROWS : 0u, top = menu_top;
     if (d > 0 && top < max) top++;
     if (d < 0 && top > 0u) top--;
@@ -31,6 +45,7 @@ static void menu_draw(uint16_t accent)
         for (r = 0; r < 4u; r++) {
             uint32_t i = menu_top + b * 4u + r;
             if (i >= menu_n) break;
+            if (menu_pick && i == menu_sel) cv_rect(0, (int32_t)r * 20, 240, 20, R_SEL);
             cv_text(8, (int32_t)r * 20 + 2, &FONT_S, menu_lines[i].text, menu_lines[i].head ? accent : RGB(230, 230, 235));
         }
         if (menu_n > MENU_ROWS)                 /* a thin bar at the right edge: where you are in the list */

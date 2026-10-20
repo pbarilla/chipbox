@@ -19,6 +19,22 @@ void *memcpy(void *d, const void *s, unsigned n)
     return d;
 }
 
+void *memmove(void *d, const void *s, unsigned n)      /* (Chipbox: shifting the channel list) */
+{
+    unsigned char *p = d;
+    const unsigned char *q = s;
+    if (p < q) {
+        while (n--)
+            *p++ = *q++;
+    } else {
+        p += n;
+        q += n;
+        while (n--)
+            *--p = *--q;
+    }
+    return d;
+}
+
 int memcmp(const void *a, const void *b, unsigned n)
 {
     const unsigned char *p = a, *q = b;

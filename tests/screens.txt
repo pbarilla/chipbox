@@ -1,24 +1,23 @@
-# the screenshots for the README and the site: NES, GB (envelope page), SMS, the rack, the projects, the help
-100 enc 6 1
+# the screenshots for the README and the site: the chip screen (tone page), the rack, the add list, the projects, the help
+100 held 0x100
+150 held 0
 300 shot
-400 enc 6 1
-410 enc 6 1
-500 enc 1 1
-700 shot
-800 enc 6 1
-810 enc 6 1
-820 enc 6 1
-830 enc 1 1
-1000 shot
-1100 held 0x100
-1150 held 0
-1200 btn 12
-1700 shot
-1800 held 0x100
-2600 held 0
-2800 shot
-2900 held 0x100
-2950 held 0
-3000 btn 7
-3300 shot
-4000 end
+400 enc 1 1
+600 shot
+700 held 0x100
+750 held 0
+800 btn 12
+1500 shot
+1600 enc 6 -1
+1700 btn 1
+1900 shot
+2000 held 0x100
+2050 held 0
+2100 held 0x100
+2900 held 0
+3100 shot
+3200 held 0x100
+3250 held 0
+3300 btn 7
+3600 shot
+4500 end

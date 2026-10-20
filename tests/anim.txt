@@ -1,0 +1,35 @@
+# the top bar: every animation, on the rack
+50 held 0x100
+100 held 0
+300 shot
+400 btn 12
+550 shot
+650 shot
+1400 shot
+1500 btn 12
+1600 shot
+1750 shot
+2200 enc 2 6
+2300 shot
+2400 shot
+2900 enc 1 1
+2980 shot
+3100 btn 9
+3300 shot
+3400 shot
+3500 shot
+4000 enc 6 -1
+4100 btn 1
+4200 enc 0 1
+4210 enc 0 1
+4300 btn 1
+4500 shot
+4600 shot
+5000 held 0x40
+5800 shot
+5900 shot
+6200 held 0
+6300 btn 1
+6500 shot
+6700 shot
+7000 end

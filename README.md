@@ -1,6 +1,6 @@
 # Chipbox
 
-Chiptune 'grovebox' thing with NES, GB, and SMS stuff **Alpha.**
+Chiptune 'grovebox' thing with NES, GB, and SMS stuff
 
 <p>
 <img src="site/img/nes.png" width="30%"> <img src="site/img/gameboy.png" width="30%"> <img src="site/img/sms.png" width="30%">
@@ -8,26 +8,43 @@ Chiptune 'grovebox' thing with NES, GB, and SMS stuff **Alpha.**
 <img src="site/img/rack.png" width="30%"> <img src="site/img/projects.png" width="30%"> <img src="site/img/help.png" width="30%">
 </p>
 
-## What works
+## What is it
 
-- Kind of a proof of concept right now. Sounds cool. Not really worth installing yet lmao
+A simple (to me) workflow for making music. Theres 3 main views you'll spend all your time in:
 
-Not yet: everything
+RACK - this is the current page (16 steps). Use this to add channels
+CHIPs - this is where you can config each channel. You pick a channel from the hardware first (NES, GB, SMS), and then what channel (like PU1, WAV, etc). If you want appregio, make a channel and change the shape to an appregio shape.
+SONG - this is where you stitch together the pages into a song
+
+### Example workflow
+
+- Start on the RACK view. Hit the plus to add a channel.
+- Hit HOME to go to the CHIPs, rotate presets knob to get to the channel you added.
+- Rotate Algorithm to flip between the configs. Go to the last config page and change the shape.
+- Hit HOME, and then add some notes. Use select to go to the exact note, and enter it with the keyboard. Hit play to hear how it sounds as you build it up.
+- Hit HOME until SONG is visible. Hit OCT+ to add another page. Select the page, and hit 'HOME' to go back to the rack, and config it again.
+
+Kind of repeat that a few times until you have something that sounds rad!
+
+wanna make a new song? hold HOME, select an empty project, and hit OCT+. Wanna go back to the other project? hold HOME, and select the previous, then hit OCT+.
+
+want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno whatever hahaha.
 
 ## Install
 
 Easiest: the project page's installer (`site/install.html`), in Chrome or Edge with the FM-1 on USB.
 
-Or download `chipbox-*.fwsc` from the Releases page and, with Python 3:
+## Playing nice with others
 
-```sh
-pip install mido python-rtmidi
-python3 tools/fm1_install.py chipbox-0.1.0-alpha.fwsc
-```
+- Doesnt read other projects or samples. Sorry, couldnt figure out a good way to do this, or a good reason to.
+
+## Tested?
+
+- Tested on a few real FM-1's!
 
 ## Build
 
-Note: Only ever ran this on a mac. good luck for other platforms
+Note: I've only ever ran this on a mac. good luck for other platforms
 
 ```sh
 tools/get_toolchain.sh                      # clang for the chip, to ~/.jieli/toolchain
@@ -39,11 +56,6 @@ tests/run_host.sh tests/screens.txt         # on Linux: the screens as PNG, no F
 ```
 
 On a Mac, run the host simulator in Docker (see `docs/RELEASING.md`).
-
-## Versions
-
-`v0.MINOR.PATCH-alpha`: a new minor for new things you can do, a patch for fixes. See `CHANGELOG.md` and
-`docs/RELEASING.md`.
 
 ## Licence
 

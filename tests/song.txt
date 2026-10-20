@@ -1,0 +1,20 @@
+# starts on the rack; HOME: chip, song; OCT+ a blank page; PRESETS cycles pages (plays them); EDIT opens the page in the rack; tempo on knob 1
+300 shot
+400 held 0x100
+450 held 0
+600 shot
+700 held 0x100
+750 held 0
+900 shot
+1000 btn 1
+1100 enc 2 5
+1180 enc 2 3
+1300 shot
+1400 enc 6 1
+1500 shot
+1600 enc 0 -1
+1700 shot
+1800 held 0x40
+1850 held 0
+2000 shot
+3000 end

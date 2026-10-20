@@ -1,11 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* The chip screen: the selected channel's sound. Tabs for its channels, its envelope drawn, and a card for each
- * knob showing what it is set to. Two pages of cards (the ALGORITHM knob flips them): the tone (duty or wave, decay,
- * vibrato, sweep or pan) and the envelope (attack, decay, sustain, release). Included by chipbox.c. */
+/* The chip screen: the selected channel's sound. A tab with its name, its envelope drawn, and a card for each knob
+ * showing what it is set to. Three pages of cards (the ALGORITHM knob flips them): the tone (duty or wave, volume,
+ * vibrato, sweep or pan), the envelope (attack, decay, sustain, release) and the arp (chord, speed, direction).
+ * Included by chipbox.c. */
 #define CV_TABS_Y 44
-#define CV_ENV_Y 76
-#define CV_ENV_H 90
-#define CV_CARDS_Y 170
+#define CV_ENV_Y 74
+#define CV_ENV_H 76
+#define CV_CARDS_Y 154
+#define CV_CARDS_H 58
 #define CV_CARD_W 57                            /* four cards, 2 apart */
 #define CV_CARD_X(k) (3 + (int32_t)(k) * (CV_CARD_W + 2))
 
@@ -42,17 +44,16 @@ static void skin_pointer(const theme_t *t, int32_t x, int32_t y, uint16_t col)  
     for (i = 0; i < 5; i++) cv_rect(x + i, y + i, 1, 9 - 2 * i, col);
 }
 
-static void chip_tabs(const theme_t *t, uint32_t chip, uint32_t sel)
+static void chip_tabs(const theme_t *t, uint32_t c)
 {
-    uint32_t c;
+    uint32_t chip = KIND_CHIP[chan[c].kind];
+    char nm[16];
     cv_begin(240, 26, t->bg);
-    for (c = 0; c < CHIP_NCH[chip]; c++) {
-        int32_t x = 3 + (int32_t)c * 79;
-        uint16_t ink = c == sel ? t->bg : t->fg;
-        skin_box(chip, t, x, 0, 75, 26, c == sel ? t->acc : t->bar);
-        channel_glyph(chip, c, x + 8, 6, 22, 14, ink);
-        cv_text(x + 34, 5, &FONT_S, t->ch[c], ink);
-    }
+    skin_box(chip, t, 3, 0, 234, 26, t->acc);                   /* one wide tab: the channel's picture, its name, its place in the list */
+    channel_glyph(c, 12, 6, 22, 14, t->bg);
+    cv_text(42, 5, &FONT_S, KIND_NAME[chan[c].kind], t->bg);
+    fmt_u(nm, c + 1u);
+    cv_text(228 - text_w(&FONT_S, nm), 5, &FONT_S, nm, t->bg);
     cv_blit(0, CV_TABS_Y - 1);
 }
 
@@ -63,7 +64,7 @@ static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
     int32_t px[5], py[5];
     cv_begin(240, CV_ENV_H, t->bg);
     skin_box(chip, t, 3, 0, 234, CV_ENV_H, t->bar);
-    cv_rect(214, 6, 6, 6, page ? t->dim : t->acc); cv_rect(224, 6, 6, 6, page ? t->acc : t->dim);       /* which page of knobs */
+    { uint32_t d; for (d = 0; d < 3u; d++) cv_rect(204 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
     w[0] = 4 + (int32_t)in->atk * 4;
     w[1] = 4 + (15 - (int32_t)in->sus) * (2 * (int32_t)in->dec + 1) * 2 / 15;
@@ -98,22 +99,44 @@ static void card_bar(const theme_t *t, uint32_t chip, int32_t x, int32_t v, int3
         if (v > 0) cv_rect(x + 8, 36, 40 * v / max, 10, t->acc);
     }
 }
-static void chip_cards(const theme_t *t, uint32_t chip, uint32_t c, uint32_t page)
+static void tri_icon(int32_t x, int32_t y, int32_t up, uint16_t col)               /* a small triangle, 11 wide */
 {
-    const inst_t *in = &inst[chip][c];
-    uint32_t k, k1 = has_wave(chip, c) || has_duty(chip, c);
+    int32_t i;
+    for (i = 0; i < 6; i++) cv_rect(x + 5 - i, y + (up ? i : 5 - i), 1 + 2 * i, 1, col);
+}
+static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
+{
+    static const char *const ENVL[4] = {"ATK", "DEC", "SUS", "REL"};
+    static const char *const ARPL[4] = {"SHAPE", "RATE", "DIR", ""};
+    static const uint8_t BARS[4] = {2, 4, 6, 9};
+    const inst_t *in = &chan[c].in;
+    uint32_t chip = KIND_CHIP[chan[c].kind], k, k1 = has_wave(c) || has_duty(c);
     int32_t sw = in->sweep;
-    cv_begin(240, 64, t->bg);
+    cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
-        int32_t x = CV_CARD_X(k);
-        static const char *const ENVL[4] = {"ATK", "DEC", "SUS", "REL"};
-        const char *lab = page ? ENVL[k] : k == 0u ? (has_wave(chip, c) ? "WAVE" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : chip == CHIP_GB ? "PAN" : "SWEEP";
-        uint16_t lc = !page && ((k == 0u && !k1) || (k == 1u && !has_vol(chip, c))) ? t->dim : t->fg;
-        skin_box(chip, t, x, 0, CV_CARD_W, 64, t->bar);
+        int32_t x = CV_CARD_X(k), i;
+        const char *lab = page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : chip == CHIP_GB ? "PAN" : "SWEEP";
+        uint16_t lc = page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c))) ? t->dim : t->fg;
+        skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
+        if (!*lab) continue;
         cv_text(x + (CV_CARD_W - text_w(&FONT_S, lab)) / 2, 4, &FONT_S, lab, lc);
-        if (page) card_bar(t, chip, x, k == 0u ? in->atk : k == 1u ? in->dec : k == 2u ? in->sus : in->rel, 15);
-        else if (k == 0u) { if (k1) channel_glyph(chip, c, x + 8, 28, 40, 30, t->acc); }
-        else if (k == 1u) { if (has_vol(chip, c)) card_bar(t, chip, x, in->vol, 15); }
+        if (page == 2u) {
+            if (k == 0u) {                                                      /* the chord's notes as dots, low to high; a dash is off */
+                if (!in->arp) cv_rect(x + 18, 42, 20, 3, t->dim);
+                else for (i = 0; i < (int32_t)ARP_N[in->arp - 1u]; i++) cv_rect(x + 8 + i * 11, 49 - ARP_IV[in->arp - 1u][i] * 3 / 2, 8, 4, t->acc);
+            } else if (k == 1u) {                                               /* faster: more bars */
+                int32_t n = BARS[in->arp_rate & 3u];
+                for (i = 0; i < n; i++) cv_rect(x + 8 + i * 40 / n, 32, 3, 18, in->arp ? t->acc : t->dim);
+            } else {                                                            /* up, down, up and down */
+                uint32_t d = in->arp_dir;
+                uint16_t on = in->arp ? t->acc : t->dim;
+                tri_icon(x + 7, 32, 1, d == 0u ? on : t->dim);
+                tri_icon(x + 23, 32, 0, d == 1u ? on : t->dim);
+                tri_icon(x + 39, 28, 1, d == 2u ? on : t->dim); tri_icon(x + 39, 35, 0, d == 2u ? on : t->dim);
+            }
+        } else if (page == 1u) card_bar(t, chip, x, k == 0u ? in->atk : k == 1u ? in->dec : k == 2u ? in->sus : in->rel, 15);
+        else if (k == 0u) { if (k1) channel_glyph(c, x + 8, 26, 40, 26, t->acc); }
+        else if (k == 1u) { if (has_vol(c)) card_bar(t, chip, x, in->vol, 15); }
         else if (k == 2u) card_bar(t, chip, x, in->vib_dep, 15);
         else if (chip == CHIP_GB) {                                 /* left, centre, right */
             int32_t p;
@@ -127,9 +150,9 @@ static void chip_cards(const theme_t *t, uint32_t chip, uint32_t c, uint32_t pag
     }
     cv_blit(0, CV_CARDS_Y);
 }
-static void chip_panels(const theme_t *t, uint32_t chip, uint32_t c, uint32_t page)
+static void chip_panels(const theme_t *t, uint32_t c, uint32_t page)
 {
-    chip_tabs(t, chip, c);
-    chip_env(t, chip, &inst[chip][c], page);
-    chip_cards(t, chip, c, page);
+    chip_tabs(t, c);
+    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page);
+    chip_cards(t, c, page);
 }

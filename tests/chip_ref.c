@@ -2,7 +2,7 @@
 /* Renders one steady note from chips.c to a WAV, no screen, no tick-driven changes: for comparing against
  * reference emulators (tests/ref_compare.py).
  *   cc -O2 -Ifirmware/src -Ifirmware/gen -o build/host/chip_ref tests/chip_ref.c
- *   build/host/chip_ref CHIP CH NOTE SECONDS OUT.wav [WAVE_OR_DUTY [PAN [ANALOG]]]      CHIP: 0 NES 1 GB 2 SMS; ANALOG: 0 clean 1 hardware 2 alt */
+ *   build/host/chip_ref CHIP CH NOTE SECONDS OUT.wav [WAVE_OR_DUTY [PAN [ANALOG]]]      CHIP: 0 NES 1 GB 2 SMS (CH 0, 1 pulse or tone, 2 triangle / wave); ANALOG: 0 clean 1 hardware 2 alt */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,13 +23,16 @@ int main(int argc, char **argv)
     if (argc > 6) par = (uint32_t)atoi(argv[6]);
     if (argc > 7) pan = (uint32_t)atoi(argv[7]);
     if (argc > 8) analog_mode[chip] = (uint32_t)atoi(argv[8]);
-    if (chip >= CHIPS || ch >= CHIP_NCH[chip]) { fprintf(stderr, "bad chip or channel\n"); return 2; }
-    { inst_t *in = &inst[chip][ch];
+    { static const uint8_t KIND_OF[CHIPS][3] = {{KD_NES_PU, KD_NES_PU, KD_NES_TRI}, {KD_GB_PU, KD_GB_PU, KD_GB_WAV}, {KD_SMS, KD_SMS, KD_SMS}};
+      inst_t *in;
+      if (chip >= CHIPS || ch >= 3u) { fprintf(stderr, "bad chip or channel\n"); return 2; }
+      chan_add(KIND_OF[chip][ch]);
+      in = &chan[0].in;
       in->atk = 0; in->dec = 0; in->sus = 15; in->rel = 0; in->vib_spd = in->vib_dep = 0; in->sweep = 0; in->pan = (uint8_t)pan;
       in->wave = (uint8_t)par; in->duty = (uint8_t)par; }
     memset(blk, 0, sizeof blk);
     chip_render(blk, 256);                      /* the first block starts the engine */
-    chip_note(chip, ch, note, 127);
+    chip_note(0, note, 127);
     pcm = malloc(frames * 4u);
     while (done < frames) {
         uint32_t n = frames - done < 256u ? frames - done : 256u;

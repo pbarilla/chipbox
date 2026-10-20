@@ -1,0 +1,26 @@
+# the channel list: HOME to the rack, PRESETS back one = the + row, OCT+ opens the add list, SELECT picks, OCT+ adds
+50 held 0x100
+100 held 0
+200 enc 6 -1
+300 shot
+400 btn 1
+500 shot
+600 enc 0 1
+610 enc 0 1
+700 btn 1
+900 shot
+1000 keys 0x1
+1100 keys 0
+1200 enc 2 10
+1300 shot
+1400 held 0x40
+2200 shot
+2300 held 0
+2400 btn 1
+2600 shot
+2700 enc 1 1
+2710 enc 1 1
+2720 enc 1 1
+2730 enc 1 1
+2900 shot
+3000 end
