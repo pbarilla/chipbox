@@ -38,7 +38,8 @@
   <p class="lead">Chiptune 'grovebox' thing with NES, GB, and SMS stuff.</p>
 
   <div class="btns">
-    <a class="btn" id="download" href="#install">Download</a>
+    <a class="btn" href="install.html">Install</a>
+    <a class="btn alt" id="download" href="#install">Download</a>
     <a class="btn alt" id="source" href="#">Source</a>
   </div>
 
@@ -58,7 +59,8 @@
   <p>Not yet: everything</p>
 
   <h2 id="install">Install</h2>
-  <p>Download <code>chipbox-*.fwsc</code> from the <a id="releases" href="#">Releases</a> page and, with Python 3:</p>
+  <p>Easiest: <a href="install.html">install it from your browser</a> (Chrome or Edge, USB cable, one button).</p>
+  <p>Or download <code>chipbox-*.fwsc</code> from the <a id="releases" href="#">Releases</a> page and, with Python 3:</p>
 <pre>pip install mido python-rtmidi
 python3 tools/fm1_install.py chipbox-0.1.0-alpha.fwsc</pre>
 
@@ -80,11 +82,9 @@ tests/run_host.sh tests/screens.txt         # on Linux: the screens as PNG, no F
   </footer>
 </main>
 <script>
-  // On GitHub Pages the repository is user.github.io/repo: link to its releases and source without writing them in.
+  // The links to the repository: the releases, the source and the files in it.
   (function () {
-    var m = location.hostname.match(/^([^.]+)\.github\.io$/), repo = location.pathname.split('/')[1];
-    if (!m || !repo) return;
-    var base = 'https://github.com/' + m[1] + '/' + repo;
+    var base = 'https://github.com/pbarilla/chipbox';
     document.getElementById('download').href = base + '/releases/latest';
     document.getElementById('releases').href = base + '/releases';
     document.getElementById('source').href = base;

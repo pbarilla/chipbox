@@ -16,7 +16,9 @@ Not yet: everything
 
 ## Install
 
-Download `chipbox-*.fwsc` from the Releases page and, with Python 3:
+Easiest: the project page's installer (`site/install.html`), in Chrome or Edge with the FM-1 on USB.
+
+Or download `chipbox-*.fwsc` from the Releases page and, with Python 3:
 
 ```sh
 pip install mido python-rtmidi

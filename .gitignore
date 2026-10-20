@@ -9,3 +9,6 @@ TODO.md
 
 # Docs
 docs/
+
+# the site's copy of the latest release's firmware (the pages workflow fetches it)
+site/firmware/

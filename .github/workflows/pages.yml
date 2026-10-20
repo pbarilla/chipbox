@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
     paths: ["site/**", ".github/workflows/pages.yml"]
+  workflow_run:                                 # a release was just built: put its firmware on the site
+    workflows: [release]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -17,12 +20,26 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Put the latest release's firmware on the site (the installer fetches it from here)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh release list --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -n "$tag" ]; then
+            mkdir -p site/firmware
+            gh release download "$tag" --pattern '*.fwsc' --pattern SHA256SUMS --dir site/firmware
+            f=$(ls site/firmware/*.fwsc | head -n 1)
+            sha=$(sha256sum "$f" | cut -d' ' -f1)
+            grep -q "$sha" site/firmware/SHA256SUMS      # the release's own checksum must match what we serve
+            printf '{"version":"%s","file":"%s","sha256":"%s"}\n' "${tag#v}" "$(basename "$f")" "$sha" > site/firmware/latest.json
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
