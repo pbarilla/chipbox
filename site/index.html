@@ -93,7 +93,6 @@
   (function () {
     var base = 'https://github.com/pbarilla/chipbox';
     document.getElementById('download').href = base + '/releases/latest';
-    document.getElementById('releases').href = base + '/releases';
     document.getElementById('source').href = base;
     var blob = base + '/blob/main/', nodes = document.querySelectorAll('[data-path]');
     for (var i = 0; i < nodes.length; i++) nodes[i].href = blob + nodes[i].getAttribute('data-path');
