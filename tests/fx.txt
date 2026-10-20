@@ -1,0 +1,17 @@
+# the punch-in layer: FX toggles it; a held white key is a pad (the grid lights, the bar animates)
+100 held 0x100
+150 held 0
+300 btn 2
+500 shot
+600 keys 0x1
+900 shot
+1000 keys 0
+1100 keys 0x80
+1400 shot
+1500 keys 0
+1600 keys 0x10000
+1900 shot
+2000 keys 0
+2100 btn 2
+2400 shot
+3000 end

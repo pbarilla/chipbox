@@ -3,8 +3,8 @@
  * a note, the tempo, the page. An action plays a short animation over it: play, pause, save, a channel added or removed,
  * a page flipped, the tempo turned, and a channel waiting to be deleted. Included by chipbox.c after rack.c. */
 #define HDR_H 42
-enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_KINDS };
-static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0};
+enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_KINDS };
+static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0};
 static uint32_t an_kind, an_t0, an_end, an_arg;
 static uint16_t hdr_bg;                         /* the bar's background on this screen, for the sheet's folded corner */
 
@@ -18,8 +18,10 @@ static uint32_t anim_on(void)
 {
     if (an_kind == AN_DELETE) return rack_rm;
     if (an_kind == AN_TAPE) return fm1_ms < an_end || (seq_run && seq_rate != 2);        /* the tape stays on show while it is not playing as normal */
+    if (an_kind == AN_FX) return fx_mask != 0 || fm1_ms < an_end;                       /* a punch-in effect: while its key is held, and a moment after */
     return an_kind && fm1_ms < an_end;
 }
+static void anim_fx(uint32_t pad) { an_kind = AN_FX; an_arg = pad; an_t0 = fm1_ms; an_end = fm1_ms + 900u; }
 static void anim_tape(void) { if (an_kind != AN_TAPE) an_t0 = fm1_ms; an_kind = AN_TAPE; an_end = fm1_ms + 1500u; }
 static void anim_tempo(void)                    /* turning the tempo goes on with the one animation, it does not start it again at each step */
 {
@@ -158,6 +160,7 @@ static void deck_key(int32_t i, int32_t down)
 }
 
 /* one frame of an animation over the whole bar; t = ms since it started */
+static void fx_anim_frame(uint32_t pad, uint32_t ms);
 static void anim_frame(const theme_t *t, uint32_t chip)
 {
     uint32_t ms = fm1_ms - an_t0;
@@ -214,6 +217,7 @@ static void anim_frame(const theme_t *t, uint32_t chip)
             deck_key(k, down);
         }
         break; }
+    case AN_FX: fx_anim_frame(an_arg < FXN ? an_arg : 0u, ms); break;
     case AN_TAPE: {                                 /* the tape: two reels turn at the dial's speed and way, a scale with a needle, the head between */
         int32_t r = seq_rate, a = r < 0 ? -r : r, spin;
         static const uint8_t SPD[4] = {0, 1, 2, 4};

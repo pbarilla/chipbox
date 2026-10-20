@@ -229,6 +229,8 @@ static void chip_clear(uint32_t chip)
     default: break;
     }
 }
+static volatile int32_t fx_pitch;                /* all voices, Q8 semitones: the pitch effects (fx.c) */
+static volatile uint8_t fx_solo_ch = 255;        /* solo (fx.c): the one channel left sounding (255: none) */
 static volatile uint8_t duck_ch = 255;           /* while recording: the channel being played stays loud, the others are ducked (255: none) */
 static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice still sounds */
 {
@@ -259,18 +261,22 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
         if (++vc[c].arp_t >= ARP_TICKS[in->arp_rate & 3u]) { vc[c].arp_t = 0; vc[c].arp_k++; }
         vc[c].arp_off = (uint8_t)arp_offset(in->arp, in->arp_dir, vc[c].arp_k);
     }
-    pq = (((int32_t)vc[c].note + vc[c].arp_off) << 8) + vc[c].bend + lfo;
+    pq = (((int32_t)vc[c].note + vc[c].arp_off) << 8) + vc[c].bend + lfo + fx_pitch;
     pq = pq < 0 ? 0 : pq > (127 << 8) ? 127 << 8 : pq;
     vol = ((uint32_t)vc[c].env * ((uint32_t)vc[c].vel + 1u)) >> 15;
     if (vol > 15u) vol = 15u;
     vol = (vol * ((uint32_t)in->vol + 1u)) >> 4;
     if (duck_ch != 255u && c != duck_ch) vol = vol * 5u >> 4;       /* about -10 dB */
+    if (fx_solo_ch != 255u && c != fx_solo_ch) vol = 0;
     set_osc(c, (uint32_t)pq, vol);
     return vc[c].stage != ST_IDLE;
 }
+static void fx_tick(void);
+static void fx_master(int32_t *out, uint32_t n);
 static void tick(void)
 {
     uint32_t chip, c;
+    fx_tick();
     for (chip = 0; chip < CHIPS; chip++) {
         uint32_t busy = 0;
         if (!awake[chip]) continue;
@@ -299,6 +305,7 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
     }
 }
 #include "seq.c"
+#include "fx.c"
 
 /* ---- changing the channel list (main loop; the audio side waits) */
 static int chan_add(uint32_t kind)               /* the new channel's number, or -1 when full */
@@ -368,6 +375,7 @@ static void chip_render(int32_t *out, uint32_t n)
         if (seq_run && !seq_hold) seq_left -= run;
         if (!tick_left) { tick_left = tick_len; tick(); }
     }
+    fx_master(out, n);
     for (k = 0; k < 2u * n; k++) out[k] = soft(out[k]);
 }
 

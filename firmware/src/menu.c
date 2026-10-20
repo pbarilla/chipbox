@@ -6,15 +6,19 @@ typedef struct { const char *text; uint8_t head; } mline_t;      /* head: a head
 #define MENU_ROWS 12                            /* 20 px a line */
 static const mline_t HELP_CHIP[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knobs 1-4 - Adjust Controls"),
-    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
 };
 static const mline_t HELP_RACK[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+};
+static const mline_t HELP_FX[] = {
+    MH("Knobs"), ML("Select - Tape (Hold TAPE)"),
+    MH("Buttons"), ML("Keys - Hold For Effect"), ML("LATCH - Keep Effects On"), ML("FX - Back"), ML("HOME - Back"), ML("PLAY - Play Stop"), ML("GLO - Help"),
 };
 static const mline_t HELP_SONG[] = {
     MH("Knobs"), ML("Select - Move Cursor"), ML("Presets - Change Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("OCT+ - New Page"), ML("OCT- - Remove Page"), ML("EDIT - Open Page"), ML("EDIT Hold - Copy Page"), ML("HOME - Next View"), ML("PLAY - Play Song"), ML("SAVE - Save"), ML("GLO - Help"),
+    MH("Buttons"), ML("OCT+ - New Page"), ML("OCT- - Remove Page"), ML("EDIT - Open Page"), ML("EDIT Hold - Copy Page"), ML("HOME - Next View"), ML("FX - Punch In"), ML("PLAY - Play Song"), ML("SAVE - Save"), ML("GLO - Help"),
 };
 static const mline_t ADD_MENU[] = {                      /* in the order of the kinds in chips.c */
     MH("Add Channel"), ML("NES Pulse"), ML("NES Triangle"), ML("GB Pulse"), ML("GB Wave"), ML("SMS Tone"),

@@ -151,6 +151,7 @@ static void draw_note(const theme_t *t, uint32_t note)
 #include "rack.c"
 #include "header.c"
 #include "songview.c"
+#include "fxview.c"
 #include "chipview.c"
 #include "menu.c"
 #include "picker.c"
@@ -193,6 +194,24 @@ static void app_main(void)
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
+        if (fx_layer && (menu_on || pick_on)) fx_off();
+        if (fx_layer) {                                 /* the punch-in layer: the white keys are the pads, held = on; they play nothing else */
+            uint32_t mask = 0, p, now;
+            if (!menu_on && !pick_on) {
+                uint32_t edge;
+                for (p = 0; p < FXN; p++) if (keys >> FX_KEY[p] & 1u) mask |= FXB(p);
+                edge = mask & ~fx_raw; fx_raw = mask;
+                if (edge & FXB(FX_LATCH)) { fx_lat ^= 1u; if (!fx_lat) fx_tog = 0; }       /* LATCH: pads stay on when tapped, tap again to turn off */
+                if (fx_lat) { fx_tog ^= edge & ~FXB(FX_LATCH); mask = fx_tog | FXB(FX_LATCH); }
+                else mask &= ~FXB(FX_LATCH);
+                now = mask & ~fx_held;
+                for (p = 0; p < FXN; p++) if (now >> p & 1u) anim_fx(p);
+                if (!mask && fx_held) { /* all let go: the animation finishes by itself */ }
+                else if (mask && (fx_held & ~mask)) { for (p = 0; p < FXN; p++) if (mask >> p & 1u) { an_arg = p; break; } }
+                fx_apply(mask);
+            }
+            down = up = 0;
+        }
         for (k = 0; k < 27u; k++) {
             if (down >> k & 1u) {
                 held[k] = (uint8_t)(base + k); held_ch[k] = (uint8_t)sel;
@@ -257,11 +276,13 @@ static void app_main(void)
         } else {
         if (b & (1u << BTN_GLO)) {                      /* help for the view you are on; GLO or HOME again goes back */
             if (menu_on) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
+            else if (fx_layer) menu_open(HELP_FX, sizeof HELP_FX / sizeof HELP_FX[0]);
             else if (view == 2u) menu_open(HELP_SONG, sizeof HELP_SONG / sizeof HELP_SONG[0]);
             else if (view) menu_open(HELP_RACK, sizeof HELP_RACK / sizeof HELP_RACK[0]);
             else menu_open(HELP_CHIP, sizeof HELP_CHIP / sizeof HELP_CHIP[0]);
         } else if (home_tap) {
             if (menu_on) menu_on = 0;
+            else if (fx_layer) { fx_layer = 0; fx_off(); }       /* HOME leaves the punch-in layer first */
             else view = view == 1u ? (chan_n ? 0u : 2u) : view == 0u ? 2u : 1u;       /* HOME: the rack, the chip, the song, the rack ... */
             rack_force = 1; chip_drawn = ~0u;
         }
@@ -269,6 +290,12 @@ static void app_main(void)
             if (seq_run && seq_hold) { seq_rate = 2; seq_hold = 0; anim_start(AN_PLAY, 0); }                   /* paused on the tape: go on */
             else if (seq_run) { seq_stop(); rec_on = 0; duck_ch = 255; anim_start(AN_PAUSE, 0); }
             else { if (view == 2u) seq_play(song_cur < song_len ? song_cur : 0u, 0); else seq_play(0, 1); anim_start(AN_PLAY, 0); }
+        }
+        if ((b & (1u << BTN_FX)) && !menu_on) {          /* FX: the punch-in layer on and off */
+            fx_layer ^= 1u;
+            if (fx_layer) { for (k = 0; k < 27u; k++) if (prev >> k & 1u && held_ch[k] < chan_n) chip_off(held_ch[k]); }
+            else fx_off();
+            rack_force = 1; chip_drawn = ~0u;
         }
         if ((b & (1u << BTN_REC)) && !menu_on && view != 2u && sel < chan_n) {      /* REC: arm (and start the page round and round); again: disarm */
             if (rec_on) { rec_on = 0; duck_ch = 255; seq_stop(); anim_start(AN_REC, 1); }                  /* REC again: stop recording and the playing */
@@ -359,8 +386,8 @@ static void app_main(void)
             }
             else if (sel < chan_n) { chip_page = (chip_page + (e < 0 ? 2u : 1u)) % 3u; redraw = 1; }
         }
-        e = fm1_enc_take(ENC_SELECT);                   /* the tape dial: middle pauses, right goes on, left goes back */
-        if (e) { seq_shuttle(e); anim_tape(); rack_inval = 1; }
+        e = fm1_enc_take(ENC_SELECT);                   /* the tape dial: middle pauses, right goes on, left goes back; in the punch-in layer only while TAPE is held */
+        if (e && (!fx_layer || (fx_held & FXB(FX_TAPE)))) { seq_shuttle(e); anim_tape(); rack_inval = 1; }
         for (k = 0; k < 4u; k++) {
             e = fm1_enc_take(ENC_KNOB1 + k);
             if (!e) continue;
@@ -379,6 +406,7 @@ static void app_main(void)
             if ((st & 0xF0u) == 0xB0u && d1 == 102u) { if (d2 >= 64u) seq_play(0, 0); else if (seq_run) seq_stop(); continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 103u) { seq_bpm = d2 * 2u; proj_edited(); continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
+            if ((st & 0xF0u) == 0xB0u && d1 == 108u) { fx_apply(d2 == 0u ? 0u : d2 <= FXN ? fx_held | FXB(d2 - 1u) : d2 <= 2u * FXN ? fx_held & ~FXB(d2 - 1u - FXN) : fx_held); if (d2 && d2 <= FXN) anim_fx(d2 - 1u); continue; }     /* test: pad d2-1 on; d2 17..32: pad off; 0: all off */
             if ((st & 0xF0u) == 0xB0u && d1 == 106u) { if (chan_add(d2) >= 0) proj_edited(); continue; }              /* test: add a channel of kind d2 */
             if ((st & 0xF0u) == 0xB0u && d1 == 107u) { if (chan_n) { seq_stop(); chan_remove(chan_n - 1u); proj_edited(); } continue; }     /* test: remove the last channel */
             if ((st & 0xF0u) == 0xB0u && d1 == 105u && d2 < PROJ_SLOTS) { proj_open(d2); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; continue; }
@@ -392,8 +420,13 @@ static void app_main(void)
             int32_t ki = (int32_t)vc[sel].note - (int32_t)base;
             if (ki >= 0 && ki < 27) lit |= 1u << ki;
         }
-        for (k = 0; k < 27u; k++)
-            fm1_led_key(KEY_LED(k), lit >> k & 1u);
+        if (fx_layer) {                                 /* the pads' keys glow, the held ones are bright */
+            uint32_t p;
+            for (k = 0; k < 27u; k++) { fm1_led_key(KEY_LED(k), 0); fm1_led_glow(KEY_LED(k), 0); }
+            for (p = 0; p < FXN; p++) { fm1_led_glow(KEY_LED(FX_KEY[p]), 1); if (fx_mask >> p & 1u) fm1_led_key(KEY_LED(FX_KEY[p]), 1); }
+        } else for (k = 0; k < 27u; k++) { fm1_led_glow(KEY_LED(k), 0); fm1_led_key(KEY_LED(k), lit >> k & 1u); }
+        fx_solo_ch = (fx_held & FXB(FX_SOLO)) && sel < chan_n ? (uint8_t)sel : 255u;
+        fm1_led_key(BTN_FX, fx_layer);
         fm1_led_key(BTN_PLAY, seq_run);
         fm1_led_key(BTN_REC, rec_on);
         fm1_led_glow(BTN_SAVE, proj_dirty);             /* a dim light: edits not saved yet */
@@ -408,6 +441,10 @@ static void app_main(void)
         if (fm1_ms - cc_ms >= 500u) { cc_ms = fm1_ms; midi_send(0xB0, 100, cpu > 127u ? 127u : cpu); midi_send(0xB0, 101, proj_cur | (proj_dirty ? 0x10u : 0u) | (proj_loaded ? 0x20u : 0u)); }
         if (pick_on) { if (pick_dirty) { pick_draw(); pick_dirty = 0; } }
         else if (menu_on) { if (menu_dirty) { lcd_fill(0, 0, 240, 240, R_BG); menu_draw(t->acc); menu_dirty = 0; } }
+        else if (fx_layer) {
+            if (rack_force) { fx_view_force = 1; hdr_force = 1; rack_force = 0; }
+            fx_view_update(); hdr_update(view, sel, t, ch_chip, last_note);
+        }
         else if (view == 2u) { sg_update(rack_force); rack_force = 0; hdr_update(2, sel, t, ch_chip, last_note); }
         else if (view == 1u) { rack_update(sel, rack_force); rack_force = 0; hdr_update(1, sel, t, ch_chip, last_note); }
         else if (sel < chan_n) {

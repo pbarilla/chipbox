@@ -1,0 +1,58 @@
+# every pad held in turn, the bar captured 650 ms in; tape with the dial turned; latch
+100 btn 12
+300 btn 2
+600 keys 0x1
+800 enc 0 -1
+1250 shot
+1300 keys 0
+1700 keys 0x4
+2350 shot
+2400 keys 0
+2800 keys 0x10
+3450 shot
+3500 keys 0
+3900 keys 0x40
+4550 shot
+4600 keys 0
+5000 keys 0x80
+5650 shot
+5700 keys 0
+6100 keys 0x200
+6750 shot
+6800 keys 0
+7200 keys 0x800
+7850 shot
+7900 keys 0
+8300 keys 0x1000
+8950 shot
+9000 keys 0
+9400 keys 0x4000
+10050 shot
+10100 keys 0
+10500 keys 0x10000
+11150 shot
+11200 keys 0
+11600 keys 0x40000
+12250 shot
+12300 keys 0
+12700 keys 0x80000
+13350 shot
+13400 keys 0
+13800 keys 0x200000
+14450 shot
+14500 keys 0
+14900 keys 0x800000
+15550 shot
+15600 keys 0
+16000 keys 0x1000000
+16650 shot
+16700 keys 0
+17100 keys 0x4000000
+17750 shot
+17800 keys 0
+18200 keys 0x4000000
+18300 keys 0
+18400 keys 0x80
+18500 keys 0
+19100 shot
+19400 end

@@ -19,6 +19,9 @@ static volatile uint32_t seq_bpm = 120;
 #define SONG_MAX 128
 static uint8_t song[SONG_MAX];                  /* the page of each slot */
 static uint32_t song_len = 1;
+static volatile int32_t fx_speed = 256;        /* the tape pad (fx.c): 256 normal, 512 double, 128 half, 0 stopped; pitch and level follow */
+static volatile uint8_t fx_rpt;                 /* beat repeat (a punch-in effect): ticks between repeats, 0 off */
+static uint8_t rpt_step, rpt_page, rpt_cnt;     /* ... of this step, on this page */
 static volatile int8_t seq_rate;                /* the tape dial: -3..3, 0 pause; 1 half speed, 2 normal, 3 double; negative runs backwards */
 static volatile uint8_t seq_hold, seq_seeked;   /* seq_hold: paused (the clock stands still); seq_seeked: the playhead was moved, PLAY goes on from there */
 static volatile uint32_t seq_ticks;             /* clock ticks since play: a recorded note's length */
@@ -41,7 +44,16 @@ static void seq_clock(void)                     /* one tick, in the audio ISR */
     seq_ticks++;
     for (t = 0; t < chan_n; t++)                /* what is already sounding: its length */
         if (tr[t].on && tr[t].gate && !--tr[t].gate) { ev_do(EV_OFF, t, 0, 0); tr[t].on = 0; }
-    if (!seq_sub) {                             /* a new step */
+    if (fx_rpt) {                               /* beat repeat: the step that was held sounds again and again */
+        if (!rpt_cnt) for (t = 0; t < chan_n; t++) {
+            const step_t *s = &pat[rpt_page][t][rpt_step];
+            if (!s->note) continue;
+            tr[t].on = 1; tr[t].gate = s->gate < fx_rpt ? s->gate : (uint8_t)(fx_rpt > 1u ? fx_rpt - 1u : 1u);
+            ev_do(EV_ON, t, s->note, s->vel);
+        }
+        if (++rpt_cnt >= fx_rpt) rpt_cnt = 0;
+    }
+    if (!seq_sub && !fx_rpt) {                  /* a new step */
         for (t = 0; t < chan_n; t++) {
             const step_t *s = &pat[seq_pat][t][seq_step];
             if (!s->note) continue;
@@ -84,6 +96,7 @@ static void seq_back(void)                      /* one tick backwards: crossing 
             if (seq_follow) seq_view = seq_pat;
         }
     }
+    if (fx_rpt) return;
     for (t = 0; t < chan_n; t++) {
         const step_t *s = &pat[seq_pat][t][seq_step];
         if (!s->note) continue;

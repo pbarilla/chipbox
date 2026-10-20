@@ -74,6 +74,12 @@ arr("SMS_N", "uint16_t", [clamp(round(SMS_CLK / (32 * f(n))), 1, 1023) for n in 
 arr("SMS_AMP", "int16_t", [0] + [round(4500 * 10 ** (-(15 - v) / 10)) for v in range(1, 16)])
 arr("SMS_NSTEP", "uint32_t", [round(SMS_CLK / d / FSO * 65536) for d in (512, 1024, 2048)], 3)
 
+# punch-in filters: a one-pole low-pass / high-pass coefficient (Q14) for 16 cutoffs; 0 = open (bypassed)
+def pole(f):
+    return round(16384 * (1 - math.exp(-2 * math.pi * f / FS)))
+arr("FX_LP_A", "uint16_t", [16384] + [pole(8000 * (250 / 8000) ** (i / 15)) for i in range(1, 16)], 16)      # low-pass closing from 8 kHz to 250 Hz
+arr("FX_HP_A", "uint16_t", [0] + [pole(40 * (3000 / 40) ** (i / 15)) for i in range(1, 16)], 16)            # high-pass opening up from 40 Hz to 3 kHz
+
 arr("VIB", "int8_t", [round(127 * math.sin(2 * math.pi * i / 32)) for i in range(32)], 16)
 
 dst = Path(__file__).resolve().parent.parent / "firmware" / "gen" / "chip_tables.h"
