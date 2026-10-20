@@ -26,13 +26,12 @@
 <body>
 <main>
   <h1>Install Chipbox<span class="tag">ALPHA</span></h1>
-  <p>Plug the FM-1 into this computer with a USB data cable. Chrome or Edge only. Close anything else that uses MIDI.</p>
+  <p>Plug in the FM-1. Use Chrome or Edge.</p>
   <p><button id="go" disabled>Install</button><span id="version"></span></p>
   <progress id="bar" max="100" value="0"></progress>
   <p id="status"></p>
-  <p class="small">Don't unplug it while it says Writing. If it stops, replug and press Install again: the FM-1 stays in update mode until it's finished.</p>
-  <p class="small">Chipbox saves its projects in the flash area X0X, SLOOP and others use for theirs, so installing it and saving a project erases theirs. To get back to stock use "Back to official" on the <a href="https://thefirmwarehub.com">FM-1 Firmware Hub</a>. If the FM-1 won't start, hold OCT- while switching it on and install again.</p>
-  <p class="small">Alpha, GPL-3.0, no warranty. The installer is <a href="https://github.com/hugelton/Felucca">Felucca</a>'s (Hügelton Instruments). <a href="./">Back</a></p>
+  <p class="small">Don't unplug it till it's done.</p>
+  <p class="small">Installer by <a href="https://github.com/hugelton/Felucca">Felucca</a>. <a href="./">Back</a></p>
   <pre id="log"></pre>
 </main>
 <script type="module" src="js/install.js"></script>

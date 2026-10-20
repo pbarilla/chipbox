@@ -8,22 +8,22 @@ const PRODUCT = "FM-1_337";                     // the identity Chipbox reports 
 const $ = (id) => document.getElementById(id);
 
 const TEXT = {
-  nomidi: "This browser can't do it. Open the page in Chrome or Edge.",
-  norelease: "No release to install yet.",
-  loadfail: "Could not load the firmware: ",
-  badpkg: "The firmware file is damaged. Reload the page.",
+  nomidi: "Use Chrome or Edge.",
+  norelease: "Nothing to install yet.",
+  loadfail: "Couldn't load it: ",
+  badpkg: "The file is damaged. Reload.",
   start: "Starting", verify: "Checking", loader: "Switching to update mode", write: "Writing",
   reboot: "Restarting", done: "Done. Press GLO on the FM-1 for help.",
-  stopped: "Stopped. Replug the USB cable and press Install again.",
+  stopped: "Stopped. Replug it and try again.",
   error: "Error: ",
-  denied: "MIDI (SysEx) wasn't allowed. Allow MIDI in the site settings (address bar) and press Install again.",
-  notfound: "No FM-1 found. Check the USB cable (a data cable) and close other apps using MIDI, then press Install again.",
-  model: "The connected device isn't an FM-1.",
-  lost: "The USB connection was lost. Replug it and press Install again.",
-  noloader: "The FM-1 in update mode wasn't found. Replug the USB cable and press Install again (it stays in update mode until it's finished).",
-  noreturn: "The FM-1 didn't come back. Power-cycle it.",
-  mismatch: "Written, but the FM-1 reports another firmware: ",
-  leave: "Writing. Don't close the page.",
+  denied: "MIDI was blocked. Allow it for this site and try again.",
+  notfound: "No FM-1 found. Check the USB cable and close other MIDI apps.",
+  model: "That isn't an FM-1.",
+  lost: "Lost the USB connection. Replug it and try again.",
+  noloader: "Lost the FM-1. Replug it and try again.",
+  noreturn: "It didn't come back. Turn it off and on.",
+  mismatch: "Done, but it reports: ",
+  leave: "Writing. Keep this page open.",
 };
 const say = (k, arg = "") => { $("status").textContent = (TEXT[k] ?? k) + arg; };
 const log = (s) => { $("log").textContent += s + "\n"; };
