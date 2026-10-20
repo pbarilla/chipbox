@@ -3,8 +3,8 @@
  * a note, the tempo, the page. An action plays a short animation over it: play, pause, save, a channel added or removed,
  * a page flipped, the tempo turned, and a channel waiting to be deleted. Included by chipbox.c after rack.c. */
 #define HDR_H 42
-enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_KINDS };
-static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800};
+enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_KINDS };
+static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0};
 static uint32_t an_kind, an_t0, an_end, an_arg;
 static uint16_t hdr_bg;                         /* the bar's background on this screen, for the sheet's folded corner */
 
@@ -14,7 +14,13 @@ static uint16_t sg_color(uint32_t page)
     return C[page & 7u];
 }
 static void anim_start(uint32_t kind, uint32_t arg) { an_kind = kind; an_t0 = fm1_ms; an_end = fm1_ms + AN_DUR[kind]; an_arg = arg; }
-static uint32_t anim_on(void) { return an_kind == AN_DELETE ? rack_rm : (an_kind && fm1_ms < an_end); }
+static uint32_t anim_on(void)
+{
+    if (an_kind == AN_DELETE) return rack_rm;
+    if (an_kind == AN_TAPE) return fm1_ms < an_end || (seq_run && seq_rate != 2);        /* the tape stays on show while it is not playing as normal */
+    return an_kind && fm1_ms < an_end;
+}
+static void anim_tape(void) { if (an_kind != AN_TAPE) an_t0 = fm1_ms; an_kind = AN_TAPE; an_end = fm1_ms + 1500u; }
 static void anim_tempo(void)                    /* turning the tempo goes on with the one animation, it does not start it again at each step */
 {
     if (an_kind == AN_TEMPO && fm1_ms < an_end) an_end = fm1_ms + 800u;
@@ -108,6 +114,49 @@ static void sparks(int32_t cx, int32_t cy, uint32_t t, uint32_t d, int32_t reach
     for (i = 0; i < 8u; i++) cv_rect(cx + DX[i] * r / 10 - 1, cy + DY[i] * r / 10 - 1, 3, 3, c);
 }
 
+static void disc(int32_t cx, int32_t cy, int32_t r, uint16_t c)                 /* a filled circle */
+{
+    int32_t dy;
+    for (dy = -r; dy <= r; dy++) {
+        int32_t hw = r, lim = r * r - dy * dy;
+        while (hw * hw > lim) hw--;
+        cv_rect(cx - hw, cy + dy, 2 * hw + 1, 1, c);
+    }
+}
+static void reel(int32_t cx, int32_t cy, int32_t spin)                          /* a tape reel: tape on a hub with three spokes, spin 0..31 */
+{
+    int32_t i;
+    disc(cx, cy, 15, RGB(90, 62, 44)); disc(cx, cy, 12, RGB(60, 44, 34)); disc(cx, cy, 7, RGB(205, 205, 212));
+    for (i = 0; i < 3; i++) {
+        uint32_t a = (uint32_t)(spin + i * 11) & 31u;
+        int32_t x = cx + VIB[(a + 8u) & 31u] * 7 / 127, y = cy + VIB[a] * 7 / 127;
+        cv_line(cx, cy, x, y, RGB(70, 72, 82)); cv_line(cx + 1, cy, x + 1, y, RGB(70, 72, 82));
+    }
+    disc(cx, cy, 2, RGB(70, 72, 82));
+}
+/* a cassette deck's keys: rewind, forward, play, record, stop. Record and play go down together and stay down. */
+static void deck_sym(int32_t sym, int32_t cx, int32_t cy, uint16_t c)
+{
+    int32_t i;
+    if (sym == 0 || sym == 1) {                     /* two triangles, left or right */
+        for (i = 0; i < 2; i++) {
+            int32_t x = cx - 9 + i * 9, j;
+            for (j = 0; j < 8; j++) cv_rect(sym == 1 ? x + j : x + 7 - j, cy - 7 + j * 7 / 8 + 0, 1, 14 - 2 * (j * 7 / 8), c);
+        }
+    } else if (sym == 2) ico_play(cx - 6, cy - 8, 16, c);
+    else if (sym == 3) { cv_rect(cx - 3, cy - 8, 6, 16, c); cv_rect(cx - 5, cy - 6, 10, 12, c); cv_rect(cx - 8, cy - 3, 16, 6, c); }
+    else cv_rect(cx - 7, cy - 7, 14, 14, c);
+}
+static void deck_key(int32_t i, int32_t down)
+{
+    int32_t x = 34 + i * 35, y = 6 + (down ? 5 : 0);
+    uint16_t face = down ? RGB(150, 150, 158) : RGB(208, 208, 215);
+    cv_rect(x, 6 + 24, 32, down ? 3 : 8, RGB(70, 72, 82));                       /* the key's front edge: more of it shows when it is up */
+    cv_rect(x, y, 32, 24, face);
+    cv_rect(x, y, 32, 2, mix16(face, R_WHITE, 110));
+    deck_sym(i, x + 16, y + 12, i == 3 ? (down ? RGB(255, 70, 60) : RGB(200, 40, 34)) : RGB(40, 40, 50));
+}
+
 /* one frame of an animation over the whole bar; t = ms since it started */
 static void anim_frame(const theme_t *t, uint32_t chip)
 {
@@ -156,6 +205,27 @@ static void anim_frame(const theme_t *t, uint32_t chip)
         fmt_u(n, seq_bpm);
         cv_text(124, 5, &FONT_L, n, R_WHITE);
         break; }
+    case AN_REC: {                                  /* a tape deck: REC goes down, then PLAY, and they stay (arg 1: STOP is pressed and both spring up) */
+        int32_t k;
+        for (k = 0; k < 5; k++) {
+            int32_t down = 0;
+            if (!an_arg) down = (k == 3 && ms >= 160) || (k == 2 && ms >= 300);
+            else down = (k == 4 && ms < 300) || ((k == 2 || k == 3) && ms < 140);
+            deck_key(k, down);
+        }
+        break; }
+    case AN_TAPE: {                                 /* the tape: two reels turn at the dial's speed and way, a scale with a needle, the head between */
+        int32_t r = seq_rate, a = r < 0 ? -r : r, spin;
+        static const uint8_t SPD[4] = {0, 1, 2, 4};
+        spin = (int32_t)(fm1_ms / 45u) * SPD[a] * (r < 0 ? -1 : 1);
+        reel(34, 21, spin); reel(206, 21, spin);
+        cv_line(34, 36, 106, 39, RGB(90, 62, 44)); cv_line(206, 36, 134, 39, RGB(90, 62, 44));
+        cv_rect(106, 36, 28, 5, RGB(150, 152, 162));                                              /* the head */
+        {   int32_t i, nx = 120 + r * 14;
+            for (i = -3; i <= 3; i++) cv_rect(120 + i * 14, i == 0 ? 8 : 12, 2, i == 0 ? 16 : 8, i == 0 ? RGB(235, 235, 240) : RGB(110, 110, 125));
+            cv_rect(nx - 3, 27, 8, 4, r == 0 ? RGB(235, 220, 90) : RGB(80, 220, 120));              /* the needle: yellow at pause, green moving */
+        }
+        break; }
     case AN_COPY: {                                 /* a page is copied: a second sheet slides out of the first */
         char n[8];
         int32_t x2 = ease(ms, 380, 100, 138);
@@ -193,7 +263,10 @@ static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t se
         if (chip == CHIP_NES) { cv_rect(0, 38, 240, 2, t->acc); cv_rect(0, 40, 240, 1, t->fg); }                 /* the Famicom's red and white */
         else if (chip == CHIP_GB) { for (x = 0; x < 240; x += 6) cv_rect(x, 38, 4, 3, t->fg); }                  /* a dotted rule */
         else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
-    } else cv_rect(0, HDR_H - 1, 240, 1, RGB(50, 50, 60));
+    } else cv_rect(0, HDR_H - 1, 240, 1, rec_on ? RGB(235, 50, 40) : RGB(50, 50, 60));
+    if (rec_on && view != 2u && ((fm1_ms / 350u) & 1u)) {            /* recording: a red dot that blinks */
+        cv_rect(72, 15, 12, 12, RGB(235, 50, 40)); cv_rect(70, 17, 16, 8, RGB(235, 50, 40)); cv_rect(74, 13, 8, 16, RGB(235, 50, 40));
+    }
 }
 
 /* the bottom bar: the three views as tabs of the same width, each in its own colour, the one you are on filled; HOME goes left to right */
@@ -234,7 +307,7 @@ static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t c
     uint32_t cur[14], on = anim_on();
     cur[0] = view; cur[1] = sel; cur[2] = view == 1u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
     cur[3] = seq_run; cur[4] = seq_bpm; cur[5] = seq_view; cur[6] = page_n; cur[7] = chip; cur[8] = on ? an_kind : 0u;
-    cur[9] = on ? (fm1_ms - an_t0) / 50u : 0u; cur[10] = rack_rm; cur[11] = chan_n; cur[12] = song_cur; cur[13] = song_len;
+    cur[9] = on ? (fm1_ms - an_t0) / 50u : 0u; cur[10] = rack_rm; cur[11] = chan_n; cur[12] = rec_on ? 1u + ((fm1_ms / 350u) & 1u) : 0u; cur[13] = (uint32_t)((int32_t)seq_rate + 8) | ((uint32_t)seq_hold << 8);
     uint32_t full = hdr_force;
     if (!hdr_force && !memcmp(cur, sig, sizeof cur)) return;
     memcpy(sig, cur, sizeof cur);

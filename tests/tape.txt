@@ -1,0 +1,22 @@
+# the tape dial on SELECT: right = forward (slow, normal, double), left = backward, middle = pause; keys write at the playhead when paused
+100 btn 12
+1000 shot
+1100 enc 0 -1
+1110 enc 0 -1
+1400 shot
+1600 enc 0 -1
+1700 shot
+1800 enc 0 -1
+2300 shot
+2400 enc 0 1
+2410 enc 0 1
+2420 enc 0 1
+2900 shot
+3000 enc 0 -1
+3010 enc 0 -1
+3020 enc 0 -1
+3030 enc 0 -1
+3040 enc 0 -1
+3050 enc 0 -1
+3500 shot
+4000 end

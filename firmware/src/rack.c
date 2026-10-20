@@ -12,6 +12,7 @@
 static uint32_t hdr_force;                      /* set when a whole screen was painted over the top bar */
 static void hdr_popup(void);
 static uint32_t song_cur, song_top;             /* the song's cursor (a slot; one past the last is the "add" cell) and its first row shown */
+static uint32_t rec_on;                         /* recording: keys land on the step the playhead is at */
 static uint32_t rack_cur, rack_inval, rack_rm, rack_top;     /* the cursor's step; set to repaint after an edit; a channel waits to be removed; the first row shown */
 
 static uint16_t mix16(uint16_t a, uint16_t b, uint32_t k)       /* a towards b by k / 256 */
@@ -78,14 +79,14 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
         if (row < chan_n) {
             uint32_t chip = KIND_CHIP[chan[row].kind];
             const theme_t *t = &THEME[chip];
-            uint16_t on = t->acc, off = mix16(R_BG, on, 56);
+            uint16_t on = rec_on && !on_row ? mix16(R_BG, t->acc, 110) : t->acc, off = mix16(R_BG, on, 56);     /* recording: the others dim */
             if (on_row) rk_rect(0, y, 240, R_ROW, rack_rm ? RGB(90, 24, 20) : R_SEL);
             rack_label(3, y + 5, KIND_NAME[chan[row].kind], on_row ? on : mix16(R_BG, on, 150));
             for (i = 0; i < SEQ_LEN; i++) {
                 const step_t *s = &pat[seq_view][row][i];
                 int32_t x = rack_x(i);
                 rack_block(chip, x, y + 2, s->note ? on : off, s->note != 0);
-                if (on_row && i == rack_cur) {                          /* the cursor: a white frame round the step the keys write to */
+                if (on_row && i == rack_cur && (!seq_run || seq_hold)) {   /* the cursor, when the tape is stopped or paused: a white frame round the step the keys write to */
                     uint16_t f = rack_rm ? RGB(235, 64, 52) : R_WHITE;
                     rk_rect(x - 2, y, 14, 2, f); rk_rect(x - 2, y + 17, 14, 2, f);
                     rk_rect(x - 2, y + 2, 2, 15, f); rk_rect(x + 10, y + 2, 2, 15, f);
@@ -125,18 +126,18 @@ static int32_t rack_line(void)                  /* the playhead's x: a step is 1
 /* the whole screen when something changed (pattern, selection, play); only two slices between */
 static void rack_update(uint32_t sel, uint32_t force)
 {
-    static uint32_t view_d, run_d, sel_d, cur_d, top_d, n_d;
+    static uint32_t view_d, run_d, sel_d, cur_d, top_d, n_d, rec_d;
     static int32_t line_d = -1;
     int32_t line;
     if (sel < rack_top) rack_top = sel;
     if (sel >= rack_top + R_ROWS) rack_top = sel - (R_ROWS - 1u);
     line = rack_line();
-    if (force || rack_inval || seq_view != view_d || seq_run != run_d || sel != sel_d || rack_cur != cur_d || rack_top != top_d || chan_n != n_d) {
+    if (force || rack_inval || seq_view != view_d || (seq_run | seq_hold << 1) != run_d || sel != sel_d || rack_cur != cur_d || rack_top != top_d || chan_n != n_d || rec_on != rec_d) {
         if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
         rack_inval = 0;
         rack_cols(sel, 0, 240, line);
         if (rack_rm) hdr_popup();
-        view_d = seq_view; run_d = seq_run; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; line_d = line;
+        view_d = seq_view; run_d = seq_run | seq_hold << 1; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; rec_d = rec_on; line_d = line;
     } else if (line != line_d && !rack_rm) {
         if (line_d >= 0) rack_cols(sel, line_d, 2, -1);
         if (line >= 0) rack_cols(sel, line, 2, line);

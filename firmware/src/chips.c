@@ -229,6 +229,7 @@ static void chip_clear(uint32_t chip)
     default: break;
     }
 }
+static volatile uint8_t duck_ch = 255;           /* while recording: the channel being played stays loud, the others are ducked (255: none) */
 static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice still sounds */
 {
     const inst_t *in = &vc[c].in;
@@ -263,6 +264,7 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
     vol = ((uint32_t)vc[c].env * ((uint32_t)vc[c].vel + 1u)) >> 15;
     if (vol > 15u) vol = 15u;
     vol = (vol * ((uint32_t)in->vol + 1u)) >> 4;
+    if (duck_ch != 255u && c != duck_ch) vol = vol * 5u >> 4;       /* about -10 dB */
     set_osc(c, (uint32_t)pq, vol);
     return vc[c].stage != ST_IDLE;
 }
@@ -346,9 +348,9 @@ static void chip_render(int32_t *out, uint32_t n)
     }
     while (i < n) {
         uint32_t run;
-        while (seq_run && !seq_left) { seq_clock(); seq_left = seq_period(); }
+        while (seq_run && !seq_hold && !seq_left) { seq_tick(); seq_left = seq_period(); }
         run = n - i < tick_left ? n - i : tick_left;
-        if (seq_run && run > seq_left) run = seq_left;
+        if (seq_run && !seq_hold && run > seq_left) run = seq_left;
         if (run > 256u) run = 256u;
         for (chip = 0; chip < CHIPS; chip++) {
             if (!awake[chip]) continue;
@@ -363,7 +365,7 @@ static void chip_render(int32_t *out, uint32_t n)
             for (k = 0; k < 2u * run; k++) out[2u * i + k] += mix[k];
         }
         i += run; tick_left -= run;
-        if (seq_run) seq_left -= run;
+        if (seq_run && !seq_hold) seq_left -= run;
         if (!tick_left) { tick_left = tick_len; tick(); }
     }
     for (k = 0; k < 2u * n; k++) out[k] = soft(out[k]);

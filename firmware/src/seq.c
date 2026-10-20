@@ -19,6 +19,9 @@ static volatile uint32_t seq_bpm = 120;
 #define SONG_MAX 128
 static uint8_t song[SONG_MAX];                  /* the page of each slot */
 static uint32_t song_len = 1;
+static volatile int8_t seq_rate;                /* the tape dial: -3..3, 0 pause; 1 half speed, 2 normal, 3 double; negative runs backwards */
+static volatile uint8_t seq_hold, seq_seeked;   /* seq_hold: paused (the clock stands still); seq_seeked: the playhead was moved, PLAY goes on from there */
+static volatile uint32_t seq_ticks;             /* clock ticks since play: a recorded note's length */
 static volatile uint8_t seq_run, seq_pat, seq_next = 255, seq_step, seq_sub, seq_slot, seq_loop, seq_follow;     /* seq_loop: one page round and round; seq_follow: the rack shows the page that plays */
 static uint8_t seq_view;                        /* the page the screen shows and the keys write; the player follows it at the end of the loop */
 static uint32_t seq_left, seq_frac;             /* samples to the next tick, and the fraction a tick keeps */
@@ -29,11 +32,13 @@ static uint32_t seq_period(void)                /* samples in one tick at the te
     uint32_t bpm = seq_bpm < 40u ? 40u : seq_bpm > 240u ? 240u : seq_bpm;
     uint32_t q = ((FS * 5u / 2u) << 8) / bpm + seq_frac;
     seq_frac = q & 255u;
-    return q >> 8;
+    q >>= 8;
+    return seq_rate == 1 || seq_rate == -1 ? q * 2u : seq_rate == 3 || seq_rate == -3 ? (q > 1u ? q / 2u : 1u) : q;     /* half speed, normal, double */
 }
 static void seq_clock(void)                     /* one tick, in the audio ISR */
 {
     uint32_t t;
+    seq_ticks++;
     for (t = 0; t < chan_n; t++)                /* what is already sounding: its length */
         if (tr[t].on && tr[t].gate && !--tr[t].gate) { ev_do(EV_OFF, t, 0, 0); tr[t].on = 0; }
     if (!seq_sub) {                             /* a new step */
@@ -62,11 +67,38 @@ static void seq_clock(void)                     /* one tick, in the audio ISR */
     }
 }
 
+static void seq_back(void)                      /* one tick backwards: crossing into a step from its end plays it */
+{
+    uint32_t t;
+    seq_ticks++;
+    for (t = 0; t < chan_n; t++)
+        if (tr[t].on && tr[t].gate && !--tr[t].gate) { ev_do(EV_OFF, t, 0, 0); tr[t].on = 0; }
+    if (seq_sub) { seq_sub--; return; }
+    seq_sub = SEQ_PPS - 1u;
+    if (seq_step) seq_step--;
+    else {
+        seq_step = SEQ_LEN - 1u;
+        if (!seq_loop) {                        /* the song: the slot before */
+            seq_slot = seq_slot ? seq_slot - 1u : (uint8_t)(song_len - 1u);
+            seq_pat = song[seq_slot] < page_n ? song[seq_slot] : 0;
+            if (seq_follow) seq_view = seq_pat;
+        }
+    }
+    for (t = 0; t < chan_n; t++) {
+        const step_t *s = &pat[seq_pat][t][seq_step];
+        if (!s->note) continue;
+        tr[t].on = 1; tr[t].gate = s->gate;
+        ev_do(EV_ON, t, s->note, s->vel);
+    }
+}
+static void seq_tick(void) { if (seq_rate < 0) seq_back(); else seq_clock(); }
+
 /* ---- the main loop's side */
 static void seq_play(uint32_t slot, uint32_t loop)      /* the song from a slot; loop 1: the page on show round and round; loop 2: that page once */
 {
     memset(tr, 0, sizeof tr);
-    seq_step = seq_sub = 0; seq_left = seq_frac = 0;
+    if (!(seq_seeked && loop == 1u)) seq_step = seq_sub = 0;       /* a page you seeked in goes on from where you left the playhead */
+    seq_seeked = 0; seq_left = seq_frac = 0; seq_rate = 2; seq_hold = 0;
     seq_next = 255; seq_loop = (uint8_t)loop;
     if (loop) { seq_pat = seq_view; seq_follow = 0; }
     else {
@@ -79,8 +111,23 @@ static void seq_play(uint32_t slot, uint32_t loop)      /* the song from a slot;
 static void seq_stop(void)
 {
     uint32_t t;
-    seq_run = 0;
+    seq_run = 0; seq_rate = 0; seq_hold = 0;
     for (t = 0; t < chan_n; t++) ev_push(EV_OFF, t, 0, 0);
+}
+static void seq_shuttle(int32_t d)              /* SELECT turned: the tape dial moves, from a stop it starts the tape */
+{
+    int32_t r = (int32_t)seq_rate + d;
+    r = r < -3 ? -3 : r > 3 ? 3 : r;
+    seq_seeked = 1;
+    if (r == seq_rate) return;
+    if (!seq_run) {                             /* from a stop: the page on show, from where the playhead is */
+        memset(tr, 0, sizeof tr);
+        seq_left = seq_frac = 0; seq_next = 255; seq_loop = 1; seq_pat = seq_view; seq_follow = 0;
+        seq_hold = 1; seq_rate = 0; seq_run = 1;
+    }
+    seq_rate = (int8_t)r;
+    if (r == 0) { uint32_t t; seq_hold = 1; for (t = 0; t < chan_n; t++) ev_push(EV_OFF, t, 0, 0); }       /* paused: the notes let go */
+    else seq_hold = 0;
 }
 static uint32_t page_empty(uint32_t p)
 {

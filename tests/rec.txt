@@ -1,0 +1,17 @@
+# REC: the deck animation; keys record; EDIT deletes the note at the playhead (held: each note it reaches); REC again stops
+100 enc 6 1
+130 enc 6 1
+160 enc 6 1
+300 btn 13
+380 shot
+520 shot
+700 shot
+1000 keys 0x1
+1250 keys 0
+1500 held 0x40
+1520 shot
+3000 held 0
+3100 btn 13
+3200 shot
+3400 shot
+4000 end
