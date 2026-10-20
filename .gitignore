@@ -1,0 +1,11 @@
+build/
+__pycache__/
+.DS_Store
+
+# Claude working files
+CLAUDE.md
+MEMORY.md
+TODO.md
+
+# Docs
+docs/

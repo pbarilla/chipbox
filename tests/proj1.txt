@@ -1,0 +1,14 @@
+# run 1, an empty flash: the demo tune is slot 1. Rack, pick GB PU1, put a note on step 5, wait: autosave
+50 held 0x100
+100 held 0
+300 enc 6 1
+350 enc 6 1
+400 enc 6 1
+450 enc 0 1
+500 enc 0 1
+550 enc 0 1
+600 enc 0 1
+700 keys 0x40
+900 keys 0
+3500 shot
+4000 end

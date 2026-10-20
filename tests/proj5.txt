@@ -1,0 +1,10 @@
+# run 5: boots into slot 3 (blank). Tap HOME for the rack, put a note on step 1 of NES PU1, autosave, then the picker
+50 held 0x100
+100 held 0
+300 keys 0x1
+500 keys 0
+1500 shot
+3500 held 0x100
+4200 held 0
+4400 shot
+5000 end

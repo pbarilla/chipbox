@@ -1,0 +1,26 @@
+# rack: HOME; PRESETS (enc 6) scrolls channels, SELECT (enc 0) moves the cursor, keys write, ALGORITHM (enc 1) flips pages
+100 btn 8
+300 enc 6 1
+350 enc 6 1
+400 enc 6 1
+450 enc 6 1
+500 enc 0 1
+550 enc 0 1
+600 enc 0 1
+700 keys 0x80
+900 keys 0
+1000 shot
+1100 enc 0 1
+1200 keys 0x800
+1400 keys 0
+1500 shot
+1600 enc 0 -1
+1700 keys 0x800
+1900 keys 0
+2000 shot
+2100 enc 1 1
+2300 shot
+2400 btn 12
+3000 shot
+3300 shot
+4000 end

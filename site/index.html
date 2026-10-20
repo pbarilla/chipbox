@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chipbox for the FM-1</title>
+<meta name="description" content="Chiptune for the M-VAVE FM-1: NES, Game Boy and Master System chips, a step sequencer with arpeggios. Alpha.">
+<style>
+  :root { --bg:#0e0e12; --panel:#181820; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width:880px; margin:0 auto; padding:48px 16px 72px; }
+  h1 { font-size:44px; margin:0 0 4px; letter-spacing:.02em; }
+  h2 { font-size:18px; margin:48px 0 12px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); }
+  p { margin:0 0 12px; }
+  a { color:var(--blue); }
+  .tag { display:inline-block; padding:2px 10px; background:var(--red); color:#fff; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
+  .lead { font-size:20px; max-width:34em; }
+  .shots { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:28px 0 0; }
+  .shots img { width:100%; height:auto; display:block; image-rendering:pixelated; background:var(--panel); }
+  .btns { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0 0; }
+  .btn { display:inline-block; padding:12px 20px; background:var(--ink); color:var(--bg); text-decoration:none; font-weight:700; }
+  .btn.alt { background:transparent; color:var(--ink); box-shadow:inset 0 0 0 2px var(--dim); }
+  ul { padding-left:20px; margin:0 0 12px; }
+  li { margin:4px 0; }
+  ol { padding-left:22px; }
+  code, pre { font:inherit; background:var(--panel); }
+  code { padding:1px 6px; }
+  pre { padding:14px 16px; overflow-x:auto; margin:8px 0 14px; }
+  .note { color:var(--dim); }
+  footer { margin-top:56px; color:var(--dim); font-size:14px; }
+  @media (max-width:560px) { h1 { font-size:34px; } .shots { grid-template-columns:repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Chipbox<span class="tag">ALPHA</span></h1>
+  <p class="lead">Chiptune for the M-VAVE FM-1. NES, Game Boy and Master System sound chips, a step sequencer with arpeggios, and a screen that dresses up as each console.</p>
+
+  <div class="btns">
+    <a class="btn" id="download" href="#install">Download</a>
+    <a class="btn alt" id="source" href="#">Source</a>
+  </div>
+
+  <div class="shots">
+    <img src="img/nes.png" alt="The NES screen">
+    <img src="img/gameboy.png" alt="The Game Boy screen">
+    <img src="img/sms.png" alt="The Master System screen">
+    <img src="img/rack.png" alt="The rack: every channel's steps">
+    <img src="img/projects.png" alt="The project picker">
+    <img src="img/help.png" alt="The help menu">
+  </div>
+
+  <h2>What it does</h2>
+  <ul>
+    <li>Three chips at once: NES, Game Boy, Master System. Nine channels.</li>
+    <li>The rack: 16 steps for every channel, 4 pages, an arpeggio on any step.</li>
+    <li>The chip screen: tone and envelope knobs for the channel you are on.</li>
+    <li>8 projects saved to flash. The FM-1 opens the one you left.</li>
+  </ul>
+  <p class="note">Alpha: no noise channels, no tempo knob and no live record yet. Expect rough edges.</p>
+
+  <h2 id="install">Install</h2>
+  <ol>
+    <li>Easiest: the <a href="https://thefirmwarehub.com">FM-1 Firmware Hub</a> in Chrome or Edge, once Chipbox is listed there.</li>
+    <li>Or download the <code>.fwsc</code> from <a id="releases" href="#">Releases</a> and, with Python 3:</li>
+  </ol>
+<pre>pip install mido python-rtmidi
+python3 tools/fm1_install.py chipbox-0.1.0-alpha.fwsc</pre>
+  <p>Chipbox keeps its projects in the flash area other FM-1 firmwares use for theirs, so installing it and saving a project erases what they left there. To get back to stock use "Back to official" on the hub. If the FM-1 won't start, hold OCT- while switching it on and install again.</p>
+
+  <h2>Controls</h2>
+  <p>Press GLO on any screen for its help. HOME switches between the rack and the chip screen; hold it for your projects.</p>
+
+  <footer>
+    GPL-3.0. Built on <a href="https://github.com/zvenson/dinghy">Dinghy</a> and <a href="https://github.com/hugelton/Felucca">Felucca</a>, with the changes of <a href="https://github.com/isod89/sloop-fm1">SLOOP</a>. Not made or endorsed by M-VAVE.
+  </footer>
+</main>
+<script>
+  // On GitHub Pages the repository is user.github.io/repo: link to its releases and source without writing them in.
+  (function () {
+    var m = location.hostname.match(/^([^.]+)\.github\.io$/), repo = location.pathname.split('/')[1];
+    if (!m || !repo) return;
+    var base = 'https://github.com/' + m[1] + '/' + repo;
+    document.getElementById('download').href = base + '/releases/latest';
+    document.getElementById('releases').href = base + '/releases';
+    document.getElementById('source').href = base;
+  })();
+</script>
+</body>
+</html>
