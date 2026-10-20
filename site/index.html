@@ -17,7 +17,9 @@
   .tag { display:inline-block; padding:2px 10px; background:var(--red); color:#fff; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
   .lead { font-size:20px; max-width:34em; }
   .shots { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:28px 0 0; }
+  .shots figure { margin:0; }
   .shots img { width:100%; height:auto; display:block; image-rendering:pixelated; background:var(--panel); }
+  .shots figcaption { margin-top:6px; font-size:13px; letter-spacing:.12em; color:var(--dim); text-align:center; }
   .btns { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0 0; }
   .btn { display:inline-block; padding:12px 20px; background:var(--ink); color:var(--bg); text-decoration:none; font-weight:700; }
   .btn.alt { background:transparent; color:var(--ink); box-shadow:inset 0 0 0 2px var(--dim); }
@@ -29,7 +31,7 @@
   pre { padding:14px 16px; overflow-x:auto; margin:8px 0 14px; }
   .note { color:var(--dim); }
   footer { margin-top:56px; color:var(--dim); font-size:14px; }
-  @media (max-width:560px) { h1 { font-size:34px; } .shots { grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width:560px) { h1 { font-size:34px; } .shots { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -44,28 +46,49 @@
   </div>
 
   <div class="shots">
-    <img src="img/nes.png" alt="The NES screen">
-    <img src="img/gameboy.png" alt="The Game Boy screen">
-    <img src="img/sms.png" alt="The Master System screen">
-    <img src="img/rack.png" alt="The rack: every channel's steps">
-    <img src="img/projects.png" alt="The project picker">
-    <img src="img/help.png" alt="The help menu">
+    <figure><img src="img/rack.png" alt="The rack: every channel's steps"><figcaption>RACK</figcaption></figure>
+    <figure><img src="img/chip.png" alt="A chip screen: one channel's sound"><figcaption>CHIP</figcaption></figure>
+    <figure><img src="img/song.png" alt="The song: a strip of pages"><figcaption>SONG</figcaption></figure>
   </div>
 
-  <h2>What works</h2>
+  <h2>What is it</h2>
+  <p>A simple (to me) workflow for making music. Theres 3 main views you'll spend all your time in:</p>
   <ul>
-    <li>Kind of a proof of concept right now. Sounds cool. Not really worth installing yet lmao</li>
+    <li><b>RACK</b> - this is the current page (16 steps). Use this to add channels</li>
+    <li><b>CHIP</b> - this is where you can config each channel. You pick a channel from the hardware first (NES, GB, SMS), and then what channel (like PU1, WAV, etc). If you want appregio, make a channel and change the shape to an appregio shape.</li>
+    <li><b>SONG</b> - this is where you stitch together the pages into a song</li>
   </ul>
-  <p>Not yet: everything</p>
+
+  <h2>Example workflow</h2>
+  <ul>
+    <li>Start on the RACK view. Hit the plus to add a channel.</li>
+    <li>Hit HOME to go to the CHIPs, rotate presets knob to get to the channel you added.</li>
+    <li>Rotate Algorithm to flip between the configs. Go to the last config page and change the shape.</li>
+    <li>Hit HOME, and then add some notes. Use select to go to the exact note, and enter it with the keyboard. Hit play to hear how it sounds as you build it up.</li>
+    <li>Hit HOME until SONG is visible. Hit OCT+ to add another page. Select the page, and hit EDIT to open it in the rack, and config it again.</li>
+  </ul>
+  <p>Kind of repeat that a few times until you have something that sounds rad!</p>
+  <p>wanna make a new song? hold HOME, select an empty project, and hit OCT+. Wanna go back to the other project? hold HOME, and select the previous, then hit OCT+.</p>
+  <p>want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno whatever hahaha.</p>
 
   <h2 id="install">Install</h2>
-  <p><a href="install.html">Install from your browser</a> (Chrome or Edge).</p>
+  <p>Easiest: <a href="install.html">install it from your browser</a> (Chrome or Edge, with the FM-1 on USB).</p>
   <p>Or download <code>chipbox-*.fwsc</code> from the <a id="releases" href="#">Releases</a> page and, with Python 3:</p>
 <pre>pip install mido python-rtmidi
 python3 tools/fm1_install.py chipbox-0.1.0-alpha.fwsc</pre>
 
+  <h2>Playing nice with others</h2>
+  <ul>
+    <li>Doesnt read other projects or samples. Sorry, couldnt figure out a good way to do this, or a good reason to.</li>
+  </ul>
+
+  <h2>Tested?</h2>
+  <ul>
+    <li>Tested on a few real FM-1's!</li>
+  </ul>
+
   <h2>Build</h2>
-  <p class="note">Only ever ran this on a mac. good luck for other platforms</p>
+  <p class="note">I've only ever ran this on a mac. good luck for other platforms</p>
 <pre>tools/get_toolchain.sh                      # clang for the chip, to ~/.jieli/toolchain
 git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
     https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK

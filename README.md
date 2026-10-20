@@ -3,9 +3,7 @@
 Chiptune 'grovebox' thing with NES, GB, and SMS stuff
 
 <p>
-<img src="site/img/nes.png" width="30%"> <img src="site/img/gameboy.png" width="30%"> <img src="site/img/sms.png" width="30%">
-<br>
-<img src="site/img/rack.png" width="30%"> <img src="site/img/projects.png" width="30%"> <img src="site/img/help.png" width="30%">
+<img src="site/img/rack.png" width="32%"> <img src="site/img/chip.png" width="32%"> <img src="site/img/song.png" width="32%">
 </p>
 
 ## What is it
@@ -22,7 +20,7 @@ SONG - this is where you stitch together the pages into a song
 - Hit HOME to go to the CHIPs, rotate presets knob to get to the channel you added.
 - Rotate Algorithm to flip between the configs. Go to the last config page and change the shape.
 - Hit HOME, and then add some notes. Use select to go to the exact note, and enter it with the keyboard. Hit play to hear how it sounds as you build it up.
-- Hit HOME until SONG is visible. Hit OCT+ to add another page. Select the page, and hit 'HOME' to go back to the rack, and config it again.
+- Hit HOME until SONG is visible. Hit OCT+ to add another page. Select the page, and hit EDIT to open it in the rack, and config it again.
 
 Kind of repeat that a few times until you have something that sounds rad!
 

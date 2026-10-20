@@ -1,23 +1,38 @@
-# the screenshots for the README and the site: the chip screen (tone page), the rack, the add list, the projects, the help
-100 held 0x100
-150 held 0
-300 shot
-400 enc 1 1
-600 shot
-700 held 0x100
-750 held 0
-800 btn 12
-1500 shot
-1600 enc 6 -1
-1700 btn 1
-1900 shot
-2000 held 0x100
-2050 held 0
+# the README / site screenshots: the three main views. rack (playing), chip (a Game Boy channel), song (built up a little)
+100 enc 6 1
+130 enc 6 1
+160 enc 6 1
+300 btn 12
+1200 shot
+1300 btn 12
+1500 held 0x100
+1550 held 0
+2000 shot
 2100 held 0x100
-2900 held 0
-3100 shot
-3200 held 0x100
-3250 held 0
-3300 btn 7
-3600 shot
-4500 end
+2150 held 0
+2300 enc 0 -1
+2330 enc 0 -1
+2400 btn 1
+2450 enc 6 1
+2600 btn 1
+2650 enc 6 1
+2700 enc 6 1
+2850 btn 1
+2900 enc 6 1
+2930 enc 6 1
+2960 enc 6 1
+3100 btn 1
+3150 enc 6 1
+3300 btn 1
+3350 enc 6 1
+3500 btn 1
+3550 enc 6 1
+3580 enc 6 1
+3750 btn 1
+3800 enc 6 1
+3830 enc 6 1
+3860 enc 6 1
+4000 btn 12
+4100 btn 12
+5400 shot
+6000 end
