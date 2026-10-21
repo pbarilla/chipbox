@@ -227,7 +227,7 @@
     node.connect(ctx.destination);
   }
   function wake() { if (ctx && ctx.state === "suspended") ctx.resume(); }
-  $("go").addEventListener("click", function () { startAudio(); $("start").hidden = true; $("status").textContent = "On."; });
+  $("go").addEventListener("click", function () { startAudio(); $("start").hidden = true; });
   $("mute").addEventListener("click", function () { muted = !muted; this.setAttribute("aria-pressed", muted); });
 
   /* what you made stays in the browser */
