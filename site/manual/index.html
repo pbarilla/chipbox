@@ -8,195 +8,193 @@
   :root { --bg:#0e0e12; --panel:#181820; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#23232e; color-scheme:dark; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-  main { max-width:960px; margin:0 auto; padding:40px 16px 80px; }
-  nav { display:flex; gap:20px; margin:0 0 28px; }
+  main { max-width:820px; margin:0 auto; padding:40px 16px 80px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px 20px; margin:0 0 28px; }
   a { color:var(--blue); }
   h1 { font-size:44px; line-height:1.1; margin:0 0 8px; letter-spacing:.02em; }
   h1 a { color:inherit; text-decoration:none; }
   .tag { display:inline-block; padding:2px 10px; background:var(--red); color:#fff; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
   .intro { color:var(--dim); margin:0 0 40px; }
-  .step { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 330px); gap:12px 40px; padding:36px 0; border-top:1px solid var(--line); align-items:start; }
-  .step h2 { grid-column:1 / -1; margin:0; display:flex; align-items:center; gap:14px; font-size:20px; font-weight:700; }
+  .step { padding:36px 0 22px; border-top:1px solid var(--line); }
+  .step h2 { margin:0 0 14px; display:flex; align-items:center; gap:14px; font-size:20px; font-weight:700; }
   .step h2 b { display:inline-grid; place-items:center; min-width:34px; height:34px; padding:0 8px; background:var(--ink); color:var(--bg); font-size:18px; }
-  .words { min-width:0; }
-  .words p { margin:0 0 12px; }
-  ul { padding-left:20px; margin:0 0 12px; }
-  li { margin:8px 0; }
-  .pics { display:grid; gap:12px; min-width:0; }
-  img { display:block; width:100%; height:auto; image-rendering:pixelated; background:var(--panel); }
-  pre { font:inherit; font-size:13px; background:var(--panel); padding:12px 14px; overflow-x:auto; margin:12px 0 4px; line-height:1.75; }
+  .item { padding:8px 0 12px; }
+  .t { display:flex; gap:12px; min-width:0; }
+  .t::before { content:"•"; color:var(--dim); flex:none; }
+  .t > div { min-width:0; }
+  .pic { margin:10px 0 4px 24px; max-width:620px; }
+  img { display:block; width:100%; height:auto; background:var(--panel); border-radius:12px; }
+  .block { margin:6px 0 6px 24px; }
+  .block p { margin:0 0 10px; }
+  pre { font:inherit; font-size:13px; background:var(--panel); padding:12px 14px; overflow-x:auto; margin:6px 0; line-height:1.75; border-radius:8px; }
   code { font:inherit; background:#fff; color:var(--bg); padding:1px 6px; border-radius:4px; }
   .slow { display:inline-block; padding:0 8px; border-radius:4px; background:var(--green); color:var(--bg); animation:sloow 2.8s cubic-bezier(.4,0,.2,1) infinite alternate; }
   @keyframes sloow { from { letter-spacing:0; } to { letter-spacing:.28em; } }
   @media (prefers-reduced-motion:reduce) { .slow { animation:none; } }
-  @media (max-width:760px) { .step { grid-template-columns:minmax(0, 1fr); } h1 { font-size:34px; } }
+  @media (max-width:760px) { h1 { font-size:34px; } .pic, .block { margin-left:0; } }
 </style>
 </head>
 <body>
 <main>
-  <nav><a href="../">Home</a><a href="../play/">Play online</a><a href="../install.html">Install</a></nav>
+  <nav><a href="../">Home</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
   <h1><a href="../">Chipbox</a><span class="tag">TUTORIAL</span></h1>
   <p class="intro">Let's make the tetris theme! You know the one! (Korobeiniki for you nerds)</p>
 
   <section class="step">
     <h2><b>BASICS</b>The workflow</h2>
-    <div class="words">
-      <ul>
-        <li><code>PROJECTS</code> contain multiple <code>PAGES</code></li>
-        <li><code>PAGES</code> contain multiple <code>CHANNELS</code></li>
-        <li>You build up the song by chaining <CODE>PAGES</CODE> together</li>
-      </ul></div>
-
+    <div class="item"><div class="t"><div><code>PROJECTS</code> contain multiple <code>PAGES</code></div></div><div class="pic"><img src="img/pn-basics-projects.png" alt="basics-projects"></div></div>
+    <div class="item"><div class="t"><div><code>PAGES</code> contain multiple <code>CHANNELS</code></div></div><div class="pic"><img src="img/pn-basics-pages.png" alt="basics-pages"></div></div>
+    <div class="item"><div class="t"><div>You build up the song by chaining <code>PAGES</code> together</div></div><div class="pic"><img src="img/pn-basics-song.png" alt="basics-song"></div></div>
   </section>
-  
+
   <section class="step">
     <h2><b>1</b>Open a project</h2>
-    <div class="words">
-      <ul>
-        <li>Hold HOME to open the project view</li>
-        <li>Pick a free project with the SELECT knob</li>
-        <li>Press HOME to open it</li>
-      </ul>
-      <b>Protip:</b> Holding EDIT on a project lets you delete it!
-    <br/>
-    </p>
-    <b>DOUBLE Protip:</b> If you mess the demo project up, you can always restore it by holding GLO and HOME to get to the SUPER HIDDEN MENU. 
-    </div>
-    <div class="pics"><img src="img/picker.png" alt="The project view"></div>
+    <div class="item"><div class="t"><div>Hold <code>HOME</code> to open the project view</div></div><div class="pic"><img src="img/pn-s1-hold-home.png" alt="s1-hold-home"></div></div>
+    <div class="item"><div class="t"><div>Pick a free project with the <code>SELECT</code> knob</div></div><div class="pic"><img src="img/pn-s1-select.png" alt="s1-select"></div></div>
+    <div class="item"><div class="t"><div>Press <code>HOME</code> to open it</div></div><div class="pic"><img src="img/pn-s1-open.png" alt="s1-open"></div></div>
+    <div class="item"><div class="t"><div><b>Protip:</b> Hold <code>EDIT</code> on a project to delete it!</div></div><div class="pic"><img src="img/pn-s1-delete.png" alt="s1-delete"></div></div>
+    <div class="item"><div class="t"><div><b>DOUBLE Protip:</b> If you mess the demo project up, you can always restore it by holding <code>GLO</code> and <code>HOME</code> to get to the SUPER HIDDEN MENU.</div></div><div class="pic"><img src="img/pn-s1-menu.png" alt="s1-menu"></div></div>
   </section>
 
   <section class="step">
     <h2><b>2</b>Add channels</h2>
-    <div class="words">
-      <ul>
-        <li>Hit <code>HOME</code> until youre on RACK view</li>
-        <li>Twist that <code>PRESETS</code> knob to the <code>+</code> row (the one at the bottom)</li>
-        <li>Press <code>OCT+</code> to open the 'Add Channel' view</li>
-        <li>Add NES Pulse, NES Triangle, GB Pulse and SMS Tone, in that order</li>
-      </ul></div>
-    <div class="pics"><img src="img/add.png" alt="The add list"></div>
+    <div class="item"><div class="t"><div>Hit <code>HOME</code> until you're on the RACK view</div></div><div class="pic"><img src="img/pn-s2-rack.png" alt="s2-rack"></div></div>
+    <div class="item"><div class="t"><div>Twist that PRESETS knob to the <code>+</code> row (the one at the bottom)</div></div><div class="pic"><img src="img/pn-s2-presets.png" alt="s2-presets"></div></div>
+    <div class="item"><div class="t"><div>Press <code>OCT+</code> to open the 'Add Channel' view</div></div><div class="pic"><img src="img/pn-s2-octplus.png" alt="s2-octplus"></div></div>
+    <div class="item"><div class="t"><div>Use <code>SELECT</code> or <code>PRESETS</code> to pick a channel, then hit <code>OCT+</code> to add it</div></div><div class="pic"><img src="img/pn-s2-scroll.png" alt="s2-scroll"></div></div>
+    <div class="item"><div class="t"><div>Add NES Pulse, NES Triangle, GB Pulse and SMS Tone, in that order</div></div><div class="pic"><img src="img/pn-s2-added.png" alt="s2-added"></div></div>
   </section>
 
   <section class="step">
     <h2><b>3</b>Tempo</h2>
-    <div class="words">
-      <ul>
-        <li>Set <code>KNOB 1</code> (Tempo) to 144</li>
-      </ul></div>
-    <div class="pics"><img src="img/channels.png" alt="Four channels"></div>
+    <div class="item"><div class="t"><div>Set <code>KNOB 1</code> (Tempo) to 144</div></div><div class="pic"><img src="img/pn-s3-tempo.png" alt="s3-tempo"></div></div>
   </section>
 
   <section class="step">
     <h2><b>4</b>Pages</h2>
-    <div class="words">
-      <ul>
-        <li>Hit <code>HOME</code> until you're in SONG view</li>
-        <li>Hit <code>OCT+</code> until you have 7 pages</li>
-      </ul></div>
-    <div class="pics"><img src="img/slots.png" alt="Seven slots"></div>
+    <div class="item"><div class="t"><div>Hit <code>HOME</code> until you're in the SONG view. This is where we'll arrange our pages to make our song</div></div><div class="pic"><img src="img/pn-s4-song.png" alt="s4-song"></div></div>
+    <div class="item"><div class="t"><div>Hit <code>OCT+</code> until you have 7 pages</div></div><div class="pic"><img src="img/pn-s4-pages.png" alt="s4-pages"></div></div>
   </section>
 
   <section class="step">
     <h2><b>RACK</b>Entering notes</h2>
-    <div class="words">
-      
-      <ul>
-        <li>Set <code>KNOB 1</code> (Tempo) to 144</li>
-      </ul></div>
-    <div class="pics"><img src="img/channels.png" alt="Four channels"></div>
+    <div class="item"><div class="t"><div>There are two ways to enter notes</div></div></div>
+    <div class="item"><div class="t"><div><code>SEQ</code> is the precise way. You enter the notes one at a time. Best for getting a melody exactly right</div></div><div class="pic"><img src="img/pn-e-seq.png" alt="e-seq"></div></div>
+    <div class="item"><div class="t"><div><code>REC</code> is for living in the moment! Play along, mess it up, have fun, make some happy accidents. Live your best life!</div></div><div class="pic"><img src="img/pn-e-rec.png" alt="e-rec"></div></div>
+    <div class="item"><div class="t"><div>Mix them. Nobody's checking</div></div></div>
   </section>
 
   <section class="step">
     <h2><b>5</b>The lead</h2>
-    <div class="words">
-      <ul>
-        <li>Hit <code>HOME</code> until you're back on the RACK view</li>
-        <li>Twist that <code>PRESETS</code> knob to the top (NES PU) channel</li>
-        <li>Double check you're on page 1. Turn the <code>ALGORITHM</code> to flip the pages</li>
-        <li>Hit REC, then turn SELECT left once to <span class="slow">slooooow it downnnnn</span></li>
-        <li>Play bar 1 as the line passes each box</li>
-        <li>Hit REC. Flip to the next page and do bar 2, and so on up to 7</li>
-        <li>Wrong note? LFO is undo</li>
-      </ul>
-      <p>One row is one bar, the 16 boxes on the screen. When you reach a note, press it. Keep it held until the next one. The keyboard starts on F and the lead lives on the right: E5 is the 14th white key from the left, G5 the last one.</p>
-      <pre>       1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16
-bar 1  E5 ·  ·  ·  B4 ·  C5 ·  D5 ·  ·  ·  C5 ·  B4 ·
-bar 2  A4 ·  ·  ·  A4 ·  C5 ·  E5 ·  ·  ·  D5 ·  C5 ·
-bar 3  B4 ·  ·  ·  ·  ·  C5 ·  D5 ·  ·  ·  E5 ·  ·  ·
-bar 4  C5 ·  ·  ·  A4 ·  ·  ·  A4 ·  ·  ·  ·  ·  ·  ·
-bar 5  D5 ·  ·  ·  ·  ·  F5 ·  A5 ·  ·  ·  G5 ·  F5 ·
-bar 6  E5 ·  ·  ·  ·  ·  C5 ·  E5 ·  ·  ·  D5 ·  C5 ·
-bar 7  B4 ·  ·  ·  B4 ·  C5 ·  D5 ·  ·  ·  E5 ·  ·  ·</pre>
-      <ul>
-        <li>Bar 8 is bar 4 again. We'll reuse it at the end</li>
-        <li>A5 is off the end of the keyboard. Hit OCT+ for it, then OCT- after</li>
-      </ul></div>
-    <div class="pics"><img src="img/lead.png" alt="Recording the lead"><img src="img/done.png" alt="Bar 1 done"></div>
+    <div class="block"><p>Here's the lead for the whole song:</p><pre>        1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
+page 1  E5  ·   ·   ·   B4  ·   C5  ·   D5  ·   ·   ·   C5  ·   B4  ·
+page 2  A4  ·   ·   ·   A4  ·   C5  ·   E5  ·   ·   ·   D5  ·   C5  ·
+page 3  B4  ·   ·   ·   ·   ·   C5  ·   D5  ·   ·   ·   E5  ·   ·   ·
+page 4  C5  ·   ·   ·   A4  ·   ·   ·   A4  ·   ·   ·   ·   ·   ·   ·
+page 5  D5  ·   ·   ·   ·   ·   F5  ·   A5  ·   ·   ·   G5  ·   F5  ·
+page 6  E5  ·   ·   ·   ·   ·   C5  ·   E5  ·   ·   ·   D5  ·   C5  ·
+page 7  B4  ·   ·   ·   B4  ·   C5  ·   D5  ·   ·   ·   E5  ·   ·   ·</pre></div>
+    <div class="item"><div class="t"><div>Page 8 is page 4 again, so there are only 7 to enter. We'll sort that out at the end</div></div></div>
+  </section>
+
+  <section class="step">
+    <h2><b>SEQ</b>Page 1, the precise way</h2>
+    <div class="item"><div class="t"><div>Twist <code>PRESETS</code> to the top channel (NES PU)</div></div><div class="pic"><img src="img/pn-q-presets.png" alt="q-presets"></div></div>
+    <div class="item"><div class="t"><div>Double check you're on page 1. If not, twist that <code>ALGORITHM</code> knob until you are</div></div><div class="pic"><img src="img/pn-q-algorithm.png" alt="q-algorithm"></div></div>
+    <div class="item"><div class="t"><div>Hit <code>SEQ</code></div></div><div class="pic"><img src="img/pn-q-seq.png" alt="q-seq"></div></div>
+    <div class="item"><div class="t"><div>Here you can take your time and enter the page's notes one by one. Page 1 starts with an E5. Try to find it yourself! If you get it wrong, use <code>SELECT</code> to shift the cursor back to that step and try again</div></div><div class="pic"><img src="img/pn-q-key.png" alt="q-key"></div></div>
+    <div class="item"><div class="t"><div><b>PROTIP:</b> If you can't find the right key, it might be on a different octave. Use <code>OCT+</code> or <code>OCT-</code> to change octave</div></div></div>
+    <div class="item"><div class="t"><div>The next note, B4, is on step 5. To leave gaps for rests, skip around with the <code>SELECT</code> knob</div></div><div class="pic"><img src="img/pn-q-select.png" alt="q-select"></div></div>
+    <div class="item"><div class="t"><div>Carry on down the row: C5 on step 7, D5 on step 9, C5 on step 13 and B4 on step 15</div></div><div class="pic"><img src="img/pn-q-notes.png" alt="q-notes"></div></div>
+    <div class="item"><div class="t"><div>Want a long note? Hold the key and turn <code>KNOB 2</code>. A line under the note shows how far it goes</div></div><div class="pic"><img src="img/pn-q-len.png" alt="q-len"></div></div>
+    <div class="item"><div class="t"><div>If you mess up a note, use <code>SELECT</code> to move the cursor to it, then either replace it with the right note or hit <code>EDIT</code> to delete it altogether</div></div><div class="pic"><img src="img/pn-q-edit.png" alt="q-edit"></div></div>
+    <div class="item"><div class="t"><div><b>PROTIP:</b> Try hitting <code>PLAY</code> on this view</div></div><div class="pic"><img src="img/pn-q-play.png" alt="q-play"></div></div>
+    <div class="item"><div class="t"><div>Use the <code>ALGORITHM</code> knob to change the page, but keep the channel the same</div></div><div class="pic"><img src="img/pn-q-page.png" alt="q-page"></div></div>
+    <div class="item"><div class="t"><div>As always, <code>OCT+</code> and <code>OCT-</code> change the octave</div></div><div class="pic"><img src="img/pn-q-oct.png" alt="q-oct"></div></div>
+    <div class="item"><div class="t"><div>When you're happy with your masterpiece, hit <code>HOME</code> to get back to the RACK view</div></div><div class="pic"><img src="img/pn-q-home.png" alt="q-home"></div></div>
+  </section>
+
+  <section class="step">
+    <h2><b>REC</b>Page 1, the vibes way</h2>
+    <div class="item"><div class="t"><div>Same start: <code>PRESETS</code> to the top channel, and check you're on page 1</div></div></div>
+    <div class="item"><div class="t"><div>Hit <code>REC</code>. The page starts looping and every other channel ducks so you can hear yourself</div></div><div class="pic"><img src="img/pn-r-rec.png" alt="r-rec"></div></div>
+    <div class="item"><div class="t"><div>Play along as the line passes each step. Hold a key down for a long note and you'll see a line under it showing how long it lasts</div></div><div class="pic"><img src="img/pn-r-play.png" alt="r-play"></div></div>
+    <div class="item"><div class="t"><div>Too quick? Turn <code>SELECT</code> left once for <span class="slow">slooooow</span> motion</div></div><div class="pic"><img src="img/pn-r-slow.png" alt="r-slow"></div></div>
+    <div class="item"><div class="t"><div>Hold <code>EDIT</code> while it plays to wipe notes as the line passes them</div></div></div>
+    <div class="item"><div class="t"><div>Hit <code>REC</code> again when you've got it</div></div></div>
+  </section>
+
+  <section class="step">
+    <h2><b>UNDO</b>Oops</h2>
+    <div class="item"><div class="t"><div>If you ever make a mistake, hit <code>LFO</code> to undo it</div></div><div class="pic"><img src="img/pn-u-lfo.png" alt="u-lfo"></div></div>
+    <div class="item"><div class="t"><div><b>PROTIP:</b> <code>LFO</code> kind of sort of rhymes with undo. Kind of. I mean. Just pretend it does...</div></div></div>
+  </section>
+
+  <section class="step">
+    <h2><b>5+</b>Pages 2 to 7</h2>
+    <div class="item"><div class="t"><div>Flip to the next page with the <code>ALGORITHM</code> knob and enter its row, either way. Page 7 and you're done with the lead</div></div></div>
+    <div class="item"><div class="t"><div>Page 5 has an A5, which is up past the end of the keyboard. Hit <code>OCT+</code> to reach it</div></div></div>
   </section>
 
   <section class="step">
     <h2><b>6</b>The bass</h2>
-    <div class="words">
-      <ul>
-        <li>PRESETS to the second channel</li>
-        <li>OCT- twice</li>
-        <li>REC, SELECT left once, and one note on every second box</li>
-      </ul>
-      <pre>bar   1   2   3   4   5   6   7
-note  E2  A2  E2  A2  D3  C3  E2</pre></div>
-    <div class="pics"></div>
+    <div class="block"><p>Same idea, a different channel:</p><pre>        1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
+page 1  E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·
+page 2  A2  ·   A2  ·   A2  ·   A2  ·   A2  ·   A2  ·   A2  ·   A2  ·
+page 3  E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·
+page 4  A2  ·   A2  ·   A2  ·   A2  ·   A2  ·   A2  ·   A2  ·   A2  ·
+page 5  D3  ·   D3  ·   D3  ·   D3  ·   D3  ·   D3  ·   D3  ·   D3  ·
+page 6  C3  ·   C3  ·   C3  ·   C3  ·   C3  ·   C3  ·   C3  ·   C3  ·
+page 7  E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·   E2  ·</pre></div>
+    <div class="item"><div class="t"><div>Twist PRESETS to the second channel (the triangle). The <code>+</code> row is a stop on the way round</div></div></div>
+    <div class="item"><div class="t"><div>Hit <code>OCT-</code> twice. The keyboard drops into bass land</div></div><div class="pic"><img src="img/pn-b-oct.png" alt="b-oct"></div></div>
+    <div class="item"><div class="t"><div>Hit <code>SEQ</code> and find the E2. Skip a step with <code>SELECT</code>, press it again, and so on. (Can't find it? Check your octave)</div></div><div class="pic"><img src="img/pn-b-key.png" alt="b-key"></div></div>
   </section>
 
   <section class="step">
     <h2><b>7</b>The stabs</h2>
-    <div class="words">
-      <ul>
-        <li>PRESETS to the third channel</li>
-        <li>Boxes 3, 7, 11 and 15 of every bar. Two notes, one then the other</li>
-        <li>Bars 1, 3 and 7: B3, E4</li>
-        <li>Bars 2 and 4: C4, E4</li>
-        <li>Bar 5: D4, F4</li>
-        <li>Bar 6: C4, E4</li>
-      </ul></div>
-    <div class="pics"></div>
+    <div class="block"><p>Four notes a page this time:</p><pre>        1   2   3   4   5   6   7   8   9   10  11  12  13  14  15  16
+page 1  ·   ·   B3  ·   ·   ·   E4  ·   ·   ·   B3  ·   ·   ·   E4  ·
+page 2  ·   ·   C4  ·   ·   ·   E4  ·   ·   ·   C4  ·   ·   ·   E4  ·
+page 3  ·   ·   B3  ·   ·   ·   E4  ·   ·   ·   B3  ·   ·   ·   E4  ·
+page 4  ·   ·   C4  ·   ·   ·   E4  ·   ·   ·   C4  ·   ·   ·   E4  ·
+page 5  ·   ·   D4  ·   ·   ·   F4  ·   ·   ·   D4  ·   ·   ·   F4  ·
+page 6  ·   ·   C4  ·   ·   ·   E4  ·   ·   ·   C4  ·   ·   ·   E4  ·
+page 7  ·   ·   B3  ·   ·   ·   E4  ·   ·   ·   B3  ·   ·   ·   E4  ·</pre></div>
+    <div class="item"><div class="t"><div>Twist <code>PRESETS</code> to the third channel (the GB pulse)</div></div></div>
+    <div class="item"><div class="t"><div><code>OCT+</code> twice to get the keyboard back to the middle</div></div><div class="pic"><img src="img/pn-st-oct.png" alt="st-oct"></div></div>
+    <div class="item"><div class="t"><div>Hit <code>SEQ</code> and find the B3 and the E4</div></div><div class="pic"><img src="img/pn-st-keys.png" alt="st-keys"></div></div>
   </section>
 
   <section class="step">
     <h2><b>8</b>Thicker</h2>
-    <div class="words">
-      <ul>
-        <li>PRESETS to the fourth channel</li>
-        <li>OCT- once, play the lead again</li>
-        <li>CHIP view, turn its VOL down</li>
-      </ul></div>
-    <div class="pics"></div>
+    <div class="item"><div class="t"><div>Everything's a bit thin. Doubling the lead an octave down fixes that</div></div></div>
+    <div class="item"><div class="t"><div>Twist <code>PRESETS</code> to the fourth channel (the SMS one), hit <code>OCT-</code> once, and enter the lead again. Yes, again. It's worth it</div></div></div>
+    <div class="item"><div class="t"><div>Then hit <code>HOME</code> to get to the CHIP view</div></div><div class="pic"><img src="img/pn-t-chip.png" alt="t-chip"></div></div>
+    <div class="item"><div class="t"><div>Turn <code>KNOB 2</code> (VOL) down until it hugs the lead instead of fighting it</div></div><div class="pic"><img src="img/pn-t-vol.png" alt="t-vol"></div></div>
+  </section>
+
+  <section class="step">
+    <h2><b>CHIP</b>Shape the sound</h2>
+    <div class="item"><div class="t"><div>This is where you shape how a channel sounds. Every channel has a patch, the settings behind its sound, and <code>KNOB 1</code> to <code>KNOB 4</code> turn them</div></div><div class="pic"><img src="img/pn-c-knobs.png" alt="c-knobs"></div></div>
+    <div class="item"><div class="t"><div>A patch has three pages: tone, envelope and arp. <code>ALGORITHM</code> flips between them</div></div><div class="pic"><img src="img/pn-c-algo.png" alt="c-algo"></div></div>
   </section>
 
   <section class="step">
     <h2><b>9</b>The song</h2>
-    <div class="words">
-      <ul>
-        <li>HOME to the SONG view</li>
-        <li>Slots 1 to 7 are in order already</li>
-        <li>OCT+ for slot 8</li>
-        <li>Turn PRESETS until it shows page 4. Same page, played again</li>
-        <li>PLAY</li>
-      </ul></div>
-    <div class="pics"></div>
+    <div class="item"><div class="t"><div>Hit <code>HOME</code> to get back to the SONG view</div></div><div class="pic"><img src="img/pn-z-home.png" alt="z-home"></div></div>
+    <div class="item"><div class="t"><div>The 8th page of this song is actually the same as the 4th, so let's just cue up page 4 again. Hit <code>OCT+</code> to add an 8th page, then select it with the cursor, and turn <code>PRESETS</code> until it says 4</div></div><div class="pic"><img src="img/pn-z-slot8.png" alt="z-slot8"></div></div>
+    <div class="item"><div class="t"><div><code>PLAY</code>. That's Tetris. You made that!</div></div><div class="pic"><img src="img/pn-z-play.png" alt="z-play"></div></div>
   </section>
 
   <section class="step">
-    <h2><b>+</b>Mess with it</h2>
-    <div class="words">
-      <ul>
-        <li>FX, then hold the white keys</li>
-        <li>ARP, then hold a chord</li>
-        <li>SELECT while it plays</li>
-        <li>Hold EDIT in the SONG view to copy a page, then change the copy</li>
-        <li>GLO is help</li>
-      </ul></div>
-    <div class="pics"><img src="img/fx.png" alt="The FX pads"></div>
+    <h2><b>FX</b>Mess with it</h2>
+    <div class="item"><div class="t"><div>Hit <code>FX</code>, then hold the white keys</div></div><div class="pic"><img src="img/pn-x-fx.png" alt="x-fx"></div></div>
+    <div class="item"><div class="t"><div>Hold the first pad, TAPE, and twist <code>SELECT</code></div></div><div class="pic"><img src="img/pn-x-tape.png" alt="x-tape"></div></div>
+    <div class="item"><div class="t"><div>Hold <code>EDIT</code> in the SONG view to copy a page, then change the copy</div></div></div>
+    <div class="item"><div class="t"><div><code>GLO</code> is help</div></div><div class="pic"><img src="img/pn-x-glo.png" alt="x-glo"></div></div>
   </section>
+
 </main>
 </body>
 </html>

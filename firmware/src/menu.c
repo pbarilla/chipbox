@@ -6,15 +6,15 @@ typedef struct { const char *text; uint8_t head; } mline_t;      /* head: a head
 #define MENU_ROWS 12                            /* 20 px a line */
 static const mline_t HELP_CHIP[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knobs 1-4 - Adjust Controls"),
-    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("ARP - Live Arp"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
+    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
 };
 static const mline_t HELP_RACK[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("ARP - Live Arp"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
+    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
 };
 static const mline_t HELP_STEP[] = {
     MH("Knobs"), ML("Select - Move"), ML("Presets - Change Channel"), ML("Algorithm - Flip Page"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("EDIT - Clear Note"), ML("PLAY - Loop"), ML("SEQ - Done"), ML("GLO + HOME - Menu"),
+    MH("Buttons"), ML("Keys - Set Note"), ML("Knob 2 - Note Length"), ML("EDIT - Clear Note"), ML("PLAY - Loop"), ML("HOME - Done"), ML("GLO + HOME - Menu"),
 };
 static const mline_t HELP_FX[] = {
     MH("Knobs"), ML("Select - Tape (Hold TAPE)"),

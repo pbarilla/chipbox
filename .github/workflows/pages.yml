@@ -3,7 +3,7 @@ name: pages
 on:
   push:
     branches: [main]
-    paths: ["site/**", "firmware/**", "web/**", "tests/host.c", ".github/workflows/pages.yml"]
+    paths: ["site/**", "firmware/**", "web/**", "tests/host.c", "tools/controls.json", "tools/make_cheatsheet.py", ".github/workflows/pages.yml"]
   workflow_run:                                 # a release was just built: put its firmware on the site
     workflows: [release]
     types: [completed]
@@ -42,6 +42,8 @@ jobs:
           fi
       - name: Build the firmware for the browser (the Play online page, site/play)
         run: ./web/build.sh
+      - name: Make the cheat sheet (the version is the latest release's)
+        run: python3 tools/make_cheatsheet.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

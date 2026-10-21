@@ -3,11 +3,9 @@
  * a note, the tempo, the page. An action plays a short animation over it: play, pause, save, a channel added or removed,
  * a page flipped, the tempo turned, and a channel waiting to be deleted. Included by chipbox.c after rack.c. */
 #define HDR_H 42
-enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_OPEN, AN_OCT, AN_CHAN, AN_VIEW, AN_CRIT, AN_LARP, AN_WAVE, AN_UNDO, AN_KINDS };
-static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0, 1000, 900, 650, 640, 4000, 900, 1200, 600};
+enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_OPEN, AN_OCT, AN_CHAN, AN_VIEW, AN_CRIT, AN_WAVE, AN_UNDO, AN_KINDS };
+static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0, 1000, 900, 650, 640, 4000, 1200, 600};
 static uint32_t an_kind, an_t0, an_end, an_arg;
-static uint32_t arp_live, arp_n, arp_cur;        /* the live arp (chipbox.c): on, notes held, the note sounding */
-static uint8_t arp_h[8];
 static uint16_t hdr_bg;                         /* the bar's background on this screen, for the sheet's folded corner */
 
 static uint16_t sg_color(uint32_t page)
@@ -20,7 +18,6 @@ static uint32_t anim_on(void)
 {
     if (an_kind == AN_DELETE) return rack_rm;
     if (an_kind == AN_TAPE) return fm1_ms < an_end || (seq_run && seq_rate != 2) || (fx_mask & FXB(FX_TAPE));        /* the tape stays on show while it is not playing as normal */
-    if (an_kind == AN_LARP) return arp_live || fm1_ms < an_end;                     /* the live arp: while it is on */
     if (an_kind == AN_FX) return fx_mask != 0 || fm1_ms < an_end;                       /* a punch-in effect: while its key is held, and a moment after */
     return an_kind && fm1_ms < an_end;
 }

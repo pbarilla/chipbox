@@ -80,22 +80,26 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
         wave_make(&chan[c].in, wv);
         for (i = 0; i < 64; i++) cv_rect(40 + i * 3, 36 - wv[(i / 2 + (int32_t)(ms / 60u)) & 31] * 28 / 15, 3, 3, at->acc);
         break; }
-    case AN_UNDO: {                                 /* a U-turn arrow, head to the left; dim when there was nothing to undo */
-        uint16_t uc = arg ? R_WHITE : RGB(90, 90, 105);
-        int32_t dx = ms < 120u ? (int32_t)(120u - ms) / 12 : 0, a;
-        cv_rect(118 + dx, 11, 18, 4, uc); cv_rect(113 + dx, 29, 23, 4, uc);
-        for (a = -8; a <= 8; a++) cv_rect(136 + dx + VIB[(a + 8) & 31] * 11 / 127 - 2, 22 + VIB[a & 31] * 11 / 127 - 2, 4, 4, uc);
-        for (i = 0; i < 9; i++) cv_rect(105 + dx + i, 31 - (i * 8 / 9), 1, 2 * (i * 8 / 9) + 1, uc);
+    case AN_UNDO: {                                 /* an eraser rubs out a scribble, crumbs falling; no scribble when there was nothing to undo */
+        int32_t front = ms < 520u ? ease(ms, 520, 44, 196) : 196 + (int32_t)(ms - 520u) / 3, zx;
+        uint16_t pk = RGB(244, 128, 150);
+        if (arg) for (zx = 56; zx < 190; zx += 8) if (zx + 8 > front) {
+            int32_t ya = (zx / 8) & 1 ? 12 : 31, yb = (zx / 8) & 1 ? 31 : 12;
+            cv_line(zx, ya, zx + 8, yb, R_WHITE); cv_line(zx + 1, ya, zx + 9, yb, R_WHITE);
+        }
+        {   int32_t ey = 10 + (int32_t)((ms / 55u) & 1u) * 2, ex = front - 34;
+            cv_rect(ex, ey, 34, 22, RGB(236, 236, 242)); cv_rect(ex + 14, ey, 6, 22, RGB(70, 120, 220));        /* the sleeve */
+            cv_rect(ex + 20, ey, 14, 22, pk); cv_rect(ex + 20, ey, 14, 3, RGB(255, 170, 185));                  /* the rubber */
+            cv_rect(ex, ey + 20, 34, 2, RGB(150, 150, 165));
+            for (i = 0; i < 3; i++) cv_rect(ex + 30 - (int32_t)((ms / 40u + (uint32_t)i * 5u) % 12u), ey + 24 + (int32_t)((ms / 25u + (uint32_t)i * 7u) % 8u), 2, 2, pk);
+        }
         break; }
-    case AN_LARP: {                                 /* the live arp: a bar for each key held, by pitch, a ball on the one sounding; ARP and its state when it was just switched */
-        cv_text(100, 5, &FONT_L, "ARP", arp_live ? RGB(80, 220, 120) : RGB(235, 90, 80));
-        for (i = 0; i < 4; i++) { int32_t h = arp_live ? 4 + (int32_t)((ms / 60u + (uint32_t)i * 3u) % 8u) * 2 : 3; cv_rect(166 + i * 12, 34 - h, 8, h, arp_live ? RGB(80, 220, 120) : RGB(90, 90, 108)); }
-        break; }
-    default: {                                      /* a critter walks by: a bug, a hopping note, a saucer */
-        int32_t x = (int32_t)(ms * 280u / 4000u) - 20, y;
+    default: {                                      /* a critter walks by: a bug, a hopping note, a saucer, a cat, a cassette, a ghost */
+        int32_t x = (int32_t)(ms * 280u / 4000u) - 20, y, mir = (int32_t)(arg & 1u);
         uint16_t c = sg_color(arg * 3u + 1u);
-        if (arg & 1u) x = 240 - x;
-        if ((arg % 3u) == 0u) {                     /* chip bug */
+        uint32_t v = arg % 6u;
+        if (mir) x = 240 - x;
+        if (v == 0u) {                              /* chip bug */
             int32_t hop = ms % 1000u < 300u ? swing(ms % 1000u, 600) * 6 / 127 : 0;
             if (hop < 0) hop = -hop;
             y = 24 - hop;
@@ -104,17 +108,45 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
             cv_rect(x + 4, y + 3, 1, 2, R_BG); cv_rect(x + 9, y + 3, 1, 2, R_BG);
             cv_line(x + 3, y - 2, x + 1, y - 6, c); cv_line(x + 10, y - 2, x + 12, y - 6, c);
             for (k = 0; k < 3; k++) { int32_t l = (int32_t)((ms / 90u + (uint32_t)k) & 1u) * 2; cv_rect(x + 2 + k * 4, y + 9, 1, 4 + l, c); cv_rect(x + 3 + k * 4, y + 9, 1, 3, c); }
-        } else if ((arg % 3u) == 1u) {              /* a note hopping, a dotted trail behind */
-            int32_t hop;
-            hop = swing(ms * 2u, 1000); if (hop < 0) hop = -hop;
+        } else if (v == 1u) {                       /* a note hopping, a dotted trail behind */
+            int32_t hop = swing(ms * 2u, 1000); if (hop < 0) hop = -hop;
             y = 31 - hop * 22 / 127;
-            for (k = 1; k < 5; k++) cv_rect(x - (arg & 1u ? -k : k) * 9, 35, 2, 2, mix16(R_BG, c, 200u - (uint32_t)k * 40u));
+            for (k = 1; k < 5; k++) cv_rect(x - (mir ? -k : k) * 9, 35, 2, 2, mix16(R_BG, c, 200u - (uint32_t)k * 40u));
             disc(x, y, 4, c); cv_rect(x + 3, y - 14, 2, 14, c); cv_rect(x + 3, y - 14, 7, 3, c);
-        } else {                                    /* a saucer, wobbling, a beam that flickers */
+        } else if (v == 2u) {                       /* a saucer, wobbling, a beam that flickers */
             y = 9 + swing(ms, 700) * 3 / 127;
             cv_rect(x + 4, y - 4, 12, 4, mix16(R_BG, c, 180)); cv_rect(x, y, 20, 4, c); cv_rect(x + 3, y + 4, 14, 2, mix16(R_BG, c, 150));
             cv_rect(x + 3, y + 1, 2, 2, R_WHITE); cv_rect(x + 9, y + 1, 2, 2, R_WHITE); cv_rect(x + 15, y + 1, 2, 2, R_WHITE);
             if ((ms / 120u) & 1u) for (k = 0; k < 6; k++) cv_rect(x + 5 - k, y + 6 + k * 3, 10 + 2 * k, 1, mix16(R_BG, c, 90));
+        } else if (v == 3u) {                       /* a cat: it faces the way it walks, the tail swishes */
+            int32_t sw = 22, step = (int32_t)((ms / 110u) & 1u), tw = (int32_t)((ms / 200u) & 1u);
+#define CX(o, w) (mir ? x + sw - (o) - (w) : x + (o))
+            y = 20;
+            cv_rect(CX(2, 14), y + 4, 14, 8, c);                                                                   /* body */
+            cv_rect(CX(13, 9), y, 9, 9, c);                                                                        /* head */
+            cv_rect(CX(13, 2), y - 3, 2, 3, c); cv_rect(CX(20, 2), y - 3, 2, 3, c);                                /* ears */
+            cv_rect(CX(18, 2), y + 3, 2, 2, R_WHITE); cv_rect(CX(19, 1), y + 3, 1, 2, R_BG);                       /* an eye */
+            cv_rect(CX(0, 3), y + 3 - tw * 3, 3, 6 + tw * 3, c); cv_rect(CX(0, 4), y + 1 - tw * 3, 4, 3, c);       /* the tail */
+            cv_rect(CX(3, 3), y + 12, 3, 5 - step, c); cv_rect(CX(7, 3), y + 12, 3, 4 + step, c);
+            cv_rect(CX(11, 3), y + 12, 3, 5 - step, c); cv_rect(CX(15, 3), y + 12, 3, 4 + step, c);                 /* legs, alternating */
+#undef CX
+        } else if (v == 4u) {                       /* a cassette, reels turning, sliding along */
+            int32_t sp = (int32_t)(ms / 45u);
+            y = 16 + swing(ms, 900) * 2 / 127;
+            cv_rect(x, y, 30, 20, RGB(70, 72, 84)); cv_rect(x + 2, y + 2, 26, 8, RGB(226, 226, 232)); cv_rect(x + 4, y + 3, 16, 2, c);
+            cv_rect(x + 8, y + 12, 14, 6, RGB(30, 30, 38));
+            for (k = 0; k < 2; k++) {
+                int32_t rx = x + 8 + k * 14, ry = y + 15;
+                disc(rx, ry, 3, RGB(200, 200, 208));
+                cv_line(rx, ry, rx + VIB[(sp + 8) & 31] * 3 / 127, ry + VIB[sp & 31] * 3 / 127, RGB(40, 40, 50));
+            }
+        } else {                                    /* a ghost, floating, looking where it goes */
+            int32_t look = mir ? -1 : 1, fl = (int32_t)((ms / 140u) & 1u);
+            y = 12 + swing(ms, 800) * 4 / 127;
+            cv_rect(x + 2, y, 10, 2, c); cv_rect(x, y + 2, 14, 12, c);
+            cv_rect(x, y + 14, 4, 3 - fl, c); cv_rect(x + 5, y + 14, 4, 2 + fl, c); cv_rect(x + 10, y + 14, 4, 3 - fl, c);
+            cv_rect(x + 3, y + 5, 3, 4, R_WHITE); cv_rect(x + 8, y + 5, 3, 4, R_WHITE);
+            cv_rect(x + 4 + (look > 0 ? 1 : 0), y + 7, 2, 2, RGB(30, 40, 160)); cv_rect(x + 9 + (look > 0 ? 1 : 0), y + 7, 2, 2, RGB(30, 40, 160));
         }
         break; }
     }

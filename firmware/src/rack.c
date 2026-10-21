@@ -86,6 +86,11 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
                 const step_t *s = &pat[seq_view][row][i];
                 int32_t x = rack_x(i);
                 rack_block(chip, x, y + 2, s->note ? on : off, s->note != 0);
+                if (s->note && s->gate > 6u) {                          /* a long note: a line under the row, out to the step where it ends */
+                    uint32_t e = i + (s->gate + 5u) / 6u - 1u;
+                    if (e > 15u) e = 15u;
+                    rk_rect(x, y + 17, rack_x(e) + 10 - x, 2, on);
+                }
                 if (on_row && i == rack_cur && (!seq_run || seq_hold)) {   /* the cursor, when the tape is stopped or paused: a white frame round the step the keys write to */
                     uint16_t f = rack_rm ? RGB(235, 64, 52) : R_WHITE;
                     rk_rect(x - 2, y, 14, 2, f); rk_rect(x - 2, y + 17, 14, 2, f);

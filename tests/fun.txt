@@ -1,0 +1,9 @@
+3000 keys 0x1
+3050 keys 0
+25500 shot
+40500 shot
+55500 shot
+70500 shot
+85500 shot
+100500 shot
+101500 end

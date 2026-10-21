@@ -1,0 +1,91 @@
+# manual screens (fresh flash)
+300 shot
+1000 held 0x100
+1900 shot
+1950 held 0
+2200 enc 0 1
+2300 enc 0 1
+2400 enc 0 1
+2500 enc 0 1
+2700 shot
+2900 held 0x100
+2960 held 0
+3700 shot
+4000 btn 1
+4400 shot
+4600 enc 6 1
+4900 shot
+5100 enc 6 -1
+5400 btn 1
+6900 shot
+7100 btn 11
+7350 shot
+8050 shot
+8250 keys 0x800000
+8370 keys 0
+8550 shot
+8650 keys 0x40000
+8770 keys 0
+8850 keys 0x80000
+8970 keys 0
+9050 keys 0x200000
+9170 keys 0
+9350 shot
+9550 enc 0 1
+9670 enc 0 1
+9970 shot
+10170 btn 6
+10470 shot
+10670 btn 12
+12470 shot
+12670 btn 12
+12970 btn 0
+13270 shot
+14470 btn 11
+15770 shot
+16070 btn 5
+16270 shot
+17170 btn 13
+17320 shot
+18120 enc 0 -1
+19020 shot
+19120 keys 0x10000
+19420 keys 0
+19720 shot
+19820 btn 13
+20720 held 0x100
+20780 held 0
+22020 shot
+22120 enc 1 1
+22520 shot
+22620 enc 1 1
+23020 shot
+23120 held 0x100
+23180 held 0
+24420 shot
+24520 btn 1
+25320 shot
+25420 held 0x100
+25480 held 0
+26120 btn 2
+27420 shot
+27520 keys 0x1
+28120 shot
+28220 keys 0
+28520 btn 2
+29120 held 0x180
+29200 held 0
+29720 shot
+29820 enc 0 1
+29970 enc 0 1
+30120 btn 1
+30620 shot
+30720 btn 0
+31220 btn 7
+31820 shot
+31920 btn 7
+32320 held 0x100
+33220 held 0x140
+34120 shot
+34220 held 0
+34620 end

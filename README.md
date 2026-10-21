@@ -53,7 +53,7 @@ tools/get_toolchain.sh                      # clang for the chip, to ~/.jieli/to
 git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
     https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK
 ./build.sh                                  # -> build/chipbox.fwsc
-./build.sh --release 0.1.0-alpha            # -> build/chipbox-0.1.0-alpha.fwsc
+./build.sh --release 1.0.0                  # -> build/chipbox-1.0.0.fwsc
 tests/run_host.sh tests/screens.txt         # on Linux: the screens as PNG, no FM-1 needed
 ```
 

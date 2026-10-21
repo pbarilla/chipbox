@@ -1,0 +1,222 @@
+{
+ "views": [
+  "RACK",
+  "CHIP",
+  "SONG",
+  "STEP",
+  "FX"
+ ],
+ "short": {
+  "SELECT": "tape / move",
+  "PRESETS": "channel",
+  "ALGORITHM": "page",
+  "MASTER": "volume",
+  "KNOB1": "tempo",
+  "KNOB2": "sound",
+  "KNOB3": "sound",
+  "KNOB4": "sound",
+  "OCT-": "octave",
+  "OCT+": "octave / add",
+  "FX": "pads",
+  "SEL": "",
+  "ENV": "",
+  "LFO": "undo",
+  "EDIT": "clear",
+  "GLO": "help",
+  "HOME": "view",
+  "SAVE": "",
+  "ARP": "",
+  "SEQ": "steps",
+  "PLAY": "",
+  "REC": ""
+ },
+ "controls": [
+  {
+   "id": "HOME",
+   "name": "HOME",
+   "RACK": "Next view. Hold: projects",
+   "CHIP": "Next view. Hold: projects",
+   "SONG": "Next view. Hold: projects",
+   "STEP": "Done (back to the RACK)",
+   "FX": "Leave"
+  },
+  {
+   "id": "SEQ",
+   "name": "SEQ",
+   "RACK": "Step entry for this channel",
+   "CHIP": "Step entry for this channel",
+   "SONG": "",
+   "STEP": "Done",
+   "FX": ""
+  },
+  {
+   "id": "REC",
+   "name": "REC",
+   "RACK": "Record. Again: stop",
+   "CHIP": "Record. Again: stop",
+   "SONG": "",
+   "STEP": "",
+   "FX": ""
+  },
+  {
+   "id": "PLAY",
+   "name": "PLAY",
+   "RACK": "Loop the page",
+   "CHIP": "Loop the page",
+   "SONG": "Play the song",
+   "STEP": "Loop the page",
+   "FX": "Play, stop"
+  },
+  {
+   "id": "EDIT",
+   "name": "EDIT",
+   "RACK": "Hold: remove channel",
+   "CHIP": "",
+   "SONG": "Tap: open page. Hold: copy page",
+   "STEP": "Clear the block",
+   "FX": ""
+  },
+  {
+   "id": "LFO",
+   "name": "LFO",
+   "RACK": "Undo",
+   "CHIP": "Undo",
+   "SONG": "Undo",
+   "STEP": "Undo",
+   "FX": "Undo"
+  },
+  {
+   "id": "FX",
+   "name": "FX",
+   "RACK": "Punch-in pads",
+   "CHIP": "Punch-in pads",
+   "SONG": "Punch-in pads",
+   "STEP": "",
+   "FX": "Back"
+  },
+  {
+   "id": "GLO",
+   "name": "GLO",
+   "RACK": "Help",
+   "CHIP": "Help",
+   "SONG": "Help",
+   "STEP": "Help",
+   "FX": "Help"
+  },
+  {
+   "id": "GLO+HOME",
+   "name": "GLO + HOME",
+   "RACK": "Menu",
+   "CHIP": "Menu",
+   "SONG": "Menu",
+   "STEP": "Menu",
+   "FX": "Menu"
+  },
+  {
+   "id": "SAVE",
+   "name": "SAVE",
+   "RACK": "Save",
+   "CHIP": "Save",
+   "SONG": "Save",
+   "STEP": "Save",
+   "FX": ""
+  },
+  {
+   "id": "OCT-",
+   "name": "OCT-",
+   "RACK": "Octave down. No: in windows",
+   "CHIP": "Octave down",
+   "SONG": "Remove slot",
+   "STEP": "Octave down",
+   "FX": ""
+  },
+  {
+   "id": "OCT+",
+   "name": "OCT+",
+   "RACK": "Octave up. On +: add channel. Yes: in windows",
+   "CHIP": "Octave up",
+   "SONG": "New slot, new page",
+   "STEP": "Octave up",
+   "FX": ""
+  },
+  {
+   "id": "SELECT",
+   "name": "SELECT",
+   "RACK": "Tape dial",
+   "CHIP": "Tape dial",
+   "SONG": "Move along the song",
+   "STEP": "Move the cursor",
+   "FX": "Tape dial, while TAPE is held"
+  },
+  {
+   "id": "PRESETS",
+   "name": "PRESETS",
+   "RACK": "Channel",
+   "CHIP": "Channel",
+   "SONG": "Page of the slot",
+   "STEP": "Channel",
+   "FX": ""
+  },
+  {
+   "id": "ALGORITHM",
+   "name": "ALGORITHM",
+   "RACK": "Flip page",
+   "CHIP": "Knob page",
+   "SONG": "",
+   "STEP": "Flip page",
+   "FX": ""
+  },
+  {
+   "id": "KNOB1",
+   "name": "KNOB 1",
+   "RACK": "Tempo",
+   "CHIP": "Sound",
+   "SONG": "Tempo",
+   "STEP": "Tempo",
+   "FX": ""
+  },
+  {
+   "id": "KNOB2",
+   "name": "KNOB 2-4",
+   "RACK": "",
+   "CHIP": "Sound",
+   "SONG": "",
+   "STEP": "KNOB 2: note length (hold a key, or on the note under the cursor)",
+   "FX": ""
+  },
+  {
+   "id": "KEYS",
+   "name": "KEYS",
+   "RACK": "Play. Stopped: write a note at the playhead",
+   "CHIP": "Play",
+   "SONG": "Play",
+   "STEP": "Set the block, move on",
+   "FX": "Pads (white keys)"
+  }
+ ],
+ "pads": [
+  "TAPE",
+  "RPT",
+  "RPT",
+  "RPT",
+  "LPF",
+  "HPF",
+  "ECHO",
+  "VERB",
+  "CRSH",
+  "DECI",
+  "GATE",
+  "DIVE",
+  "WOB",
+  "SOLO",
+  "KILL",
+  "HOLD"
+ ],
+ "tips": [
+  "REC, then SELECT left once: half speed, easier to play in",
+  "EDIT while recording wipes the notes the line passes",
+  "TAPE pad: the song pauses, SELECT is the tape dial",
+  "HOLD pad: tap pads to keep them on, tap HOLD to clear",
+  "Demos are locked. GLO + HOME, Unlock Demos"
+ ]
+}

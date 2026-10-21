@@ -17,3 +17,6 @@ site/firmware/
 # the browser build (the pages workflow makes it: web/build.sh)
 site/play/chipbox.js
 site/play/chipbox.wasm
+
+# the cheat sheet (the pages workflow makes it: tools/make_cheatsheet.py)
+site/cheatsheet/index.html

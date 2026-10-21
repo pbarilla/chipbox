@@ -8,7 +8,7 @@ static void ed_update(uint32_t c, uint32_t base, uint32_t force)
     static uint32_t sig[4];
     const theme_t *t = &THEME[KIND_CHIP[chan[c].kind]];
     uint32_t cur[4], i, h = 0, ps = seq_run && !seq_hold ? seq_step : 99u, cn;
-    for (i = 0; i < SEQ_LEN; i++) h = h * 31u + pat[seq_view][c][i].note;
+    for (i = 0; i < SEQ_LEN; i++) h = h * 31u + pat[seq_view][c][i].note + 7u * pat[seq_view][c][i].gate;
     cur[0] = h; cur[1] = ed_cur | ps << 8 | c << 16 | (uint32_t)seq_view << 24; cur[2] = fm1_in.notes; cur[3] = base;
     if (!force && !memcmp(cur, sig, sizeof cur)) return;
     memcpy(sig, cur, sizeof cur);
@@ -19,11 +19,21 @@ static void ed_update(uint32_t c, uint32_t base, uint32_t force)
         int32_t x = 1 + (int32_t)(i % 8u) * 30, y = (int32_t)(i / 8u) * 44;
         uint32_t n = pat[seq_view][c][i].note;
         char s[8];
-        cv_rect(x, y, 28, 40, n ? t->acc : mix16(R_BG, t->acc, 40));
+        cv_rect(x, y, 28, 40, n ? t->acc : mix16(R_BG, t->acc, 56));
         if (!(i & 3u)) cv_rect(x, y, 28, 3, n ? t->bg : t->acc);                 /* a stripe on each beat */
+        if (!n) { fmt_u(s, i + 1u); cv_text(x + (28 - text_w(&FONT_S, s)) / 2, y + 14, &FONT_S, s, mix16(R_BG, t->acc, 120)); }       /* an empty block: its number */
         if (n) { note_name(s, n); cv_text(x + (28 - text_w(&FONT_S, s)) / 2, y + 14, &FONT_S, s, KIND_CHIP[chan[c].kind] == CHIP_NES ? R_WHITE : t->bg); }
         if (i == ps) cv_rect(x, y + 36, 28, 4, R_WHITE);                         /* the playhead */
         if (i == ed_cur) { cv_rect(x - 1, y - 1, 30, 2, R_WHITE); cv_rect(x - 1, y + 39, 30, 2, R_WHITE); cv_rect(x - 1, y - 1, 2, 42, R_WHITE); cv_rect(x + 27, y - 1, 2, 42, R_WHITE); }
+    }
+    for (i = 0; i < SEQ_LEN; i++) {                                              /* long notes last, over the blocks that follow */
+        int32_t x = 1 + (int32_t)(i % 8u) * 30, y = (int32_t)(i / 8u) * 44;
+        uint32_t n = pat[seq_view][c][i].note;
+        if (n && pat[seq_view][c][i].gate > 6u) {                                /* a long note: a line along the bottom, out to where it ends */
+            uint32_t e = i + (pat[seq_view][c][i].gate + 5u) / 6u - 1u;
+            if (e > 15u) e = 15u;
+            if (e / 8u == i / 8u) cv_rect(x, y + 37, 1 + (int32_t)(e % 8u) * 30 + 28 - x, 3, mix16(t->acc, R_WHITE, 110)); else cv_rect(x, y + 37, 239 - x, 3, mix16(t->acc, R_WHITE, 110));
+        }
     }
     cv_blit(0, 48);
     cv_begin(240, 62, R_BG);                                                     /* the keyboard: F3 to G5, the cursor's note and the keys held lit */

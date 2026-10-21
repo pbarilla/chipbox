@@ -1,0 +1,18 @@
+# step entry: hold a key for a long note; KNOB 2 sets the length
+300 btn 11
+1100 keys 0x800000
+1300 shot
+1650 shot
+1700 keys 0
+1800 shot
+2000 enc 0 -1
+2200 enc 3 2
+2400 shot
+2600 enc 3 -4
+2800 shot
+3000 keys 0x40000
+3100 enc 3 3
+3300 shot
+3350 keys 0
+3600 shot
+3700 end
