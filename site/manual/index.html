@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial · Chipbox</title>
+<style>
+  :root { --bg:#0e0e12; --panel:#181820; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#23232e; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width:960px; margin:0 auto; padding:40px 16px 80px; }
+  nav { display:flex; gap:20px; margin:0 0 28px; }
+  a { color:var(--blue); }
+  h1 { font-size:44px; line-height:1.1; margin:0 0 8px; letter-spacing:.02em; }
+  h1 a { color:inherit; text-decoration:none; }
+  .tag { display:inline-block; padding:2px 10px; background:var(--red); color:#fff; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
+  .intro { color:var(--dim); margin:0 0 40px; }
+  .step { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 330px); gap:12px 40px; padding:36px 0; border-top:1px solid var(--line); align-items:start; }
+  .step h2 { grid-column:1 / -1; margin:0; display:flex; align-items:center; gap:14px; font-size:20px; font-weight:700; }
+  .step h2 b { display:inline-grid; place-items:center; min-width:34px; height:34px; padding:0 8px; background:var(--ink); color:var(--bg); font-size:18px; }
+  .words { min-width:0; }
+  .words p { margin:0 0 12px; }
+  ul { padding-left:20px; margin:0 0 12px; }
+  li { margin:8px 0; }
+  .pics { display:grid; gap:12px; min-width:0; }
+  img { display:block; width:100%; height:auto; image-rendering:pixelated; background:var(--panel); }
+  pre { font:inherit; font-size:13px; background:var(--panel); padding:12px 14px; overflow-x:auto; margin:12px 0 4px; line-height:1.75; }
+  code { font:inherit; background:#fff; color:var(--bg); padding:1px 6px; border-radius:4px; }
+  .slow { display:inline-block; padding:0 8px; border-radius:4px; background:var(--green); color:var(--bg); animation:sloow 2.8s cubic-bezier(.4,0,.2,1) infinite alternate; }
+  @keyframes sloow { from { letter-spacing:0; } to { letter-spacing:.28em; } }
+  @media (prefers-reduced-motion:reduce) { .slow { animation:none; } }
+  @media (max-width:760px) { .step { grid-template-columns:minmax(0, 1fr); } h1 { font-size:34px; } }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="../">Home</a><a href="../play/">Play online</a><a href="../install.html">Install</a></nav>
+  <h1><a href="../">Chipbox</a><span class="tag">TUTORIAL</span></h1>
+  <p class="intro">Let's make the tetris theme! You know the one! (Korobeiniki for you nerds)</p>
+
+  <section class="step">
+    <h2><b>BASICS</b>The workflow</h2>
+    <div class="words">
+      <ul>
+        <li><code>PROJECTS</code> contain multiple <code>PAGES</code></li>
+        <li><code>PAGES</code> contain multiple <code>CHANNELS</code></li>
+        <li>You build up the song by chaining <CODE>PAGES</CODE> together</li>
+      </ul></div>
+
+  </section>
+  
+  <section class="step">
+    <h2><b>1</b>Open a project</h2>
+    <div class="words">
+      <ul>
+        <li>Hold HOME to open the project view</li>
+        <li>Pick a free project with the SELECT knob</li>
+        <li>Press HOME to open it</li>
+      </ul>
+      <b>Protip:</b> Holding EDIT on a project lets you delete it!
+    <br/>
+    </p>
+    <b>DOUBLE Protip:</b> If you mess the demo project up, you can always restore it by holding GLO and HOME to get to the SUPER HIDDEN MENU. 
+    </div>
+    <div class="pics"><img src="img/picker.png" alt="The project view"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>2</b>Add channels</h2>
+    <div class="words">
+      <ul>
+        <li>Hit <code>HOME</code> until youre on RACK view</li>
+        <li>Twist that <code>PRESETS</code> knob to the <code>+</code> row (the one at the bottom)</li>
+        <li>Press <code>OCT+</code> to open the 'Add Channel' view</li>
+        <li>Add NES Pulse, NES Triangle, GB Pulse and SMS Tone, in that order</li>
+      </ul></div>
+    <div class="pics"><img src="img/add.png" alt="The add list"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>3</b>Tempo</h2>
+    <div class="words">
+      <ul>
+        <li>Set <code>KNOB 1</code> (Tempo) to 144</li>
+      </ul></div>
+    <div class="pics"><img src="img/channels.png" alt="Four channels"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>4</b>Pages</h2>
+    <div class="words">
+      <ul>
+        <li>Hit <code>HOME</code> until you're in SONG view</li>
+        <li>Hit <code>OCT+</code> until you have 7 pages</li>
+      </ul></div>
+    <div class="pics"><img src="img/slots.png" alt="Seven slots"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>RACK</b>Entering notes</h2>
+    <div class="words">
+      
+      <ul>
+        <li>Set <code>KNOB 1</code> (Tempo) to 144</li>
+      </ul></div>
+    <div class="pics"><img src="img/channels.png" alt="Four channels"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>5</b>The lead</h2>
+    <div class="words">
+      <ul>
+        <li>Hit <code>HOME</code> until you're back on the RACK view</li>
+        <li>Twist that <code>PRESETS</code> knob to the top (NES PU) channel</li>
+        <li>Double check you're on page 1. Turn the <code>ALGORITHM</code> to flip the pages</li>
+        <li>Hit REC, then turn SELECT left once to <span class="slow">slooooow it downnnnn</span></li>
+        <li>Play bar 1 as the line passes each box</li>
+        <li>Hit REC. Flip to the next page and do bar 2, and so on up to 7</li>
+        <li>Wrong note? LFO is undo</li>
+      </ul>
+      <p>One row is one bar, the 16 boxes on the screen. When you reach a note, press it. Keep it held until the next one. The keyboard starts on F and the lead lives on the right: E5 is the 14th white key from the left, G5 the last one.</p>
+      <pre>       1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16
+bar 1  E5 ·  ·  ·  B4 ·  C5 ·  D5 ·  ·  ·  C5 ·  B4 ·
+bar 2  A4 ·  ·  ·  A4 ·  C5 ·  E5 ·  ·  ·  D5 ·  C5 ·
+bar 3  B4 ·  ·  ·  ·  ·  C5 ·  D5 ·  ·  ·  E5 ·  ·  ·
+bar 4  C5 ·  ·  ·  A4 ·  ·  ·  A4 ·  ·  ·  ·  ·  ·  ·
+bar 5  D5 ·  ·  ·  ·  ·  F5 ·  A5 ·  ·  ·  G5 ·  F5 ·
+bar 6  E5 ·  ·  ·  ·  ·  C5 ·  E5 ·  ·  ·  D5 ·  C5 ·
+bar 7  B4 ·  ·  ·  B4 ·  C5 ·  D5 ·  ·  ·  E5 ·  ·  ·</pre>
+      <ul>
+        <li>Bar 8 is bar 4 again. We'll reuse it at the end</li>
+        <li>A5 is off the end of the keyboard. Hit OCT+ for it, then OCT- after</li>
+      </ul></div>
+    <div class="pics"><img src="img/lead.png" alt="Recording the lead"><img src="img/done.png" alt="Bar 1 done"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>6</b>The bass</h2>
+    <div class="words">
+      <ul>
+        <li>PRESETS to the second channel</li>
+        <li>OCT- twice</li>
+        <li>REC, SELECT left once, and one note on every second box</li>
+      </ul>
+      <pre>bar   1   2   3   4   5   6   7
+note  E2  A2  E2  A2  D3  C3  E2</pre></div>
+    <div class="pics"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>7</b>The stabs</h2>
+    <div class="words">
+      <ul>
+        <li>PRESETS to the third channel</li>
+        <li>Boxes 3, 7, 11 and 15 of every bar. Two notes, one then the other</li>
+        <li>Bars 1, 3 and 7: B3, E4</li>
+        <li>Bars 2 and 4: C4, E4</li>
+        <li>Bar 5: D4, F4</li>
+        <li>Bar 6: C4, E4</li>
+      </ul></div>
+    <div class="pics"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>8</b>Thicker</h2>
+    <div class="words">
+      <ul>
+        <li>PRESETS to the fourth channel</li>
+        <li>OCT- once, play the lead again</li>
+        <li>CHIP view, turn its VOL down</li>
+      </ul></div>
+    <div class="pics"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>9</b>The song</h2>
+    <div class="words">
+      <ul>
+        <li>HOME to the SONG view</li>
+        <li>Slots 1 to 7 are in order already</li>
+        <li>OCT+ for slot 8</li>
+        <li>Turn PRESETS until it shows page 4. Same page, played again</li>
+        <li>PLAY</li>
+      </ul></div>
+    <div class="pics"></div>
+  </section>
+
+  <section class="step">
+    <h2><b>+</b>Mess with it</h2>
+    <div class="words">
+      <ul>
+        <li>FX, then hold the white keys</li>
+        <li>ARP, then hold a chord</li>
+        <li>SELECT while it plays</li>
+        <li>Hold EDIT in the SONG view to copy a page, then change the copy</li>
+        <li>GLO is help</li>
+      </ul></div>
+    <div class="pics"><img src="img/fx.png" alt="The FX pads"></div>
+  </section>
+</main>
+</body>
+</html>

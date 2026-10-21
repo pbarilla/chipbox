@@ -21,7 +21,9 @@ static uint32_t proj_crc(const uint8_t *p, uint32_t n)
     }
     return ~c;
 }
-static void proj_edited(void) { proj_dirty = 1; proj_t_edit = fm1_ms; }
+static uint32_t undo_open, undo_t;               /* a group of edits is open: it closes after a quiet moment */
+static void undo_push(void);
+static void proj_edited(void) { if (!undo_open) undo_push(); undo_open = 1; undo_t = fm1_ms; proj_dirty = 1; proj_t_edit = fm1_ms; }
 
 static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the length, or 0 when it does not fit a bank */
 {
@@ -100,7 +102,34 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
     }
     return 0;
 }
-static void proj_blank(void) { seq_stop(); chan_lock = 1; seq_clear(); chan_lock = 0; }      /* an empty project: no channels yet */
+/* undo: the project as bytes before each group of edits, the last UNDO_N of them. LFO steps back one. */
+#define UNDO_N 6u
+static uint8_t undo_buf[UNDO_N][PROJ_BANK - PROJ_HDR] POOL, undo_base[PROJ_BANK - PROJ_HDR] POOL;
+static uint32_t undo_len[UNDO_N], undo_cnt, undo_head, undo_base_len, undo_base_ok;
+static void undo_push(void)                     /* a new group of edits begins: how it was goes on the stack */
+{
+    if (!undo_base_ok) return;
+    memcpy(undo_buf[undo_head], undo_base, undo_base_len); undo_len[undo_head] = undo_base_len;
+    undo_head = (undo_head + 1u) % UNDO_N;
+    if (undo_cnt < UNDO_N) undo_cnt++;
+}
+static void undo_tick(void)                     /* main loop: a quiet moment closes the group; the project as it is then is the base */
+{
+    if (!undo_base_ok || (undo_open && fm1_ms - undo_t > 600u)) { undo_base_len = proj_pack(undo_base); undo_base_ok = undo_base_len != 0u; undo_open = 0; }
+}
+static void undo_reset(void) { undo_cnt = 0; undo_base_ok = 0; undo_open = 0; }
+static int undo_go(void)                        /* 0: stepped back one */
+{
+    uint32_t i;
+    if (!undo_cnt) return -1;
+    i = (undo_head + UNDO_N - 1u) % UNDO_N;
+    if (proj_unpack(undo_buf[i], undo_len[i]) != 0) return -1;
+    undo_head = i; undo_cnt--;
+    memcpy(undo_base, undo_buf[i], undo_len[i]); undo_base_len = undo_len[i]; undo_base_ok = 1; undo_open = 0;
+    proj_dirty = 1; proj_t_edit = fm1_ms;
+    return 0;
+}
+static void proj_blank(void) { seq_stop(); chan_lock = 1; seq_clear(); chan_lock = 0; undo_reset(); }      /* an empty project: no channels yet */
 
 /* ---- the banks */
 static uint32_t proj_base(uint32_t slot, uint32_t bank) { return PROJ_AT + (slot * 2u + bank) * PROJ_BANK; }
@@ -156,7 +185,7 @@ static void proj_open(uint32_t slot)            /* switch projects: stop, keep w
     if (proj_dirty && proj_save(proj_cur) == 0) proj_dirty = 0;
     proj_loaded = proj_load(slot) == 0;
     if (!proj_loaded) proj_blank();
-    proj_cur = (uint8_t)slot; proj_dirty = 0;
+    proj_cur = (uint8_t)slot; proj_dirty = 0; undo_reset();
 }
 static void proj_clear(uint32_t slot)           /* an empty slot: both banks' first sector */
 {
@@ -167,7 +196,7 @@ static void proj_clear(uint32_t slot)           /* an empty slot: both banks' fi
 /* what a slot looks like in the picker: a row per channel (its chip), a bit per step of page 1 */
 static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t *nch)
 {
-    uint32_t c, i, ev, n;
+    uint32_t c, i, ev, n, isz;
     proj_hdr_t h;
     int b;
     *nch = 0;
@@ -182,10 +211,11 @@ static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t
     }
     b = proj_newest(slot, &h);
     if (b < 0 || pf_read(proj_base(slot, (uint32_t)b) + PROJ_HDR, proj_buf, h.len)) return;
-    if (h.len < 7u || proj_buf[0] != 2u || proj_buf[4] > MAXCH) return;
+    if (h.len < 7u || (proj_buf[0] != 2u && proj_buf[0] != 3u) || proj_buf[4] > MAXCH) return;
+    isz = proj_buf[0] == 2u ? 14u : PROJ_INST;
     *nch = proj_buf[4];
-    for (c = 0; c < *nch; c++) chips[c] = proj_buf[5u + c * (1u + PROJ_INST)] < KINDS ? KIND_CHIP[proj_buf[5u + c * (1u + PROJ_INST)]] : 0u;
-    n = 5u + *nch * (1u + PROJ_INST);
+    for (c = 0; c < *nch; c++) chips[c] = proj_buf[5u + c * (1u + isz)] < KINDS ? KIND_CHIP[proj_buf[5u + c * (1u + isz)]] : 0u;
+    n = 5u + *nch * (1u + isz);
     if (h.len < n + 2u) { *nch = 0; return; }
     ev = (uint32_t)proj_buf[n] | (uint32_t)proj_buf[n + 1u] << 8;
     n += 2u;
@@ -193,4 +223,21 @@ static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t
         const uint8_t *e = proj_buf + n + i * PROJ_EV;
         if (e[0] == 0u && e[1] < *nch && e[2] < SEQ_LEN) rows[e[1]] |= (uint16_t)(1u << e[2]);
     }
+}
+
+/* project 1 is the demo song (seq_tetris). What was in memory is gone: save it first if it matters. */
+#define DEMO_N 4u                               /* the demo songs, in projects 1 to 4. set.demo counts the ones a device has been given: a new one goes in, the songs move down */
+static void proj_demo_write(uint32_t k)         /* demo k into project k + 1 (what was in memory is gone) */
+{
+    seq_stop();
+    if (k == 0u) seq_tetris(); else if (k == 1u) seq_mountain(); else if (k == 2u) seq_elise(); else seq_toccata();
+    proj_save(k);
+}
+static void proj_shuffle_down(uint32_t from)    /* free project `from`: the songs from there move down one; with all full the last is lost */
+{
+    uint32_t f, i;
+    for (f = from; f < PROJ_SLOTS && proj_exists(f); f++) {}
+    if (f == from) return;
+    if (f >= PROJ_SLOTS) f = PROJ_SLOTS - 1u;
+    for (i = f; i > from; i--) if (proj_load(i - 1u) == 0) proj_save(i);
 }

@@ -1,0 +1,32 @@
+# GLO + HOME menu, lock, picker previews
+300 shot
+400 held 0x180
+500 shot
+700 enc 0 1
+800 shot
+900 btn 1
+1100 held 0
+1200 held 0x100
+1250 btn 7
+1400 shot
+1600 held 0
+1700 btn 7
+1800 btn 7
+2000 held 0x100
+2900 shot
+2950 held 0
+3100 held 0x180
+3300 btn 1
+3400 held 0
+3600 held 0x100
+4400 shot
+4450 held 0
+4600 held 0x100
+5300 enc 0 1
+5360 enc 0 1
+5400 btn 1
+5450 held 0
+5900 held 0x100
+6700 shot
+6750 held 0
+7000 end

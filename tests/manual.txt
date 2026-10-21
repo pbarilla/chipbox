@@ -1,0 +1,80 @@
+# screens for the manual and the Tetris tutorial (fresh flash)
+300 shot
+500 held 0x100
+550 held 0
+900 shot
+1000 held 0x100
+1050 held 0
+1400 shot
+1500 held 0x100
+1550 held 0
+1900 shot
+2000 btn 2
+2400 shot
+2600 btn 2
+3000 held 0x100
+3800 shot
+3850 held 0
+4200 enc 0 1
+4300 enc 0 1
+4500 btn 1
+5100 btn 1
+5400 shot
+5500 btn 1
+5800 enc 6 1
+5900 btn 1
+6000 enc 0 1
+6100 btn 1
+6400 enc 6 1
+6500 btn 1
+6600 enc 0 1
+6660 enc 0 1
+6800 btn 1
+7100 enc 6 1
+7200 btn 1
+7300 enc 0 1
+7360 enc 0 1
+7420 enc 0 1
+7480 enc 0 1
+7600 btn 1
+8000 enc 2 24
+8400 shot
+8600 held 0x100
+8650 held 0
+8800 held 0x100
+8850 held 0
+8900 shot
+9100 btn 1
+9200 btn 1
+9300 btn 1
+9400 btn 1
+9500 btn 1
+9600 btn 1
+10000 shot
+10200 held 0x100
+10250 held 0
+10500 shot
+10600 enc 1 1
+10800 enc 6 1
+10900 enc 6 1
+11200 shot
+11500 btn 13
+11510 enc 0 -1
+11800 shot
+12184 keys 0x40000
+12510 keys 0
+12600 keys 0x80000
+12926 keys 0
+13016 keys 0x200000
+13316 shot
+13758 keys 0
+13848 keys 0x80000
+14174 keys 0
+14264 keys 0x40000
+14590 keys 0
+14750 keys 0x800000
+15400 shot
+15400 btn 13
+15492 keys 0
+15900 shot
+16200 end

@@ -10,7 +10,7 @@
 #define R_ROWS 9u
 #define R_X0 30
 static uint32_t hdr_force;                      /* set when a whole screen was painted over the top bar */
-static void hdr_popup(void);
+static void win_ask(const char *q);
 static uint32_t song_cur, song_top;             /* the song's cursor (a slot; one past the last is the "add" cell) and its first row shown */
 static uint32_t rec_on;                         /* recording: keys land on the step the playhead is at */
 static uint32_t rack_cur, rack_inval, rack_rm, rack_top;     /* the cursor's step; set to repaint after an edit; a channel waits to be removed; the first row shown */
@@ -136,7 +136,7 @@ static void rack_update(uint32_t sel, uint32_t force)
         if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
         rack_inval = 0;
         rack_cols(sel, 0, 240, line);
-        if (rack_rm) hdr_popup();
+        if (rack_rm) win_ask("Remove channel?");
         view_d = seq_view; run_d = seq_run | seq_hold << 1; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; rec_d = rec_on; line_d = line;
     } else if (line != line_d && !rack_rm) {
         if (line_d >= 0) rack_cols(sel, line_d, 2, -1);

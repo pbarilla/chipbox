@@ -3,8 +3,8 @@
  * a note, the tempo, the page. An action plays a short animation over it: play, pause, save, a channel added or removed,
  * a page flipped, the tempo turned, and a channel waiting to be deleted. Included by chipbox.c after rack.c. */
 #define HDR_H 42
-enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_OPEN, AN_OCT, AN_CHAN, AN_VIEW, AN_CRIT, AN_LARP, AN_WAVE, AN_KINDS };
-static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0, 1000, 900, 650, 640, 4000, 900, 1200};
+enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_OPEN, AN_OCT, AN_CHAN, AN_VIEW, AN_CRIT, AN_LARP, AN_WAVE, AN_UNDO, AN_KINDS };
+static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0, 1000, 900, 650, 640, 4000, 900, 1200, 600};
 static uint32_t an_kind, an_t0, an_end, an_arg;
 static uint32_t arp_live, arp_n, arp_cur;        /* the live arp (chipbox.c): on, notes held, the note sounding */
 static uint8_t arp_h[8];
@@ -290,7 +290,7 @@ static void anim_frame(const theme_t *t, uint32_t chip)
 static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t sel, uint32_t last_note)
 {
     char s[16];
-    uint32_t note = view == 1u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 0u ? last_note : 0u;
+    uint32_t note = view == 1u || view == 3u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 0u ? last_note : 0u;
     uint16_t fg = view == 0u ? t->fg : RGB(230, 230, 235);
     /* the same places on every screen: the chip's name on the left, the page in the middle with the note beside it, the tempo on the right */
     if (view != 2u && sel < chan_n) ico_system(chip, 6, console_y(chip), 0, 0);
@@ -335,21 +335,21 @@ static void nav_draw(uint32_t view)
     cv_blit(0, NAV_Y);
 }
 
-static void hdr_popup(void)                     /* over the rack: delete this channel? a bin, OCT+ (yes, green) and OCT- (no, red) */
+static void win_ask(const char *q)               /* a window: the question, OCT+ yes (green), OCT- no (red) */
 {
     int32_t i;
     cv_begin(176, 96, RGB(22, 20, 26));
     for (i = 0; i < 2; i++) { cv_rect(i, 0, 176 - 2 * i, 2, RGB(235, 64, 52)); cv_rect(i, 94, 176 - 2 * i, 2, RGB(235, 64, 52)); cv_rect(0, i, 2, 96 - 2 * i, RGB(235, 64, 52)); cv_rect(174, i, 2, 96 - 2 * i, RGB(235, 64, 52)); }
-    ico_trash(22, 30, 6, RGB(235, 90, 80));
-    cv_rect(80, 12, 80, 32, RGB(24, 70, 40)); cv_rect(88, 27, 12, 3, RGB(230, 235, 230)); cv_rect(92, 23, 3, 11, RGB(230, 235, 230)); ico_check(120, 17, 24, RGB(80, 220, 120));
-    cv_rect(80, 52, 80, 32, RGB(80, 26, 22)); cv_rect(88, 67, 12, 3, RGB(235, 225, 225)); ico_cross(122, 59, 16, RGB(235, 90, 80));
+    cv_text((176 - text_w(&FONT_S, q)) / 2, 11, &FONT_S, q, R_WHITE);
+    cv_rect(14, 38, 148, 22, RGB(24, 70, 40)); cv_text(24, 41, &FONT_S, "OCT+  Yes", RGB(130, 235, 150));
+    cv_rect(14, 66, 148, 22, RGB(80, 26, 22)); cv_text(24, 69, &FONT_S, "OCT-  No", RGB(245, 130, 120));
     cv_blit(32, 100);
 }
 static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t chip, uint32_t last_note)
 {
     static uint32_t sig[16], nav_d = 9;
     uint32_t cur[16], on = anim_on();
-    cur[0] = view; cur[1] = sel; cur[2] = view == 1u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
+    cur[0] = view; cur[1] = sel; cur[2] = view == 1u || view == 3u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
     cur[3] = seq_run; cur[4] = seq_bpm; cur[5] = seq_view; cur[6] = page_n; cur[7] = chip; cur[8] = on ? an_kind : 0u;
     cur[9] = on ? (fm1_ms - an_t0) / 50u : 0u; cur[10] = rack_rm; cur[11] = chan_n; cur[12] = rec_on ? 1u + ((fm1_ms / 350u) & 1u) : 0u; cur[13] = (uint32_t)((int32_t)seq_rate + 8) | ((uint32_t)seq_hold << 8);
     cur[14] = on ? an_arg : 0u; cur[15] = seq_run && !seq_hold ? 1u + (seq_ticks / 24u & 3u) : 0u;

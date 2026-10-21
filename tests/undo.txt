@@ -1,0 +1,24 @@
+# undo (LFO), the ask windows, PRESETS in the add list
+300 shot
+400 keys 0x1
+450 keys 0
+900 shot
+1200 btn 5
+1300 shot
+1750 shot
+1800 btn 5
+1900 shot
+2200 held 0x40
+3000 shot
+3100 held 0
+3200 btn 0
+3300 enc 6 -1
+3400 btn 1
+3500 enc 6 1
+3600 shot
+3700 btn 0
+3800 held 0x100
+4500 held 0x140
+5200 shot
+5300 held 0
+5400 end

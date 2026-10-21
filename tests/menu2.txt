@@ -1,0 +1,25 @@
+# unlock, delete slot 1, factory reset
+300 held 0x180
+400 held 0
+500 enc 0 1
+600 btn 1
+900 shot
+1200 held 0x100
+1900 held 0x140
+2600 shot
+2700 held 0x100
+2750 held 0
+2800 btn 0
+2900 btn 0
+3200 held 0x180
+3300 held 0
+3400 enc 0 1
+3450 enc 0 1
+3500 btn 1
+3700 shot
+3800 btn 1
+5000 shot
+5200 held 0x100
+5900 shot
+5950 held 0
+6300 end

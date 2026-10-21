@@ -255,3 +255,84 @@ static void seq_tetris(void)
         for (k = 0; k < 4u; k++) seq_put(p, 2, 2u + k * 4u, STAB[p][1u + (k & 1u)], 100, 4);          /* off-beat chord tones */
     }
 }
+
+/* In the Hall of the Mountain King (Grieg, 1875, public domain), in B minor. It speeds up by packing the notes tighter: slow, eighths, then sixteenths, and the channels come in one by one. 8 pages. */
+static void ph_put(uint32_t p, uint32_t t, uint32_t at, const uint8_t *n, uint32_t from, uint32_t cnt, uint32_t d, uint32_t shift, uint32_t vel)
+{
+    uint32_t k;
+    for (k = 0; k < cnt; k++) seq_put(p, t, at + k * d, n[from + k] + shift, vel, d * 6u - 2u);
+}
+static void seq_mountain(void)
+{
+    static const uint8_t P1[7] = {59, 61, 62, 64, 66, 62, 66}, P2[7] = {64, 66, 67, 69, 71, 67, 71};
+    uint32_t p, s;
+    seq_clear();
+    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU); chan_add(KD_SMS); chan_add(KD_GB_WAV);
+    chan[2].in.vol = 7; chan[3].in.vol = 7;
+    chan[4].in.wave = 10; chan[4].in.wf = 5; chan[4].in.wt = 6; chan[4].in.vol = 8;           /* the drone: a folded, twisted triangle */
+    seq_bpm = 132; page_n = 8; song_len = 8;
+    for (p = 0; p < 8u; p++) song[p] = (uint8_t)p;
+    ph_put(0, 0, 0, P1, 0, 4, 4, 0, 90); seq_put(0, 1, 0, 47, 120, 22); seq_put(0, 1, 8, 47, 120, 22);                /* bars 1 and 2: the tune, one note in four steps */
+    ph_put(1, 0, 0, P1, 4, 3, 4, 0, 90); seq_put(1, 1, 0, 47, 120, 22); seq_put(1, 1, 8, 47, 120, 22);
+    ph_put(2, 0, 0, P1, 0, 7, 2, 0, 100);                                                                           /* then in eighths */
+    ph_put(3, 0, 0, P2, 0, 7, 2, 0, 100);
+    for (s = 0; s < 16u; s += 4u) { seq_put(2, 1, s, 47, 120, 10); seq_put(3, 1, s, 40, 120, 10); }
+    for (p = 4; p < 8u; p++) {                                                                                      /* then in sixteenths, twice a bar */
+        const uint8_t *n = (p & 1u) ? P2 : P1;
+        uint32_t root = (p & 1u) ? 40u : 47u;
+        ph_put(p, 0, 0, n, 0, 7, 1, 0, 110); ph_put(p, 0, 8, n, 0, 7, 1, 0, 110);
+        for (s = 0; s < 16u; s += 2u) seq_put(p, 1, s, root + ((s & 2u) ? 12u : 0u), 120, 8);
+        ph_put(p, 2, 0, n, 0, 7, 1, 12, 80); ph_put(p, 2, 8, n, 0, 7, 1, 12, 80);                                    /* an octave up joins */
+        if (p >= 5u) for (s = 2; s < 16u; s += 4u) seq_put(p, 3, s, root + 19u, 90, 4);                             /* the off-beat stabs */
+        if (p >= 6u) seq_put(p, 4, 0, 59, 100, 90);                                                                  /* the drone */
+    }
+}
+
+/* Fur Elise (Beethoven, 1810, public domain): the main theme, A minor. A rest is note 0. */
+static void seq_elise(void)
+{
+    static const uint8_t N[] = {76, 75,  76, 75, 76, 71, 74, 72,  69, 0, 60, 64, 69,  71, 0, 64, 68, 71,  72, 0, 64, 76, 75,
+                                76, 75, 76, 71, 74, 72,  69, 0, 60, 64, 69,  71, 0, 64, 72, 71,  69};
+    static const uint8_t L[] = { 1, 1,   1, 1, 1, 1, 1, 1,   2, 1, 1, 1, 1,   2, 1, 1, 1, 1,   2, 1, 1, 1, 1,
+                                 1, 1, 1, 1, 1, 1,   2, 1, 1, 1, 1,   2, 1, 1, 1, 1,   8};
+    static const uint8_t LH[6][4] = {{8, 45, 52, 57}, {14, 40, 52, 56}, {20, 45, 52, 57}, {32, 45, 52, 57}, {38, 40, 52, 56}, {44, 45, 52, 57}};
+    uint32_t i, at = 0, k;
+    seq_clear();
+    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU);
+    chan[0].in.vib_dep = 2; chan[2].in.duty = 1; chan[2].in.vol = 6;
+    seq_bpm = 66; page_n = 4; song_len = 4;
+    for (i = 0; i < 4u; i++) song[i] = (uint8_t)i;
+    for (i = 0; i < sizeof L; i++) {
+        if (N[i]) {
+            uint32_t g = L[i] * 6u - 1u;
+            seq_put(at / 16u, 0, at % 16u, N[i], 100, g > 90u ? 90u : g);
+            seq_put(at / 16u, 2, at % 16u, N[i] - 12u, 70, g > 90u ? 90u : g);               /* a quiet double an octave down */
+        }
+        at += L[i];
+    }
+    for (i = 0; i < 6u; i++)                                                                  /* the left hand: root, fifth, octave */
+        for (k = 0; k < 3u; k++) { uint32_t st = LH[i][0] + k * 2u; seq_put(st / 16u, 1, st % 16u, LH[i][1u + k], 110, 10); }
+}
+
+/* Toccata and Fugue in D minor (Bach, c. 1704, public domain): the opening, in octaves, then chords. */
+static void seq_toccata(void)
+{
+    uint32_t i;
+    seq_clear();
+    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU); chan_add(KD_SMS);
+    chan[0].in.vib_dep = 3; chan[2].in.arp = 3; chan[2].in.arp_rate = 3; chan[2].in.arp_dir = 2; chan[2].in.vol = 8; chan[3].in.vol = 7;
+    seq_bpm = 84; page_n = 4; song_len = 4;
+    for (i = 0; i < 4u; i++) song[i] = (uint8_t)i;
+    for (i = 0; i < 2u; i++) {                                                     /* the motif high, then an octave down */
+        uint32_t o = i * 32u, sh = i * 12u;
+        seq_put((o) / 16u, 0, o % 16u, 81 - sh, 120, 4); seq_put((o + 1u) / 16u, 0, (o + 1u) % 16u, 79 - sh, 120, 4); seq_put((o + 2u) / 16u, 0, (o + 2u) % 16u, 81 - sh, 120, 60);
+        seq_put((o + 16u) / 16u, 0, 0, 79 - sh, 120, 4); seq_put((o + 16u) / 16u, 0, 1, 77 - sh, 120, 4); seq_put((o + 16u) / 16u, 0, 2, 76 - sh, 120, 4);
+        seq_put((o + 16u) / 16u, 0, 3, 74 - sh, 120, 4); seq_put((o + 16u) / 16u, 0, 4, 73 - sh, 120, 4); seq_put((o + 16u) / 16u, 0, 5, 74 - sh, 120, 90);
+        seq_put((o) / 16u, 3, o % 16u, 69 - sh + (i ? 0u : 0u), 90, 4);          /* the organ's second voice, an octave below */
+        seq_put((o) / 16u, 3, (o + 1u) % 16u, 67 - sh, 90, 4); seq_put((o) / 16u, 3, (o + 2u) % 16u, 69 - sh, 90, 60);
+        seq_put((o + 16u) / 16u, 3, 0, 67 - sh, 90, 4); seq_put((o + 16u) / 16u, 3, 1, 65 - sh, 90, 4); seq_put((o + 16u) / 16u, 3, 2, 64 - sh, 90, 4);
+        seq_put((o + 16u) / 16u, 3, 3, 62 - sh, 90, 4); seq_put((o + 16u) / 16u, 3, 4, 61 - sh, 90, 4); seq_put((o + 16u) / 16u, 3, 5, 62 - sh, 90, 90);
+    }
+    seq_put(2, 1, 0, 38, 127, 90); seq_put(3, 1, 0, 33, 127, 40); seq_put(3, 1, 8, 38, 127, 40);                        /* the pedal */
+    seq_put(2, 2, 0, 62, 100, 90); seq_put(3, 2, 0, 57, 100, 50); seq_put(3, 2, 8, 62, 100, 50);                        /* the chords, arped */
+}

@@ -1,0 +1,17 @@
+# STEP entry: SEQ, keys, SELECT, EDIT, PLAY, SEQ
+400 btn 11
+900 shot
+1000 keys 0x800000
+1100 keys 0
+1200 keys 0x40000
+1300 keys 0
+1400 enc 0 1
+1500 enc 0 1
+1600 btn 6
+1700 shot
+1800 btn 12
+2600 shot
+2700 btn 12
+2800 btn 11
+3500 shot
+3600 end

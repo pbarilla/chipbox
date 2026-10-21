@@ -61,9 +61,9 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
         }
         break; }
     case AN_VIEW: {                                 /* a band of the view's colour sweeps open, names the view, and closes (arg 3: the punch-in layer) */
-        static const uint16_t COL[4] = {RGB(240, 150, 40), RGB(60, 190, 170), RGB(150, 110, 235), RGB(235, 100, 170)};
-        static const char *const WORD[4] = {"RACK", "CHIP", "SONG", "FX"};
-        uint32_t v = arg == 1u ? 0u : arg == 0u ? 1u : arg == 2u ? 2u : 3u;
+        static const uint16_t COL[5] = {RGB(240, 150, 40), RGB(60, 190, 170), RGB(150, 110, 235), RGB(235, 100, 170), RGB(70, 150, 255)};
+        static const char *const WORD[5] = {"RACK", "CHIP", "SONG", "FX", "SEQ"};
+        uint32_t v = arg == 1u ? 0u : arg == 0u ? 1u : arg == 2u ? 2u : arg == 4u ? 4u : 3u;
         if (ms < 140u) { int32_t w = ease(ms, 140, 0, 240); cv_rect(120 - w / 2, 0, w, HDR_H, COL[v]); }
         else if (ms < 440u) {
             int32_t tw = text_w(&FONT_L, WORD[v]), x0 = 120 - (tw + 26) / 2;
@@ -79,6 +79,13 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
         if (c >= chan_n) break;
         wave_make(&chan[c].in, wv);
         for (i = 0; i < 64; i++) cv_rect(40 + i * 3, 36 - wv[(i / 2 + (int32_t)(ms / 60u)) & 31] * 28 / 15, 3, 3, at->acc);
+        break; }
+    case AN_UNDO: {                                 /* a U-turn arrow, head to the left; dim when there was nothing to undo */
+        uint16_t uc = arg ? R_WHITE : RGB(90, 90, 105);
+        int32_t dx = ms < 120u ? (int32_t)(120u - ms) / 12 : 0, a;
+        cv_rect(118 + dx, 11, 18, 4, uc); cv_rect(113 + dx, 29, 23, 4, uc);
+        for (a = -8; a <= 8; a++) cv_rect(136 + dx + VIB[(a + 8) & 31] * 11 / 127 - 2, 22 + VIB[a & 31] * 11 / 127 - 2, 4, 4, uc);
+        for (i = 0; i < 9; i++) cv_rect(105 + dx + i, 31 - (i * 8 / 9), 1, 2 * (i * 8 / 9) + 1, uc);
         break; }
     case AN_LARP: {                                 /* the live arp: a bar for each key held, by pitch, a ball on the one sounding; ARP and its state when it was just switched */
         cv_text(100, 5, &FONT_L, "ARP", arp_live ? RGB(80, 220, 120) : RGB(235, 90, 80));
