@@ -1,0 +1,37 @@
+# animations for no reason: view band, octave, channel, arp, project opened, critter, dance
+200 held 0x100
+250 held 0
+330 shot
+500 shot
+660 shot
+900 btn 1
+1000 shot
+1400 enc 6 1
+1480 shot
+1800 enc 1 1
+1830 enc 1 1
+2000 enc 2 1
+2300 shot
+2400 enc 2 1
+2700 shot
+2900 enc 4 1
+3000 shot
+3150 shot
+3300 shot
+3400 held 0x100
+4200 held 0
+4300 enc 0 1
+4400 btn 1
+4800 shot
+4950 shot
+5100 shot
+5300 btn 12
+48000 shot
+48300 shot
+48600 shot
+48900 shot
+49500 btn 12
+49600 shot
+52000 shot
+52400 shot
+52800 end

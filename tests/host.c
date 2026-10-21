@@ -14,6 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef CHIPBOX_WEB
+#include <emscripten.h>
+#endif
 
 #ifndef APP_NAME
 #define APP_NAME "CHIPBOX"
@@ -26,13 +29,14 @@
 
 static volatile uint32_t fm1_ms;
 static struct { uint32_t notes, buttons; } fm1_in;
-static uint32_t host_edges;
-static uint32_t fm1_input_edges(uint32_t *released) { uint32_t b = host_edges; host_edges = 0; *released = 0; return b; }
+static uint32_t host_edges, host_rel;
+static uint32_t fm1_input_edges(uint32_t *released) { uint32_t b = host_edges; host_edges = 0; *released = host_rel; host_rel = 0; return b; }
 static uint32_t fm1_input_note_edges(void) { return 0; }   /* (the script sets fm1_in.notes) */
 static int32_t enc_acc[8];
 static int32_t fm1_enc_take(uint32_t e) { int32_t v = enc_acc[e & 7u]; enc_acc[e & 7u] = 0; return v; }
-static void fm1_led_key(uint32_t id, int on) { (void)id; (void)on; }
-static void fm1_led_glow(uint32_t id, int on) { (void)id; (void)on; }
+static uint8_t host_led[64];                    /* 0 off, 1 glow, 2 on: the browser page draws them */
+static void fm1_led_key(uint32_t id, int on) { if (id < 64u) host_led[id] = on ? 2 : (host_led[id] == 2 ? 0 : host_led[id]); }
+static void fm1_led_glow(uint32_t id, int on) { if (id < 64u && host_led[id] != 2) host_led[id] = on ? 1 : 0; }
 
 /* the screen: 240 x 240 RGB565, as the ST7789 gets it (gfx.c sends the bytes swapped) */
 static uint16_t fb[240 * 240];
@@ -59,6 +63,7 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
 
 /* the projects' flash: erase sets 1s, a write can only clear bits (as the real part: a missing erase shows up), kept in $HOST_FLASH between runs */
 static uint8_t host_flash[PROJ_LEN];
+static uint32_t host_gen;                       /* counts writes: the browser page saves the flash when it changes */
 static int pf_read(uint32_t off, void *dst, uint32_t n)
 {
     if (off < PROJ_AT || off + n > PROJ_AT + PROJ_LEN) return -1;
@@ -69,6 +74,7 @@ static int pf_erase(uint32_t off)
 {
     if (off < PROJ_AT || off + 0x1000u > PROJ_AT + PROJ_LEN || (off & 0xFFFu)) return -1;
     memset(host_flash + (off - PROJ_AT), 0xFF, 0x1000u);
+    host_gen++;
     return 0;
 }
 static int pf_write(uint32_t off, const void *p, uint32_t n)
@@ -76,6 +82,7 @@ static int pf_write(uint32_t off, const void *p, uint32_t n)
     uint32_t i;
     if (off < PROJ_AT || off + n > PROJ_AT + PROJ_LEN) return -1;
     for (i = 0; i < n; i++) host_flash[off - PROJ_AT + i] &= ((const uint8_t *)p)[i];
+    host_gen++;
     return 0;
 }
 static uint8_t host_store[256 + 4];
@@ -99,7 +106,10 @@ static int settings_save(const void *p, uint32_t n)
 {
     host_store[0] = 1;
     memcpy(host_store + 4, p, n);
+    host_gen++;
+#ifndef CHIPBOX_WEB
     printf("%6u ms  settings saved (%u B)\n", fm1_ms, n);
+#endif
     return 0;
 }
 
@@ -112,11 +122,61 @@ static int midi_get(uint8_t *st, uint8_t *d1, uint8_t *d2)
     mq_r++;
     return 1;
 }
+#ifdef CHIPBOX_WEB
+static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { (void)st; (void)d1; (void)d2; }
+#else
 static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { printf("%6u ms  MIDI out %02X %u %u\n", fm1_ms, st, d1, d2); }
+#endif
 
 static void app_audio(int32_t *out, uint32_t n);
 static void app_main(void);
 
+#ifdef CHIPBOX_WEB
+/* in the browser (web/build.sh): the page feeds the keys, buttons and knobs, pulls the sound and draws the screen; platform_poll gives the browser its turn */
+static volatile uint32_t web_go;
+static void platform_poll(void)
+{
+    static double t0;
+    if (!t0) t0 = emscripten_get_now();
+    fm1_ms = (uint32_t)(emscripten_get_now() - t0);
+    emscripten_sleep(2);
+}
+EMSCRIPTEN_KEEPALIVE uint16_t *web_fb(void) { return fb; }
+EMSCRIPTEN_KEEPALIVE uint8_t *web_flash(void) { return host_flash; }
+EMSCRIPTEN_KEEPALIVE uint32_t web_flash_len(void) { return sizeof host_flash; }
+EMSCRIPTEN_KEEPALIVE uint8_t *web_store(void) { return host_store; }
+EMSCRIPTEN_KEEPALIVE uint32_t web_store_len(void) { return sizeof host_store; }
+EMSCRIPTEN_KEEPALIVE uint32_t web_flash_gen(void) { return host_gen; }
+EMSCRIPTEN_KEEPALIVE uint8_t *web_leds(void) { return host_led; }
+EMSCRIPTEN_KEEPALIVE void web_start(void) { web_go = 1; }
+EMSCRIPTEN_KEEPALIVE void web_keys(uint32_t mask) { fm1_in.notes = mask; }
+EMSCRIPTEN_KEEPALIVE void web_button(uint32_t id, uint32_t down)
+{
+    if (id > 13u) return;
+    if (down && !(fm1_in.buttons >> id & 1u)) { fm1_in.buttons |= 1u << id; host_edges |= 1u << id; }
+    else if (!down && (fm1_in.buttons >> id & 1u)) { fm1_in.buttons &= ~(1u << id); host_rel |= 1u << id; }
+}
+EMSCRIPTEN_KEEPALIVE void web_enc(uint32_t id, int32_t d) { enc_acc[id & 7u] += d; }
+EMSCRIPTEN_KEEPALIVE void web_midi(uint32_t st, uint32_t d1, uint32_t d2)
+{
+    mq[mq_w % 64u][0] = (uint8_t)st; mq[mq_w % 64u][1] = (uint8_t)d1; mq[mq_w % 64u][2] = (uint8_t)d2;
+    mq_w++;
+}
+static int32_t web_blk[2u * HALF_FRAMES];
+EMSCRIPTEN_KEEPALIVE int32_t *web_audio(void)    /* one block of HALF_FRAMES stereo frames, Q15 */
+{
+    memset(web_blk, 0, sizeof web_blk);
+    app_audio(web_blk, HALF_FRAMES);
+    return web_blk;
+}
+int main(void)
+{
+    memset(host_flash, 0xFF, sizeof host_flash); memset(host_store, 0, sizeof host_store);
+    while (!web_go) emscripten_sleep(20);        /* the page puts the saved projects in first */
+    app_main();
+    return 0;
+}
+#else
 /* the script: at t ms, keys down (bit k = key k, 0 = F3), a button edge, a MIDI message. A script file (the second
  * argument) replaces it, a line each: "T keys MASK" (hex or decimal), "T btn ID", "T midi ST D1 D2", "T enc ID DELTA",
  * "T held MASK" (buttons held down), "T shot" (a screenshot), "T end" */
@@ -258,3 +318,4 @@ int main(int argc, char **argv)
     app_main();
     return 0;
 }
+#endif

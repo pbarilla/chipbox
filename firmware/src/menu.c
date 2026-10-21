@@ -6,11 +6,11 @@ typedef struct { const char *text; uint8_t head; } mline_t;      /* head: a head
 #define MENU_ROWS 12                            /* 20 px a line */
 static const mline_t HELP_CHIP[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knobs 1-4 - Adjust Controls"),
-    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("ARP - Live Arp"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
 };
 static const mline_t HELP_RACK[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
+    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("ARP - Live Arp"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("GLO - Help"),
 };
 static const mline_t HELP_FX[] = {
     MH("Knobs"), ML("Select - Tape (Hold TAPE)"),

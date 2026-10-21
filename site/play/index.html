@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chipbox: play online</title>
+<meta name="description" content="Chipbox in your browser. The firmware's own code, with its screen and its sound.">
+<style>
+  :root { --bg:#0e0e12; --panel:#181820; --deep:#101016; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#2a2a36; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+         -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+  main { max-width:560px; margin:0 auto; padding:20px 12px 48px; }
+  header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:0 4px 14px; }
+  h1 { font-size:22px; margin:0; letter-spacing:.02em; }
+  h1 span { font-size:11px; background:var(--red); color:#fff; padding:1px 8px; letter-spacing:.12em; margin-left:8px; vertical-align:middle; }
+  a { color:var(--blue); }
+  nav a { margin-left:14px; }
+  .unit { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; display:grid; gap:14px; }
+  .screen { position:relative; width:100%; aspect-ratio:1; background:#000; border-radius:6px; overflow:hidden; }
+  canvas { width:100%; height:100%; display:block; image-rendering:pixelated; }
+  .start { position:absolute; inset:0; display:grid; place-items:center; background:rgba(8,8,12,.78); cursor:pointer; border:0; color:var(--ink); font:inherit; font-size:18px; letter-spacing:.1em; width:100%; }
+  .start b { display:block; padding:12px 22px; background:var(--ink); color:var(--bg); }
+  .start[hidden] { display:none; }
+  .knobs { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+  .knob { display:grid; justify-items:center; gap:4px; font-size:10px; letter-spacing:.06em; color:var(--dim); touch-action:none; cursor:ns-resize; }
+  .dial { width:100%; max-width:52px; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle at 35% 30%, #3a3a48, #1b1b24 70%); border:1px solid #3c3c4c; position:relative; }
+  .dial i { position:absolute; left:50%; top:8%; width:3px; height:26%; margin-left:-1.5px; background:var(--ink); border-radius:2px; transform-origin:50% 190%; }
+  .btns { display:grid; grid-template-columns:repeat(7, 1fr); gap:6px; }
+  .btn { position:relative; padding:14px 0 7px; text-align:center; font:inherit; font-size:10px; letter-spacing:.06em; color:var(--ink); background:#262633; border:1px solid #3a3a4a; border-radius:6px; cursor:pointer; touch-action:none; }
+  .btn:active, .btn.dn { background:#3a3a4c; }
+  .led { position:absolute; left:50%; top:5px; width:14px; height:3px; margin-left:-7px; border-radius:2px; background:#3a2a2a; }
+  .led.on { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .led.glow { background:#7a2c28; }
+  .keys { position:relative; height:104px; background:#000; border-radius:4px; touch-action:none; }
+  .k { position:absolute; top:0; background:#e6e6ec; border:1px solid #8a8a96; border-radius:0 0 4px 4px; cursor:pointer; }
+  .k.b { background:#18181f; border-color:#000; z-index:2; height:62%; }
+  .k.dn { background:var(--blue); }
+  .k.b.dn { background:#2d7fc0; }
+  .k.on:not(.dn) { box-shadow:inset 0 -10px 0 var(--red); }
+  .k.gl:not(.dn):not(.on) { box-shadow:inset 0 -5px 0 #7a2c28; }
+  p.help { color:var(--dim); font-size:12px; margin:14px 4px 0; }
+  p.help b { color:var(--ink); font-weight:400; }
+  .row { display:flex; flex-wrap:wrap; gap:10px 18px; margin:10px 4px 0; font-size:12px; color:var(--dim); }
+  button.link { background:none; border:0; padding:0; font:inherit; color:var(--blue); cursor:pointer; text-decoration:underline; }
+  @media (max-width:420px) { .btn { font-size:9px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Chipbox<span>ONLINE</span></h1>
+    <nav><a href="../">Home</a><a href="../install.html">Install</a></nav>
+  </header>
+
+  <div class="unit">
+    <div class="screen">
+      <canvas id="lcd" width="240" height="240"></canvas>
+      <button class="start" id="start"><b>PLAY</b></button>
+    </div>
+    <div class="knobs" id="knobs"></div>
+    <div class="btns" id="btns"></div>
+    <div class="keys" id="keys"></div>
+  </div>
+
+  <p class="help">Keys: <b>Z</b>-<b>/</b> and <b>Q</b>-<b>Y</b>, sharps above. <b>Space</b> play, <b>Enter</b> home, <b>`</b> rec, <b>\</b> fx, <b>1</b> arp. Arrows: select and presets. Turn knobs with the wheel or by dragging.</p>
+  <div class="row">
+    <span id="midi">MIDI keyboard: none</span>
+    <span>Projects stay in this browser. <button class="link" id="reset">Start over</button></span>
+  </div>
+</main>
+<script src="chipbox.js"></script>
+<script>
+(function () {
+  "use strict";
+  var KEY = "chipbox-flash-1";
+  var $ = function (id) { return document.getElementById(id); };
+  var mod = null, ctx = null, held = 0, down = {};
+  var BTN = [["OCT-", 0], ["OCT+", 1], ["FX", 2], ["SEL", 3], ["ENV", 4], ["LFO", 5], ["EDIT", 6], ["GLO", 7], ["HOME", 8], ["SAVE", 9], ["ARP", 10], ["SEQ", 11], ["PLAY", 12], ["REC", 13]];
+  var ENC = [["SELECT", 0], ["ALGO", 1], ["1", 2], ["2", 3], ["3", 4], ["4", 5], ["PRESETS", 6]];
+  var angle = [0, 0, 0, 0, 0, 0, 0], dials = [], leds = [], keyEls = [];
+
+  /* the keyboard: key k is a note, F3 = 0 up to G5 = 26 */
+  function isBlack(k) { return [1, 3, 6, 8, 10].indexOf((5 + k) % 12) >= 0; }
+  var wcount = 0, wpos = [];
+  for (var k = 0; k < 27; k++) { wpos[k] = wcount; if (!isBlack(k)) wcount++; }
+  var kb = $("keys");
+  for (k = 0; k < 27; k++) {
+    var el = document.createElement("div"), blk = isBlack(k), w = 100 / wcount;
+    el.className = "k" + (blk ? " b" : "");
+    el.style.width = (blk ? w * 0.62 : w) + "%";
+    el.style.left = (blk ? wpos[k] * w - w * 0.31 : wpos[k] * w) + "%";
+    el.style.height = blk ? "62%" : "100%";
+    el.dataset.k = k;
+    kb.appendChild(el); keyEls.push(el);
+  }
+  function setKey(k, on) { if (on) held |= 1 << k; else held &= ~(1 << k); keyEls[k].classList.toggle("dn", !!on); if (mod) mod._web_keys(held >>> 0); }
+  var ptrKey = {};
+  kb.addEventListener("pointerdown", function (e) {
+    var t = e.target.closest(".k"); if (!t) return;
+    kb.setPointerCapture && kb.setPointerCapture(e.pointerId);
+    ptrKey[e.pointerId] = +t.dataset.k; setKey(+t.dataset.k, 1); wake(); e.preventDefault();
+  });
+  kb.addEventListener("pointermove", function (e) {
+    if (!(e.pointerId in ptrKey)) return;
+    var t = document.elementFromPoint(e.clientX, e.clientY); t = t && t.closest && t.closest(".k");
+    if (t && +t.dataset.k !== ptrKey[e.pointerId]) { setKey(ptrKey[e.pointerId], 0); ptrKey[e.pointerId] = +t.dataset.k; setKey(ptrKey[e.pointerId], 1); }
+  });
+  function keyUp(e) { if (e.pointerId in ptrKey) { setKey(ptrKey[e.pointerId], 0); delete ptrKey[e.pointerId]; } }
+  kb.addEventListener("pointerup", keyUp); kb.addEventListener("pointercancel", keyUp);
+
+  /* the buttons */
+  var bb = $("btns");
+  BTN.forEach(function (b) {
+    var el = document.createElement("button"); el.className = "btn"; el.innerHTML = '<span class="led"></span>' + b[0];
+    el.dataset.id = b[1]; bb.appendChild(el); leds[b[1]] = el;
+    function press(on) { el.classList.toggle("dn", !!on); if (mod) mod._web_button(b[1], on ? 1 : 0); }
+    el.addEventListener("pointerdown", function (e) { el.setPointerCapture(e.pointerId); press(1); wake(); e.preventDefault(); });
+    el.addEventListener("pointerup", function () { press(0); });
+    el.addEventListener("pointercancel", function () { press(0); });
+    el._press = press;
+  });
+
+  /* the knobs: wheel or drag */
+  var kn = $("knobs");
+  ENC.forEach(function (c, i) {
+    var el = document.createElement("div"); el.className = "knob"; el.innerHTML = '<div class="dial"><i></i></div>' + c[0];
+    kn.appendChild(el); dials[i] = el.querySelector("i");
+    function turn(d) { angle[i] += d * 18; dials[i].style.transform = "rotate(" + angle[i] + "deg)"; if (mod) mod._web_enc(c[1], d); wake(); }
+    var y0 = null, acc = 0;
+    el.addEventListener("wheel", function (e) { e.preventDefault(); acc += e.deltaY; while (acc >= 30) { turn(-1); acc -= 30; } while (acc <= -30) { turn(1); acc += 30; } }, { passive: false });
+    el.addEventListener("pointerdown", function (e) { el.setPointerCapture(e.pointerId); y0 = e.clientY; e.preventDefault(); });
+    el.addEventListener("pointermove", function (e) { if (y0 === null) return; var d = Math.trunc((y0 - e.clientY) / 9); if (d) { turn(d); y0 = e.clientY; } });
+    el.addEventListener("pointerup", function () { y0 = null; }); el.addEventListener("pointercancel", function () { y0 = null; });
+    el._turn = turn;
+  });
+  function knob(i, d) { var els = kn.children; els[i]._turn(d); }
+
+  /* the computer keyboard */
+  var NOTE = {}; "zxcvbnm,./".split("").forEach(function (c, i) { NOTE[c] = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16][i]; });
+  "qwerty".split("").forEach(function (c, i) { NOTE[c] = [18, 19, 21, 23, 24, 26][i]; });
+  var SH = { s: 1, d: 3, f: 5, g: 8, h: 10, l: 13, ";": 15, "2": 17, "3": 20, "4": 22, "6": 25 };
+  for (var s in SH) NOTE[s] = SH[s];
+  var CTRL = { " ": 12, "Enter": 8, "`": 13, "[": 0, "]": 1, "\\": 2, "Tab": 7, "1": 10, "5": 6, "9": 9 };
+  addEventListener("keydown", function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var c = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (c in NOTE) { if (!e.repeat) setKey(NOTE[c], 1); wake(); e.preventDefault(); return; }
+    if (c in CTRL) { if (!e.repeat) leds[CTRL[c]]._press(1); wake(); e.preventDefault(); return; }
+    if (e.key === "ArrowLeft") knob(0, -1); else if (e.key === "ArrowRight") knob(0, 1);
+    else if (e.key === "ArrowUp") knob(6, 1); else if (e.key === "ArrowDown") knob(6, -1);
+    else if (e.key === "PageUp") knob(1, 1); else if (e.key === "PageDown") knob(1, -1); else return;
+    e.preventDefault();
+  });
+  addEventListener("keyup", function (e) {
+    var c = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (c in NOTE) setKey(NOTE[c], 0); else if (c in CTRL) leds[CTRL[c]]._press(0);
+  });
+  addEventListener("blur", function () { for (var k = 0; k < 27; k++) if (held >> k & 1) setKey(k, 0); BTN.forEach(function (b) { leds[b[1]]._press(0); }); });
+
+  /* the screen and the lights */
+  var lcd = $("lcd"), g = lcd.getContext("2d"), img = g.createImageData(240, 240), px = new Uint32Array(img.data.buffer);
+  function frame() {
+    if (mod) {
+      var fb = mod._web_fb() >> 1, h = mod.HEAPU16, i;
+      for (i = 0; i < 57600; i++) {
+        var c = h[fb + i], r = (c >> 11) * 255 / 31 | 0, gr = (c >> 5 & 63) * 255 / 63 | 0, b = (c & 31) * 255 / 31 | 0;
+        px[i] = 0xff000000 | b << 16 | gr << 8 | r;
+      }
+      g.putImageData(img, 0, 0);
+      var lp = mod._web_leds(), L = mod.HEAPU8;
+      BTN.forEach(function (b) { var v = L[lp + b[1]], d = leds[b[1]].firstChild; d.className = "led" + (v === 2 ? " on" : v === 1 ? " glow" : ""); });
+      for (var k = 0; k < 27; k++) { var v = L[lp + 14 + k], e = keyEls[k]; e.classList.toggle("on", v === 2); e.classList.toggle("gl", v === 1); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* the sound: the firmware renders 44.1 kHz blocks when the browser asks for audio */
+  function pull() {
+    var p = mod._web_audio() >> 2, h = mod.HEAP32, out = new Float32Array(512), i;
+    for (i = 0; i < 512; i++) { var v = h[p + i]; out[i] = (v > 32767 ? 32767 : v < -32767 ? -32767 : v) / 32768; }
+    return out;
+  }
+  function startAudio() {
+    if (ctx) { if (ctx.state !== "running") ctx.resume(); return; }
+    var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ctx = new AC();
+    var node = ctx.createScriptProcessor(2048, 0, 2), step = 44100 / ctx.sampleRate, src = new Float32Array(0), pos = 0;
+    node.onaudioprocess = function (e) {
+      var L = e.outputBuffer.getChannelData(0), R = e.outputBuffer.getChannelData(1), n = L.length, i;
+      if (!mod) { L.fill(0); R.fill(0); return; }
+      var need = Math.ceil(pos + n * step) + 2;
+      while (src.length / 2 < need) { var blk = pull(), nb = new Float32Array(src.length + blk.length); nb.set(src); nb.set(blk, src.length); src = nb; }
+      for (i = 0; i < n; i++) {
+        var j = Math.floor(pos), f = pos - j;
+        L[i] = (src[2 * j] * (1 - f) + src[2 * j + 2] * f) * 0.9;
+        R[i] = (src[2 * j + 1] * (1 - f) + src[2 * j + 3] * f) * 0.9;
+        pos += step;
+      }
+      var keep = Math.floor(pos); src = src.subarray(2 * keep); pos -= keep;
+    };
+    node.connect(ctx.destination);
+  }
+  function wake() { if (ctx && ctx.state === "suspended") ctx.resume(); }
+  $("start").addEventListener("click", function () { startAudio(); this.hidden = true; });
+
+  /* what you made stays in the browser */
+  function save() {
+    if (!mod) return;
+    try {
+      var f = new Uint8Array(mod.HEAPU8.buffer, mod._web_flash(), mod._web_flash_len()), s = new Uint8Array(mod.HEAPU8.buffer, mod._web_store(), mod._web_store_len()), t = "", i;
+      for (i = 0; i < f.length; i += 4096) t += String.fromCharCode.apply(null, f.subarray(i, i + 4096));
+      var t2 = ""; for (i = 0; i < s.length; i++) t2 += String.fromCharCode(s[i]);
+      localStorage.setItem(KEY, JSON.stringify({ f: btoa(t), s: btoa(t2) }));
+    } catch (e) {}
+  }
+  function restore() {
+    try {
+      var d = JSON.parse(localStorage.getItem(KEY) || "null"); if (!d) return;
+      var f = atob(d.f), s = atob(d.s), H = mod.HEAPU8, fp = mod._web_flash(), sp = mod._web_store(), i;
+      if (f.length !== mod._web_flash_len() || s.length !== mod._web_store_len()) return;
+      for (i = 0; i < f.length; i++) H[fp + i] = f.charCodeAt(i);
+      for (i = 0; i < s.length; i++) H[sp + i] = s.charCodeAt(i);
+    } catch (e) {}
+  }
+  $("reset").addEventListener("click", function () { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); });
+
+  /* a MIDI keyboard, if there is one */
+  if (navigator.requestMIDIAccess) navigator.requestMIDIAccess().then(function (m) {
+    function hook() {
+      var n = 0;
+      m.inputs.forEach(function (inp) { n++; inp.onmidimessage = function (ev) { if (mod && ev.data.length === 3) mod._web_midi(ev.data[0], ev.data[1], ev.data[2]); wake(); }; });
+      $("midi").textContent = "MIDI keyboard: " + (n ? n + " connected" : "none");
+    }
+    hook(); m.onstatechange = hook;
+  }).catch(function () {});
+
+  Chipbox().then(function (m) {
+    mod = m; restore(); m._web_start();
+    var gen = m._web_flash_gen();
+    setInterval(function () { var n = m._web_flash_gen(); if (n !== gen) { gen = n; save(); } }, 1500);
+    requestAnimationFrame(frame);
+  });
+})();
+</script>
+</body>
+</html>

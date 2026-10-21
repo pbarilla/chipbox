@@ -5,7 +5,7 @@
  * An erase stalls the sound (~50 ms a sector), so saves happen when stopped, or when you press SAVE. */
 #define PROJ_MAGIC 0x32424A50u                  /* "PJB2" */
 #define PROJ_HDR 16u
-#define PROJ_INST 14u                           /* bytes of a channel's sound */
+#define PROJ_INST 17u                           /* bytes of a channel's sound (version 2 had 14: no wave fold, crush, twist) */
 #define PROJ_EV 6u                              /* bytes of a note: page, channel, step, note, velocity, length */
 
 static uint8_t proj_buf[PROJ_BANK];
@@ -26,7 +26,7 @@ static void proj_edited(void) { proj_dirty = 1; proj_t_edit = fm1_ms; }
 static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the length, or 0 when it does not fit a bank */
 {
     uint32_t n = 0, pg, c, s, ev = 0, evat;
-    p[n++] = 2;
+    p[n++] = 3;
     p[n++] = (uint8_t)seq_bpm; p[n++] = (uint8_t)(seq_bpm >> 8);
     p[n++] = (uint8_t)page_n; p[n++] = (uint8_t)chan_n;
     for (c = 0; c < chan_n; c++) {
@@ -35,6 +35,7 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
         p[n++] = x->wave; p[n++] = x->duty; p[n++] = x->atk; p[n++] = x->dec; p[n++] = x->sus; p[n++] = x->rel;
         p[n++] = x->vib_spd; p[n++] = x->vib_dep; p[n++] = (uint8_t)x->sweep; p[n++] = x->pan; p[n++] = x->vol;
         p[n++] = x->arp; p[n++] = x->arp_rate; p[n++] = x->arp_dir;
+        p[n++] = x->wf; p[n++] = x->wc; p[n++] = x->wt;
     }
     evat = n; n += 2;
     for (pg = 0; pg < page_n; pg++)
@@ -54,13 +55,14 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
 }
 static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else nothing was changed */
 {
-    uint32_t n, i, c, ev, pages, chans;
-    if (len < 7u || p[0] != 2u) return -1;
+    uint32_t n, i, c, ev, pages, chans, isz;
+    if (len < 7u || (p[0] != 2u && p[0] != 3u)) return -1;
+    isz = p[0] == 2u ? 14u : PROJ_INST;
     pages = p[3]; chans = p[4];
     if (pages < 1u || pages > SEQ_PAGES || chans > MAXCH) return -1;
-    n = 5u + chans * (1u + PROJ_INST);
+    n = 5u + chans * (1u + isz);
     if (len < n + 2u) return -1;
-    for (c = 0; c < chans; c++) if (p[5u + c * (1u + PROJ_INST)] >= KINDS) return -1;
+    for (c = 0; c < chans; c++) if (p[5u + c * (1u + isz)] >= KINDS) return -1;
     ev = (uint32_t)p[n] | (uint32_t)p[n + 1u] << 8;
     n += 2u;
     if (len < n + ev * PROJ_EV) return -1;
@@ -73,13 +75,15 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
     seq_bpm = (uint32_t)p[1] | (uint32_t)p[2] << 8;
     page_n = pages;
     for (c = 0; c < chans; c++) {
-        const uint8_t *q = p + 5u + c * (1u + PROJ_INST);
+        const uint8_t *q = p + 5u + c * (1u + isz);
         chan_t *x;
         chan_add(q[0]);
         x = &chan[c];
         x->in.wave = q[1]; x->in.duty = q[2]; x->in.atk = q[3]; x->in.dec = q[4]; x->in.sus = q[5]; x->in.rel = q[6];
         x->in.vib_spd = q[7]; x->in.vib_dep = q[8]; x->in.sweep = (int8_t)q[9]; x->in.pan = q[10]; x->in.vol = q[11];
         x->in.arp = q[12]; x->in.arp_rate = q[13]; x->in.arp_dir = q[14];
+        if (isz == 14u) { static const uint8_t OLD[4] = {0, 5, 10, 15}; x->in.wave = OLD[q[1] & 3u]; }       /* version 2: wave was one of four presets */
+        else { x->in.wf = q[15] & 15u; x->in.wc = q[16] & 15u; x->in.wt = q[17] & 15u; }
     }
     for (i = 0; i < ev; i++) {
         const uint8_t *e = p + n + i * PROJ_EV;

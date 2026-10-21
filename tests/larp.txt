@@ -1,0 +1,12 @@
+# live arp: ARP on, hold a chord, the bar hops along the keys
+200 btn 10
+300 shot
+1000 keys 0x91
+1200 shot
+1400 shot
+1600 shot
+1800 shot
+2500 keys 0
+3000 btn 10
+3100 shot
+3400 end

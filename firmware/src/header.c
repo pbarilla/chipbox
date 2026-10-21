@@ -3,9 +3,11 @@
  * a note, the tempo, the page. An action plays a short animation over it: play, pause, save, a channel added or removed,
  * a page flipped, the tempo turned, and a channel waiting to be deleted. Included by chipbox.c after rack.c. */
 #define HDR_H 42
-enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_KINDS };
-static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0};
+enum { AN_NONE, AN_PLAY, AN_PAUSE, AN_SAVE, AN_ADD, AN_REMOVE, AN_PAGE, AN_TEMPO, AN_DELETE, AN_COPY, AN_REC, AN_TAPE, AN_FX, AN_OPEN, AN_OCT, AN_CHAN, AN_VIEW, AN_CRIT, AN_LARP, AN_WAVE, AN_KINDS };
+static const uint16_t AN_DUR[AN_KINDS] = {0, 650, 550, 1000, 850, 850, 500, 1100, 0, 800, 1100, 0, 0, 1000, 900, 650, 640, 4000, 900, 1200};
 static uint32_t an_kind, an_t0, an_end, an_arg;
+static uint32_t arp_live, arp_n, arp_cur;        /* the live arp (chipbox.c): on, notes held, the note sounding */
+static uint8_t arp_h[8];
 static uint16_t hdr_bg;                         /* the bar's background on this screen, for the sheet's folded corner */
 
 static uint16_t sg_color(uint32_t page)
@@ -17,7 +19,8 @@ static void anim_start(uint32_t kind, uint32_t arg) { an_kind = kind; an_t0 = fm
 static uint32_t anim_on(void)
 {
     if (an_kind == AN_DELETE) return rack_rm;
-    if (an_kind == AN_TAPE) return fm1_ms < an_end || (seq_run && seq_rate != 2);        /* the tape stays on show while it is not playing as normal */
+    if (an_kind == AN_TAPE) return fm1_ms < an_end || (seq_run && seq_rate != 2) || (fx_mask & FXB(FX_TAPE));        /* the tape stays on show while it is not playing as normal */
+    if (an_kind == AN_LARP) return arp_live || fm1_ms < an_end;                     /* the live arp: while it is on */
     if (an_kind == AN_FX) return fx_mask != 0 || fm1_ms < an_end;                       /* a punch-in effect: while its key is held, and a moment after */
     return an_kind && fm1_ms < an_end;
 }
@@ -55,6 +58,44 @@ static void ico_chip(int32_t x, int32_t y, uint16_t body, uint16_t pin, uint16_t
     for (p = 0; p < 3; p++) { cv_rect(x, y + 4 + p * 6, 28, 3, pin); }
     cv_rect(x + 3, y + 3, 22, 16, body);
     cv_rect(x + 6, y + 6, 4, 4, dark);
+}
+/* the consoles, tiny (a Game Boy 20 x 28, an NES 38 x 22, a Master System 38 x 20); x is the left edge, bg shows through the corners */
+static int32_t console_w(uint32_t chip) { return chip == CHIP_GB ? 20 : 38; }
+static int32_t console_y(uint32_t chip) { return chip == CHIP_GB ? 7 : 11; }              /* where the bar draws it */
+static void ico_console(uint32_t chip, int32_t x, int32_t y)
+{
+    if (chip == CHIP_GB) {
+        cv_rect(x, y, 20, 28, RGB(196, 196, 184)); cv_rect(x + 17, y + 25, 3, 3, hdr_bg); cv_rect(x + 18, y + 24, 2, 1, hdr_bg);
+        cv_rect(x + 2, y + 2, 16, 12, RGB(74, 74, 96)); cv_rect(x + 4, y + 4, 12, 8, RGB(155, 188, 15)); cv_rect(x + 4, y + 4, 12, 1, RGB(110, 150, 30));
+        cv_rect(x + 2, y + 7, 1, 2, RGB(214, 48, 40));
+        cv_rect(x + 4, y + 15, 12, 1, RGB(70, 70, 150));
+        cv_rect(x + 2, y + 21, 7, 3, RGB(40, 40, 48)); cv_rect(x + 4, y + 19, 3, 7, RGB(40, 40, 48));
+        cv_rect(x + 12, y + 22, 3, 3, RGB(150, 30, 80)); cv_rect(x + 16, y + 20, 3, 3, RGB(150, 30, 80));
+        cv_rect(x + 6, y + 26, 3, 1, RGB(120, 120, 114)); cv_rect(x + 10, y + 26, 3, 1, RGB(120, 120, 114));
+    } else if (chip == CHIP_NES) {              /* the front loader, in its own colours: warm grey top and door, mid grey base, charcoal port block, red lettering */
+        cv_rect(x + 3, y, 32, 1, RGB(214, 212, 208)); cv_rect(x + 2, y + 1, 34, 1, RGB(214, 212, 208)); cv_rect(x + 1, y + 2, 36, 1, RGB(208, 206, 202)); cv_rect(x, y + 3, 38, 2, RGB(201, 199, 195));
+        cv_rect(x + 26, y + 1, 8, 1, RGB(58, 58, 57)); cv_rect(x + 25, y + 3, 11, 1, RGB(170, 168, 164));
+        cv_rect(x, y + 5, 38, 10, RGB(201, 199, 195));
+        cv_rect(x + 2, y + 6, 25, 8, RGB(214, 212, 208)); cv_rect(x + 2, y + 13, 25, 1, RGB(160, 158, 154));
+        cv_rect(x + 5, y + 8, 9, 1, RGB(154, 42, 38)); cv_rect(x + 5, y + 10, 16, 1, RGB(178, 96, 92));
+        cv_rect(x, y + 15, 38, 7, RGB(114, 112, 111));
+        cv_rect(x + 3, y + 17, 1, 1, RGB(154, 42, 38)); cv_rect(x + 5, y + 17, 6, 3, RGB(111, 100, 89)); cv_rect(x + 12, y + 17, 6, 3, RGB(111, 100, 89));
+        cv_rect(x + 29, y + 5, 8, 17, RGB(58, 58, 57)); cv_rect(x + 31, y + 17, 4, 3, RGB(90, 88, 86));
+    } else {                                    /* Master System: black, a slanted top with the red panel and the cartridge slot, a red pinstripe, POWER, ports, the card slot */
+        cv_rect(x + 5, y, 33, 1, RGB(48, 48, 54)); cv_rect(x + 4, y + 1, 34, 1, RGB(44, 44, 50)); cv_rect(x + 3, y + 2, 35, 1, RGB(40, 40, 46)); cv_rect(x + 2, y + 3, 36, 6, RGB(36, 36, 42));
+        cv_rect(x + 17, y + 1, 14, 8, RGB(196, 40, 44)); cv_rect(x + 18, y, 12, 2, RGB(86, 86, 94)); cv_rect(x + 19, y + 5, 4, 2, RGB(20, 20, 24)); cv_rect(x + 25, y + 5, 4, 2, RGB(240, 240, 244));
+        cv_rect(x + 5, y + 3, 6, 1, RGB(232, 232, 238)); cv_rect(x + 12, y + 3, 8, 1, RGB(130, 130, 140));
+        cv_rect(x, y + 9, 38, 11, RGB(24, 24, 28)); cv_rect(x, y + 10, 38, 1, RGB(168, 34, 38));
+        cv_rect(x + 3, y + 12, 6, 2, RGB(205, 44, 44)); cv_rect(x + 3, y + 15, 7, 3, RGB(10, 10, 14));
+        cv_rect(x + 17, y + 14, 5, 3, RGB(66, 66, 72)); cv_rect(x + 24, y + 14, 5, 3, RGB(66, 66, 72));
+        cv_rect(x + 31, y + 13, 6, 6, RGB(10, 10, 14)); cv_rect(x + 31, y + 13, 6, 1, RGB(80, 80, 88));
+    }
+}
+/* a console, lifted dy (the animations drop it in from above) */
+static void ico_system(uint32_t chip, int32_t x, int32_t y, int32_t dy, uint16_t unused)
+{
+    (void)unused;
+    ico_console(chip, x, y + dy);
 }
 static void ico_floppy(int32_t x, int32_t y)                            /* a floppy disk, 26 x 26 */
 {
@@ -161,37 +202,32 @@ static void deck_key(int32_t i, int32_t down)
 
 /* one frame of an animation over the whole bar; t = ms since it started */
 static void fx_anim_frame(uint32_t pad, uint32_t ms);
+static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t *at);
 static void anim_frame(const theme_t *t, uint32_t chip)
 {
     uint32_t ms = fm1_ms - an_t0;
-    const theme_t *at = &THEME[an_arg < CHIPS ? an_arg : chip];
+    const theme_t *at = &THEME[(an_kind == AN_ADD || an_kind == AN_REMOVE) && (an_arg & 255u) < CHIPS ? (an_arg & 255u) : chip];
     switch (an_kind) {
-    case AN_PLAY: {                                 /* the triangle swells in the middle, sound waves go out */
-        int32_t s = ease(ms, 300, 6, 30), i;
-        ico_play(112 - s / 3, 21 - s / 2, s, RGB(80, 220, 120));
-        for (i = 0; i < 3; i++) {
-            int32_t h = (int32_t)(ms > (uint32_t)i * 90u ? ease(ms - (uint32_t)i * 90u, 350, 2, 22) : 2);
-            cv_rect(150 + i * 14, 21 - h / 2, 5, h, RGB(80, 220, 120));
-            cv_rect(98 - i * 14 - 5, 21 - h / 2, 5, h, RGB(80, 220, 120));
-        }
-        break; }
-    case AN_PAUSE: {                                /* two bars drop in and settle */
-        int32_t y = ms < 250 ? ease(ms, 250, -30, 8) : 8 + (ms < 400 ? (int32_t)(400 - ms) / 40 * (ms & 1u ? 1 : -1) : 0);
-        ico_pause(106, y, 26, RGB(230, 230, 235));
+    case AN_PLAY: case AN_PAUSE: {                  /* the tape deck again: PLAY goes down; for a stop, STOP goes down and PLAY springs up */
+        int32_t k;
+        for (k = 0; k < 5; k++) deck_key(k, an_kind == AN_PLAY ? (k == 2 && ms >= 60) : ((k == 2 && ms < 120) || (k == 4 && ms >= 120)));
         break; }
     case AN_SAVE: {                                 /* a floppy slides down, then a tick */
         int32_t y = ms < 350 ? ease(ms, 350, -30, 8) : 8;
         ico_floppy(94, y);
         if (ms > 450) ico_check(130, 8 + (ms < 600 ? (int32_t)(600 - ms) / 15 : 0), 24, RGB(80, 220, 120));
         break; }
-    case AN_ADD: {                                  /* a chip pops in with sparks and a plus */
-        int32_t y = ms < 300 ? ease(ms, 300, -26, 10) : 10 + (ms < 450 ? (int32_t)(450 - ms) / 50 : 0);
-        ico_chip(92, y, at->acc, RGB(200, 200, 210), at->bg);
-        sparks(106, 21, ms > 250 ? ms - 250 : 0, 500, 34, at->acc);
-        if (ms > 300) { cv_rect(138, 19, 14, 3, R_WHITE); cv_rect(143, 14, 3, 13, R_WHITE); }
+    case AN_ADD: {                                  /* the console drops in with sparks and a plus */
+        uint32_t cc = an_arg & 255u;
+        int32_t cx = 106 - console_w(cc) / 2, drop = ms < 320 ? ease(ms, 320, -26, 0) : 0;
+        ico_system(cc, cx, console_y(cc), drop, 0);
+        sparks(106, console_y(cc), ms > 300 ? ms - 300 : 0, 450, 30, at->acc);
+        if (ms > 300) { cv_rect(152, 19, 14, 3, R_WHITE); cv_rect(157, 14, 3, 13, R_WHITE); }
         break; }
-    case AN_REMOVE: {                               /* the chip shakes, then bursts */
-        if (ms < 400) ico_chip(92 + (int32_t)((ms / 40) & 1u) * 4 - 2, 10, at->acc, RGB(200, 200, 210), at->bg);
+    case AN_REMOVE: {                               /* the console shakes, then bursts */
+        uint32_t cc = an_arg & 255u;
+        int32_t cx = 106 - console_w(cc) / 2 + (ms < 400 ? (int32_t)((ms / 40) & 1u) * 4 - 2 : 0);
+        if (ms < 400) ico_system(cc, cx, console_y(cc), 0, 0);
         else sparks(106, 21, ms - 400, 450, 40, at->acc);
         if (ms > 400) cv_rect(136, 19, 14, 3, R_WHITE);
         break; }
@@ -245,7 +281,7 @@ static void anim_frame(const theme_t *t, uint32_t chip)
         cv_rect(0, HDR_H - 4, 240, 3, (ms / 350u) & 1u ? RGB(235, 64, 52) : RGB(110, 30, 26));
         ico_trash(109, 7, lid + 3, RGB(235, 90, 80));
         break; }
-    default: break;
+    default: flair_frame(an_kind, ms, an_arg, at); break;
     }
     (void)t;
 }
@@ -257,7 +293,7 @@ static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t se
     uint32_t note = view == 1u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 0u ? last_note : 0u;
     uint16_t fg = view == 0u ? t->fg : RGB(230, 230, 235);
     /* the same places on every screen: the chip's name on the left, the page in the middle with the note beside it, the tempo on the right */
-    if (view != 2u && sel < chan_n) cv_text(8, 5, &FONT_L, chip == CHIP_GB ? "GB" : THEME[chip].name, fg);
+    if (view != 2u && sel < chan_n) ico_system(chip, 6, console_y(chip), 0, 0);
     ico_file(100, 6, seq_view, R_BG);
     if (note) { note_name(s, note); cv_text(134, 14, &FONT_S, s, fg); }
     fmt_u(s, seq_bpm);
@@ -268,6 +304,10 @@ static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t se
         else if (chip == CHIP_GB) { for (x = 0; x < 240; x += 6) cv_rect(x, 38, 4, 3, t->fg); }                  /* a dotted rule */
         else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
     } else cv_rect(0, HDR_H - 1, 240, 1, rec_on ? RGB(235, 50, 40) : RGB(50, 50, 60));
+    if (seq_run && !seq_hold) {                     /* playing: four dots under the tempo, the beat's lit */
+        uint32_t b = seq_ticks / 24u & 3u, i;
+        for (i = 0; i < 4u; i++) cv_rect(190 + (int32_t)i * 11, 32, 8, 4, i == b ? (b == 0u ? RGB(80, 220, 120) : R_WHITE) : RGB(60, 60, 74));
+    }
     if (rec_on && view != 2u && ((fm1_ms / 350u) & 1u)) {            /* recording: a red dot that blinks */
         cv_rect(72, 15, 12, 12, RGB(235, 50, 40)); cv_rect(70, 17, 16, 8, RGB(235, 50, 40)); cv_rect(74, 13, 8, 16, RGB(235, 50, 40));
     }
@@ -307,11 +347,12 @@ static void hdr_popup(void)                     /* over the rack: delete this ch
 }
 static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t chip, uint32_t last_note)
 {
-    static uint32_t sig[14], nav_d = 9;
-    uint32_t cur[14], on = anim_on();
+    static uint32_t sig[16], nav_d = 9;
+    uint32_t cur[16], on = anim_on();
     cur[0] = view; cur[1] = sel; cur[2] = view == 1u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
     cur[3] = seq_run; cur[4] = seq_bpm; cur[5] = seq_view; cur[6] = page_n; cur[7] = chip; cur[8] = on ? an_kind : 0u;
     cur[9] = on ? (fm1_ms - an_t0) / 50u : 0u; cur[10] = rack_rm; cur[11] = chan_n; cur[12] = rec_on ? 1u + ((fm1_ms / 350u) & 1u) : 0u; cur[13] = (uint32_t)((int32_t)seq_rate + 8) | ((uint32_t)seq_hold << 8);
+    cur[14] = on ? an_arg : 0u; cur[15] = seq_run && !seq_hold ? 1u + (seq_ticks / 24u & 3u) : 0u;
     uint32_t full = hdr_force;
     if (!hdr_force && !memcmp(cur, sig, sizeof cur)) return;
     memcpy(sig, cur, sizeof cur);

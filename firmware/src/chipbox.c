@@ -30,7 +30,7 @@ typedef struct {
 } theme_t;
 static const theme_t THEME[CHIPS] = {
     {"NES", {"PU1", "PU2", "TRI"},
-     RGB(24, 24, 28), RGB(52, 52, 60), RGB(220, 220, 220), RGB(214, 48, 40), RGB(110, 110, 122), RGB(200, 200, 200), RGB(214, 48, 40)},
+     RGB(58, 58, 57), RGB(44, 44, 43), RGB(201, 199, 195), RGB(154, 42, 38), RGB(111, 100, 89), RGB(201, 199, 195), RGB(154, 42, 38)},       /* the console's own colours: charcoal, warm grey, brown-grey, red */
     {"GAME BOY", {"PU1", "PU2", "WAV"},
      RGB(15, 56, 15), RGB(48, 98, 48), RGB(155, 188, 15), RGB(155, 188, 15), RGB(110, 150, 30), RGB(139, 172, 15), RGB(15, 56, 15)},
     {"SMS", {"TN1", "TN2", "TN3"},
@@ -70,7 +70,10 @@ static int8_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return (int8_t)(v < l
 static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* knob k of a page of cards, on channel c */
 {
     inst_t *in = &chan[c].in;
-    if (page == 1u) {                                           /* the envelope: attack, decay, sustain, release */
+    if (page == 3u) {                                           /* the wave: shape, fold, crush, twist */
+        uint8_t *p = k == 0u ? &in->wave : k == 1u ? &in->wf : k == 2u ? &in->wc : &in->wt;
+        *p = (uint8_t)clamp_i((int32_t)*p + d, 0, 15);
+    } else if (page == 1u) {                                    /* the envelope: attack, decay, sustain, release */
         uint8_t *p = k == 0u ? &in->atk : k == 1u ? &in->dec : k == 2u ? &in->sus : &in->rel;
         *p = (uint8_t)clamp_i((int32_t)*p + d, 0, 15);
     } else if (page == 2u) {                                    /* the arp: chord, speed, direction */
@@ -79,7 +82,7 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         else if (k == 2u) in->arp_dir = (uint8_t)clamp_i((int32_t)in->arp_dir + d, 0, 2);
     } else if (k == 0u) {                                       /* the tone: wave or duty, volume, vibrato, sweep or pan */
         int32_t v;
-        if (has_wave(c)) { v = (int32_t)in->wave + d; in->wave = (uint8_t)(v < 0 ? 0 : v > 3 ? 3 : v); }
+        if (has_wave(c)) { v = ((int32_t)in->wave + 2) / 5 + (d < 0 ? -1 : 1); in->wave = (uint8_t)((v < 0 ? 0 : v > 3 ? 3 : v) * 5); }       /* pulse, saw, triangle, sine */
         else if (has_duty(c)) { v = (int32_t)in->duty + d; in->duty = (uint8_t)(v < 0 ? 0 : v > 3 ? 3 : v); }
     }
     else if (k == 1u) in->vol = (uint8_t)clamp_i((int32_t)in->vol + d, 0, 15);
@@ -124,8 +127,10 @@ static void channel_glyph(uint32_t c, int32_t x, int32_t y, int32_t w, int32_t h
     static const uint8_t D8[4] = {1, 2, 4, 6};
     const inst_t *in = &chan[c].in;
     if (chan[c].kind == KD_GB_WAV) {
-        static const uint8_t K[4] = {G_PULSE, G_SAW, G_TRI, G_SINE};
-        wave_glyph(K[in->wave & 3u], 4, x, y, w, h, col);
+        uint8_t wv[32];
+        int32_t i;
+        wave_make(in, wv);                                      /* the wave itself, as it is now */
+        for (i = 0; i < 32; i++) cv_rect(x + i * w / 32, y + h - 2 - wv[i] * (h - 2) / 15, w / 32 + 1, 2, col);
     } else if (chan[c].kind == KD_NES_TRI) wave_glyph(G_TRI, 0, x, y, w, h, col);
     else wave_glyph(G_PULSE, has_duty(c) ? D8[in->duty & 3u] : 4u, x, y, w, h, col);
 }
@@ -152,20 +157,45 @@ static void draw_note(const theme_t *t, uint32_t note)
 #include "header.c"
 #include "songview.c"
 #include "fxview.c"
+#include "flair.c"
 #include "chipview.c"
 #include "menu.c"
 #include "picker.c"
 
+static const uint8_t ARP_DIV[4] = {2, 4, 6, 8};              /* live arp steps per beat, by the channel's rate */
+static void larp_add(uint32_t note)
+{
+    uint32_t i, j;
+    if (arp_n >= 8u) return;
+    for (i = 0; i < arp_n && arp_h[i] < note; i++) {}
+    for (j = arp_n; j > i; j--) arp_h[j] = arp_h[j - 1u];
+    arp_h[i] = (uint8_t)note; arp_n++;
+}
+static void larp_del(uint32_t note)
+{
+    uint32_t i;
+    for (i = 0; i < arp_n; i++) if (arp_h[i] == note) { for (; i + 1u < arp_n; i++) arp_h[i] = arp_h[i + 1u]; arp_n--; return; }
+}
+static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms = fm1_ms; return v; }       /* knobs count as being touched */
+#define fm1_enc_take enc_act
+
 static void app_main(void)
 {
-    struct { int8_t oct; uint8_t an[CHIPS], proj; } set = {0, {AN_HW, AN_HW, 0}, 0};
+    struct { int8_t oct; uint8_t an[CHIPS], proj, seeded; } set = {0, {AN_HW, AN_HW, 0}, 0, 0};
     uint32_t prev = 0, k, t_change = 0, dirty = 0, note_drawn = ~0u, chip_drawn = ~0u;
     uint32_t last_note = 255u, view = 1, rack_force = 1, chip_page = 0, sel = 0;     /* view: 0 the chip, 1 the rack, 2 the song; sel: the channel (in the rack, one past the last is "add") */
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, home_now, home_tap, edit_was = 0, edit_t0 = 0, edit_now, edit_used = 0, edit_rel, edit_clr = 255u;
+    uint32_t arp_k = 0, arp_t0 = 0;
+    uint32_t btn_was = 0, crit_next = 0, crit_n = 0;
     uint8_t held[27] = {0}, held_ch[27] = {0}, ch_drawn = 99;
     uint8_t rec_hold[27] = {0}, rec_pg[27] = {0}, rec_st[27] = {0}, rec_ch[27] = {0};     /* a recorded note still held: where it went, to set its length when the key comes up */
     uint32_t rec_t0[27] = {0};
     settings_load(&set, sizeof set);
+    if (!set.seeded) {                                  /* once: the sample songs go into the empty slots (Tetris in project 2) */
+        set.seeded = 1; dirty = 1; t_change = fm1_ms;
+        if (!proj_exists(1)) { seq_tetris(); proj_save(1); }
+    }
+    act_ms = fm1_ms;
     proj_cur = set.proj < PROJ_SLOTS ? set.proj : 0;                  /* the project you left open; the demo tune on a new device */
     proj_loaded = proj_load(proj_cur) == 0;
     if (!proj_loaded) { if (proj_cur == 0u) { seq_demo(); proj_edited(); } else proj_blank(); }
@@ -187,10 +217,13 @@ static void app_main(void)
         if (!seq_run || seq_hold) rack_cur = seq_step;                  /* stopped or paused: the playhead is the cursor */
         nrows = chan_n + (view == 1u && chan_n < MAXCH ? 1u : 0u);
         if (sel >= nrows) sel = nrows ? nrows - 1u : 0u;
+        if (sel < chan_n && chip_page >= (has_wave(sel) ? 4u : 3u)) { chip_page = 0; redraw = 1; }
         ch_chip = sel < chan_n ? KIND_CHIP[chan[sel].kind] : CHIP_NES;
         t = &THEME[ch_chip];
 
         keys = fm1_in.notes;
+        if (keys != prev || fm1_in.buttons != btn_was) act_ms = fm1_ms;
+        btn_was = fm1_in.buttons;
         down = keys & ~prev;
         up = prev & ~keys;
         prev = keys;
@@ -205,7 +238,7 @@ static void app_main(void)
                 if (fx_lat) { fx_tog ^= edge & ~FXB(FX_LATCH); mask = fx_tog | FXB(FX_LATCH); }
                 else mask &= ~FXB(FX_LATCH);
                 now = mask & ~fx_held;
-                for (p = 0; p < FXN; p++) if (now >> p & 1u) anim_fx(p);
+                for (p = 0; p < FXN; p++) if (now >> p & 1u) { if (p == FX_TAPE) anim_tape(); else anim_fx(p); }
                 if (!mask && fx_held) { /* all let go: the animation finishes by itself */ }
                 else if (mask && (fx_held & ~mask)) { for (p = 0; p < FXN; p++) if (mask >> p & 1u) { an_arg = p; break; } }
                 fx_apply(mask);
@@ -216,7 +249,8 @@ static void app_main(void)
             if (down >> k & 1u) {
                 held[k] = (uint8_t)(base + k); held_ch[k] = (uint8_t)sel;
                 if (sel < chan_n) {
-                    chip_note(sel, held[k], 127); last_note = held[k]; midi_send(0x90 | (sel & 15u), held[k], 100);
+                    if (arp_live) { if (!arp_n) arp_k = ~0u, arp_t0 = 0; larp_add(held[k]); } else chip_note(sel, held[k], 127);
+                    last_note = held[k]; midi_send(0x90 | (sel & 15u), held[k], 100);
                     if (!menu_on && !pick_on && !rack_rm) {
                         if (rec_on && seq_run && !seq_hold && view != 2u) {      /* recording: the note goes on the step nearest the playhead */
                             uint32_t a, sb, stp = 0, pg;
@@ -231,7 +265,8 @@ static void app_main(void)
                 }
             }
             if (up >> k & 1u) {
-                if (held_ch[k] < chan_n && last_note == held[k]) chip_off(held_ch[k]);
+                if (arp_live) { larp_del(held[k]); if (!arp_n && held_ch[k] < chan_n) { chip_off(held_ch[k]); arp_cur = 0; } }
+                else if (held_ch[k] < chan_n && last_note == held[k]) chip_off(held_ch[k]);
                 midi_send(0x80 | (held_ch[k] & 15u), held[k], 0);
                 if (rec_hold[k]) {                      /* a recorded note: its length is how long the key was down */
                     step_t *x = &pat[rec_pg[k]][rec_ch[k]][rec_st[k]];
@@ -263,7 +298,7 @@ static void app_main(void)
                     pick_del = 0; pick_scan(); pick_dirty = 1;
                 } else {
                     if (pick_sel != proj_cur) {
-                        proj_open(pick_sel);
+                        proj_open(pick_sel); anim_start(AN_OPEN, pick_sel);
                         set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; last_note = 255u; sel = 0; rack_rm = 0;
                     }
                     pick_on = 0; rack_force = 1; chip_drawn = ~0u;
@@ -282,8 +317,8 @@ static void app_main(void)
             else menu_open(HELP_CHIP, sizeof HELP_CHIP / sizeof HELP_CHIP[0]);
         } else if (home_tap) {
             if (menu_on) menu_on = 0;
-            else if (fx_layer) { fx_layer = 0; fx_off(); }       /* HOME leaves the punch-in layer first */
-            else view = view == 1u ? (chan_n ? 0u : 2u) : view == 0u ? 2u : 1u;       /* HOME: the rack, the chip, the song, the rack ... */
+            else if (fx_layer) { fx_layer = 0; fx_off(); anim_start(AN_VIEW, view); }       /* HOME leaves the punch-in layer first */
+            else { view = view == 1u ? (chan_n ? 0u : 2u) : view == 0u ? 2u : 1u; anim_start(AN_VIEW, view); }       /* HOME: the rack, the chip, the song, the rack ... */
             rack_force = 1; chip_drawn = ~0u;
         }
         if (b & (1u << BTN_PLAY)) {                     /* PLAY: in the song, the song from the cursor; anywhere else, the page on show round and round */
@@ -293,9 +328,29 @@ static void app_main(void)
         }
         if ((b & (1u << BTN_FX)) && !menu_on) {          /* FX: the punch-in layer on and off */
             fx_layer ^= 1u;
+            anim_start(AN_VIEW, fx_layer ? 3u : view);
             if (fx_layer) { for (k = 0; k < 27u; k++) if (prev >> k & 1u && held_ch[k] < chan_n) chip_off(held_ch[k]); }
             else fx_off();
             rack_force = 1; chip_drawn = ~0u;
+        }
+        if ((b & (1u << BTN_ARP)) && !menu_on && !pick_on && !fx_layer) {        /* ARP: the keys you hold play one after another, in time */
+            arp_live ^= 1u;
+            if (!arp_live) { if (sel < chan_n) chip_off(sel); arp_n = 0; arp_cur = 0; }
+            anim_cont(AN_LARP, 0, 900u);
+        }
+        if (arp_live && arp_n && sel < chan_n) {
+            uint32_t bpm = seq_bpm ? seq_bpm : 120u, per = 60000u / bpm / ARP_DIV[chan[sel].in.arp_rate & 3u];
+            if (fm1_ms - arp_t0 >= per) {
+                uint32_t idx, n = arp_n, dir = chan[sel].in.arp_dir;
+                arp_t0 = arp_t0 && fm1_ms - arp_t0 < 2u * per ? arp_t0 + per : fm1_ms;
+                arp_k++;
+                if (dir == 1u) idx = n - 1u - arp_k % n;
+                else if (dir == 2u && n > 1u) { idx = arp_k % (2u * n - 2u); if (idx >= n) idx = 2u * n - 2u - idx; }
+                else idx = arp_k % n;
+                chip_off(sel);
+                arp_cur = arp_h[idx]; chip_note(sel, arp_cur, 110); last_note = arp_cur;
+                midi_send(0x90 | (sel & 15u), arp_cur, 100);
+            }
         }
         if ((b & (1u << BTN_REC)) && !menu_on && view != 2u && sel < chan_n) {      /* REC: arm (and start the page round and round); again: disarm */
             if (rec_on) { rec_on = 0; duck_ch = 255; seq_stop(); anim_start(AN_REC, 1); }                  /* REC again: stop recording and the playing */
@@ -317,7 +372,7 @@ static void app_main(void)
             if (menu_pick && menu_on) {
                 if (b & (1u << BTN_OCT_UP)) {
                     int c = chan_add(menu_sel - 1u);
-                    if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind]); }
+                    if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                 } else if (b & (1u << BTN_OCT_DOWN)) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
             }
@@ -362,18 +417,22 @@ static void app_main(void)
         if (view == 1u && sel == chan_n && chan_n < MAXCH && (b & (1u << BTN_OCT_UP))) {                 /* OCT+ (yes) on the "+" row: add a channel */
             menu_open_pick(ADD_MENU, sizeof ADD_MENU / sizeof ADD_MENU[0]);
         } else if (rack_rm) {                           /* removing a channel: OCT+ yes, OCT- no */
-            if (b & (1u << BTN_OCT_UP)) { uint32_t gone = KIND_CHIP[chan[sel].kind]; seq_stop(); chan_remove(sel); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_REMOVE, gone); }
+            if (b & (1u << BTN_OCT_UP)) { uint32_t gone = KIND_CHIP[chan[sel].kind]; seq_stop(); chan_remove(sel); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_REMOVE, gone | (uint32_t)sel << 8); }
             else if (b & (1u << BTN_OCT_DOWN)) { rack_rm = 0; rack_inval = 1; }
         } else {
+            uint32_t oct_was = (uint32_t)(set.oct + 2);
             if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
             if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
+            if ((uint32_t)(set.oct + 2) != oct_was) anim_cont(AN_OCT, oct_was << 4 | (uint32_t)(set.oct + 2), 900u);
         }
         if (view == 1u && sel < chan_n && edit_now && !edit_used && !rack_rm && !rec_on && fm1_ms - edit_t0 >= 600u) { rack_rm = 1; rack_inval = 1; edit_used = 1; anim_start(AN_DELETE, 0); }     /* hold EDIT on a channel: remove it? */
         e = fm1_enc_take(ENC_PRESETS);                  /* always: down the list of channels */
         if (e && nrows) {
             if (sel < chan_n) chip_off(sel);
+            arp_n = 0; arp_cur = 0;
             sel = (sel + (e < 0 ? nrows - 1u : 1u)) % nrows;
             rack_rm = 0; rack_inval = 1; redraw = 1; last_note = 255u;
+            if (sel < chan_n && !fx_layer) anim_start(AN_CHAN, sel | (uint32_t)KIND_CHIP[chan[sel].kind] << 8);
             if (rec_on) duck_ch = (uint8_t)(sel < chan_n ? sel : 255u);
         }
         e = fm1_enc_take(ENC_ALGORITHM);                /* the rack: the page; the chip screen: the knobs' page */
@@ -384,7 +443,7 @@ static void app_main(void)
                 if (page_n != pn) proj_edited();
                 if (seq_view != was) anim_start(AN_PAGE, (was + 1u) | (e < 0 ? 256u : 0u));
             }
-            else if (sel < chan_n) { chip_page = (chip_page + (e < 0 ? 2u : 1u)) % 3u; redraw = 1; }
+            else if (sel < chan_n) { uint32_t np = has_wave(sel) ? 4u : 3u; chip_page = (chip_page + (e < 0 ? np - 1u : 1u)) % np; redraw = 1; }
         }
         e = fm1_enc_take(ENC_SELECT);                   /* the tape dial: middle pauses, right goes on, left goes back; in the punch-in layer only while TAPE is held */
         if (e && (!fx_layer || (fx_held & FXB(FX_TAPE)))) { seq_shuttle(e); anim_tape(); rack_inval = 1; }
@@ -393,7 +452,10 @@ static void app_main(void)
             if (!e) continue;
             if (view == 1u) {
                 if (k == 0u) { int32_t v = (int32_t)seq_bpm + e; seq_bpm = (uint32_t)(v < 40 ? 40 : v > 240 ? 240 : v); rack_inval = 1; proj_edited(); anim_tempo(); }     /* knob 1: the tempo */
-            } else if (sel < chan_n) { knob_set(sel, chip_page, k, e); redraw = 1; proj_edited(); }
+            } else if (sel < chan_n) {
+                knob_set(sel, chip_page, k, e); redraw = 1; proj_edited();
+                if (chip_page == 3u) anim_cont(AN_WAVE, (uint32_t)sel, 1200u);
+            }
         }
         }
         }
@@ -416,6 +478,7 @@ static void app_main(void)
 
         for (k = 0; k < 27u; k++)
             if (prev >> k & 1u && last_note == held[k]) lit |= 1u << k;
+        if (arp_live && arp_n && arp_cur) { int32_t ki = (int32_t)arp_cur - (int32_t)base; if (ki >= 0 && ki < 27) lit |= 1u << ki; }
         if (seq_run && sel < chan_n && vc[sel].on) {            /* playing: the key of the note the playhead has reached lights */
             int32_t ki = (int32_t)vc[sel].note - (int32_t)base;
             if (ki >= 0 && ki < 27) lit |= 1u << ki;
@@ -427,6 +490,7 @@ static void app_main(void)
         } else for (k = 0; k < 27u; k++) { fm1_led_glow(KEY_LED(k), 0); fm1_led_key(KEY_LED(k), lit >> k & 1u); }
         fx_solo_ch = (fx_held & FXB(FX_SOLO)) && sel < chan_n ? (uint8_t)sel : 255u;
         fm1_led_key(BTN_FX, fx_layer);
+        fm1_led_key(BTN_ARP, arp_live);
         fm1_led_key(BTN_PLAY, seq_run);
         fm1_led_key(BTN_REC, rec_on);
         fm1_led_glow(BTN_SAVE, proj_dirty);             /* a dim light: edits not saved yet */
@@ -439,6 +503,10 @@ static void app_main(void)
 
         cpu = cpu_max / (58u * FM1_TICKS_PER_US);     /* percent of the 5.8 ms block */
         if (fm1_ms - cc_ms >= 500u) { cc_ms = fm1_ms; midi_send(0xB0, 100, cpu > 127u ? 127u : cpu); midi_send(0xB0, 101, proj_cur | (proj_dirty ? 0x10u : 0u) | (proj_loaded ? 0x20u : 0u)); }
+        if (an_kind == AN_CRIT && act_ms >= an_t0) an_end = 0;           /* touched: the critter goes */
+        if (!anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
+            anim_start(AN_CRIT, crit_n++ % 3u); crit_next = fm1_ms + 15000u;
+        }
         if (pick_on) { if (pick_dirty) { pick_draw(); pick_dirty = 0; } }
         else if (menu_on) { if (menu_dirty) { lcd_fill(0, 0, 240, 240, R_BG); menu_draw(t->acc); menu_dirty = 0; } }
         else if (fx_layer) {

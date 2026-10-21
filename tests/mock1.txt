@@ -1,0 +1,38 @@
+# consoles in the bar, play / stop deck, tape starting paused
+200 btn 2
+400 btn 2
+1000 shot
+1500 btn 12
+1580 shot
+1720 shot
+2800 btn 12
+2880 shot
+3000 shot
+3300 btn 12
+4500 btn 2
+4800 keys 0x1
+4900 shot
+5200 enc 0 1
+5400 shot
+5600 enc 0 1
+5800 shot
+6000 keys 0
+6300 shot
+6500 btn 2
+7000 enc 6 1
+7060 enc 6 1
+7120 enc 6 1
+7200 shot
+7500 shot
+9200 shot
+9300 enc 6 1
+9360 enc 6 1
+9420 enc 6 1
+9500 shot
+11200 shot
+11300 enc 6 1
+11360 enc 6 1
+11420 enc 6 1
+11600 shot
+13200 shot
+13500 end

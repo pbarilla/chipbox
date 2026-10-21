@@ -58,14 +58,25 @@ static void chip_tabs(const theme_t *t, uint32_t c)
 }
 
 /* the envelope as it plays: rise, fall to the held level, hold, fade; the time axis is squeezed to fit */
-static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page)
+static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np)
 {
     int32_t base = CV_ENV_H - 10, top = 12, w[4], total, x, ys, i;
     int32_t px[5], py[5];
     cv_begin(240, CV_ENV_H, t->bg);
     skin_box(chip, t, 3, 0, 234, CV_ENV_H, t->bar);
-    { uint32_t d; for (d = 0; d < 3u; d++) cv_rect(204 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
+    { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
+    if (page == 3u) {                                           /* the wave: 32 steps of 4 bits, as the chip plays them */
+        uint8_t wv[32];
+        wave_make(in, wv);
+        for (i = 0; i < 32; i++) {
+            int32_t h = 2 + wv[i] * 52 / 15, bx = 12 + i * 27 / 4;
+            cv_rect(bx, base - h, 6, h, mix16(t->bar, t->acc, 90));
+            cv_rect(bx, base - h, 6, 3, t->acc);
+        }
+        cv_blit(0, CV_ENV_Y);
+        return;
+    }
     w[0] = 4 + (int32_t)in->atk * 4;
     w[1] = 4 + (15 - (int32_t)in->sus) * (2 * (int32_t)in->dec + 1) * 2 / 15;
     w[2] = 36;
@@ -108,6 +119,7 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
 {
     static const char *const ENVL[4] = {"ATK", "DEC", "SUS", "REL"};
     static const char *const ARPL[4] = {"SHAPE", "RATE", "DIR", ""};
+    static const char *const WAVL[4] = {"SHAPE", "FOLD", "STEP", "TWIST"};
     static const uint8_t BARS[4] = {2, 4, 6, 9};
     const inst_t *in = &chan[c].in;
     uint32_t chip = KIND_CHIP[chan[c].kind], k, k1 = has_wave(c) || has_duty(c);
@@ -115,12 +127,18 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
     cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
         int32_t x = CV_CARD_X(k), i;
-        const char *lab = page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : chip == CHIP_GB ? "PAN" : "SWEEP";
+        const char *lab = page == 3u ? WAVL[k] : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : chip == CHIP_GB ? "PAN" : "SWEEP";
         uint16_t lc = page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c))) ? t->dim : t->fg;
         skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
         if (!*lab) continue;
         cv_text(x + (CV_CARD_W - text_w(&FONT_S, lab)) / 2, 4, &FONT_S, lab, lc);
-        if (page == 2u) {
+        if (page == 3u) {
+            if (k == 0u) {                                                      /* the shape alone, small */
+                inst_t base = *in; uint8_t wv[32];
+                base.wf = base.wc = base.wt = 0; wave_make(&base, wv);
+                for (i = 0; i < 32; i++) cv_rect(x + 8 + i * 40 / 32, 50 - wv[i] * 20 / 15, 2, 2, t->acc);
+            } else card_bar(t, chip, x, k == 1u ? in->wf : k == 2u ? in->wc : in->wt, 15);
+        } else if (page == 2u) {
             if (k == 0u) {                                                      /* the chord's notes as dots, low to high; a dash is off */
                 if (!in->arp) cv_rect(x + 18, 42, 20, 3, t->dim);
                 else for (i = 0; i < (int32_t)ARP_N[in->arp - 1u]; i++) cv_rect(x + 8 + i * 11, 49 - ARP_IV[in->arp - 1u][i] * 3 / 2, 8, 4, t->acc);
@@ -153,6 +171,6 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
 static void chip_panels(const theme_t *t, uint32_t c, uint32_t page)
 {
     chip_tabs(t, c);
-    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page);
+    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, has_wave(c) ? 4u : 3u);
     chip_cards(t, c, page);
 }

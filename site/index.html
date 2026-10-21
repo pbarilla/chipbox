@@ -18,6 +18,7 @@
   .lead { font-size:20px; max-width:34em; }
   .shots { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:28px 0 0; }
   .shots.two { grid-template-columns:repeat(2, 1fr); width:66.4%; margin:12px auto 0; }
+  .shots.one { grid-template-columns:1fr; width:33%; margin:12px auto 0; }
   .shots figure { margin:0; }
   .shots img { width:100%; height:auto; display:block; image-rendering:pixelated; background:var(--panel); }
   .shots figcaption { margin-top:6px; font-size:13px; letter-spacing:.12em; color:var(--dim); text-align:center; }
@@ -42,6 +43,7 @@
 
   <div class="btns">
     <a class="btn" href="install.html">Install</a>
+    <a class="btn alt" href="play/">Play online</a>
     <a class="btn alt" id="download" href="#install">Download</a>
     <a class="btn alt" id="source" href="#">Source</a>
   </div>
@@ -54,6 +56,9 @@
   <div class="shots two">
     <figure><img src="img/tape.png" alt="The tape dial: SELECT shuttles the song"><figcaption>TAPE</figcaption></figure>
     <figure><img src="img/rec.png" alt="Recording: a tape deck"><figcaption>REC</figcaption></figure>
+  </div>
+  <div class="shots one">
+    <figure><img src="img/wave.png" alt="The wave page: shape, fold, step and twist"><figcaption>WAVE</figcaption></figure>
   </div>
 
   <h2>What is it</h2>

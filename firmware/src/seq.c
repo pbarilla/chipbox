@@ -260,3 +260,30 @@ static void seq_demo(void)
         seq_put(p, 8, 0, r + 12u, 127, 30); seq_put(p, 8, 8, r + 19u, 127, 20);             /* SMS: low drone */
     }
 }
+
+/* Korobeiniki (the Russian folk song, public domain; the Tetris tune): eight bars, one page each, in A minor */
+static void seq_tetris(void)
+{
+    static const uint8_t N[8][6] = {{76, 71, 72, 74, 72, 71}, {69, 69, 72, 76, 74, 72}, {71, 72, 74, 76, 0, 0}, {72, 69, 69, 0, 0, 0},
+                                    {74, 77, 81, 79, 77, 0}, {76, 72, 76, 74, 72, 0}, {71, 71, 72, 74, 76, 0}, {72, 69, 69, 0, 0, 0}};
+    static const uint8_t L[8][6] = {{4, 2, 2, 4, 2, 2}, {4, 2, 2, 4, 2, 2}, {6, 2, 4, 4, 0, 0}, {4, 4, 8, 0, 0, 0},
+                                    {6, 2, 4, 2, 2, 0}, {6, 2, 4, 2, 2, 0}, {4, 2, 2, 4, 4, 0}, {4, 4, 8, 0, 0, 0}};
+    static const uint8_t BASS[8] = {40, 45, 40, 45, 50, 48, 40, 45};                      /* the chord root of each bar: E A E A D C E A */
+    static const uint8_t STAB[8][3] = {{56, 59, 64}, {57, 60, 64}, {56, 59, 64}, {57, 60, 64}, {57, 62, 65}, {55, 60, 64}, {56, 59, 64}, {57, 60, 64}};
+    uint32_t p, i, s, k;
+    seq_clear();
+    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU); chan_add(KD_SMS);
+    chan[2].in.duty = 1; chan[2].in.vol = 9;                                    /* the stabs: thin pulse */
+    chan[3].in.vol = 5;                                                         /* the lead doubled an octave down, quiet */
+    seq_bpm = 144; page_n = 8; song_len = 8;
+    for (p = 0; p < 8u; p++) {
+        song[p] = (uint8_t)p;
+        for (i = 0, s = 0; i < 6u && L[p][i]; s += L[p][i], i++) {
+            uint32_t g = L[p][i] * 6u - 3u;
+            seq_put(p, 0, s, N[p][i], 110, g);
+            seq_put(p, 3, s, N[p][i] - 12u, 100, g);
+        }
+        for (k = 0; k < 8u; k++) seq_put(p, 1, k * 2u, BASS[p] + (k & 1u ? 12u : 0u), 127, 9);       /* bass: root, octave, root, octave */
+        for (k = 0; k < 4u; k++) seq_put(p, 2, 2u + k * 4u, STAB[p][1u + (k & 1u)], 100, 4);          /* off-beat chord tones */
+    }
+}

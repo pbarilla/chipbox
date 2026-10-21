@@ -1,0 +1,6 @@
+200 shot
+450 shot
+800 shot
+1200 shot
+1450 shot
+1700 end

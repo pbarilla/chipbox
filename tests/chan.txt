@@ -1,0 +1,13 @@
+300 enc 6 1
+380 shot
+700 enc 6 1
+780 shot
+1100 enc 6 1
+1180 shot
+1500 enc 6 1
+1580 shot
+1900 enc 6 1
+1980 shot
+2300 enc 6 1
+2380 shot
+2800 end

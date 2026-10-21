@@ -13,3 +13,7 @@ docs/
 # the site's copy of the latest release's firmware (the pages workflow fetches it)
 site/firmware/
 1
+
+# the browser build (the pages workflow makes it: web/build.sh)
+site/play/chipbox.js
+site/play/chipbox.wasm

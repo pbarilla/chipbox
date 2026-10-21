@@ -1,0 +1,37 @@
+100 enc 6 -1
+200 btn 1
+300 btn 1
+330 shot
+420 shot
+520 shot
+750 shot
+1500 enc 6 1
+1600 btn 1
+1700 enc 0 1
+1730 enc 0 1
+1800 btn 1
+1830 shot
+1900 shot
+2000 shot
+2250 shot
+3000 enc 6 1
+3100 btn 1
+3200 enc 0 1
+3230 enc 0 1
+3260 enc 0 1
+3290 enc 0 1
+3400 btn 1
+3430 shot
+3500 shot
+3600 shot
+3850 shot
+4500 held 0x40
+5300 held 0
+5400 btn 1
+5420 shot
+5480 shot
+5560 shot
+5640 shot
+5750 shot
+5900 shot
+6500 end

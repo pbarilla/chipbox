@@ -27,7 +27,10 @@ static void fx_press(uint32_t i)                /* main loop: a pad went down */
 {
     static const uint8_t RPT[3] = {12, 6, 3};
     switch (i) {
-    case FX_TAPE: fx_rate_save = seq_rate; fx_hold_save = seq_hold; fx_run_save = seq_run; break;
+    case FX_TAPE:                               /* the tape starts paused: the dial goes on from there, right to play, left to rewind */
+        fx_rate_save = seq_rate; fx_hold_save = seq_hold; fx_run_save = seq_run;
+        if (seq_run) { uint32_t c; seq_rate = 0; seq_hold = 1; for (c = 0; c < chan_n; c++) ev_push(EV_OFF, c, 0, 0); }
+        break;
     case FX_R8: case FX_R16: case FX_R32:
         if (seq_run && !seq_hold) { rpt_step = seq_step; rpt_page = seq_pat; rpt_cnt = 0; fx_rpt = RPT[i - FX_R8]; }
         break;

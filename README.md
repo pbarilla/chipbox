@@ -28,6 +28,10 @@ wanna make a new song? hold HOME, select an empty project, and hit OCT+. Wanna g
 
 want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno whatever hahaha.
 
+## Play online
+
+No FM-1 handy? The project page has a **Play online** button: the firmware's own code, built for the browser (`web/build.sh`, output in `site/play/`).
+
 ## Install
 
 Easiest: the project page's installer (`site/install.html`), in Chrome or Edge with the FM-1 on USB.

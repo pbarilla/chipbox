@@ -1,0 +1,10 @@
+2000 shot
+2100 enc 6 1
+2160 enc 6 1
+2220 enc 6 1
+4200 shot
+4300 enc 6 1
+4360 enc 6 1
+4420 enc 6 1
+6500 shot
+6600 end

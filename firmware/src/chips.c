@@ -17,7 +17,8 @@ static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, C
 
 /* ---- instruments: what a note sounds like, per channel */
 typedef struct {
-    uint8_t wave, duty;                         /* wave: GB wave preset; duty: pulse duty */
+    uint8_t wave, duty;                         /* wave: the Game Boy wave's shape 0..15 (pulse, saw, triangle, sine at 0, 5, 10, 15); duty: pulse duty */
+    uint8_t wf, wc, wt;                         /* the wave's fold, crush and twist 0..15 */
     uint8_t atk, dec, sus, rel;                 /* 0..15: ticks to rise, ticks to fall (x2), level, ticks to fade (x2) */
     uint8_t vib_spd, vib_dep;                   /* vibrato: speed, depth in 1/16 semitone */
     int8_t sweep;                               /* pitch change per tick, 1/64 semitone */
@@ -25,12 +26,12 @@ typedef struct {
     uint8_t vol;                                /* 0..15, the channel's level */
     uint8_t arp, arp_rate, arp_dir;             /* arp: 0 off, 1..8 a chord; rate 0..3 (slow to fast); direction 0 up, 1 down, 2 up and down */
 } inst_t;
-#define I(w, d, a, de, s, r, vs, vd, sw, p) {w, d, a, de, s, r, vs, vd, sw, p, 15, 0, 1, 0}
+#define I(w, d, a, de, s, r, vs, vd, sw, p) {w, d, 0, 0, 0, a, de, s, r, vs, vd, sw, p, 15, 0, 1, 0}
 static const inst_t INST_DEF[KINDS] = {
     I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* NES pulse */
     I(0, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* NES triangle */
     I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* Game Boy pulse */
-    I(3, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* Game Boy wave */
+    I(15, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Game Boy wave */
     I(0, 0, 0, 6, 14, 4, 5, 4, 0, 1),           /* Master System tone */
 };
 static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN"};
@@ -133,6 +134,28 @@ static void post(uint32_t chip, int32_t *out, uint32_t n)
 /* ---- the oscillators: a note's pitch and level into a voice's oscillator */
 static const uint8_t NES_DUTY[4] = {0x40, 0x60, 0x78, 0x9F};     /* 8 steps, bit = step */
 static const uint8_t GB_DUTY[4] = {0x01, 0x81, 0x87, 0x7E};
+/* the Game Boy wave: 32 steps of 4 bits made from the shape (a blend of pulse, saw, triangle, sine), twisted, folded and crushed */
+static uint8_t wtab[MAXCH][32];
+static uint32_t wkey[MAXCH];
+static void wave_make(const inst_t *in, uint8_t *out)
+{
+    int32_t i, lv = 16 - (int32_t)(in->wc & 15u), sh = (int32_t)(in->wave & 15u), a = sh / 5, fr = (sh % 5) * 256 / 5;
+    if (a > 2) { a = 2; fr = 256; }
+    if (lv < 2) lv = 2;
+    for (i = 0; i < 32; i++) {
+        int32_t ph = (i + (VIB[i] * (int32_t)(in->wt & 15u)) / 238) & 31, v[4], x, g;
+        v[0] = ph < 16 ? 127 : -127;
+        v[1] = -127 + ph * 254 / 31;
+        v[2] = ph < 16 ? -127 + ph * 254 / 15 : 127 - (ph - 16) * 254 / 15;
+        v[3] = VIB[(ph + 24) & 31];                          /* a sine that starts at the bottom, like the others */
+        x = v[a] + (v[a + 1] - v[a]) * fr / 256;
+        g = 256 + (int32_t)(in->wf & 15u) * 64;
+        x = x * g >> 8;
+        while (x > 127 || x < -127) x = x > 127 ? 254 - x : -254 - x;
+        x = ((x + 127) * (lv - 1) + 127) / 254;             /* 0 .. lv - 1 */
+        out[i] = (uint8_t)(x * 15 / (lv - 1));
+    }
+}
 static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
 {
     const inst_t *in = &vc[c].in;
@@ -142,7 +165,12 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
     case KD_NES_TRI: t = interp(NES_TT, pq); osc[c].inc = (K_NES / (t + 1u)) >> 1; osc[c].vol = vol > 0u; break;
     case KD_GB_PU: t = interp(GB_PX, pq); osc[c].inc = K_GB / (2048u - t); osc[c].duty = in->duty & 3u; osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan; break;
     case KD_GB_WAV:
-        t = interp(GB_WX, pq); osc[c].inc = (K_GB / (2048u - t)) >> 1; osc[c].wav = GB_WAVES[in->wave & 3u]; osc[c].pan = in->pan;
+        t = interp(GB_WX, pq); osc[c].inc = (K_GB / (2048u - t)) >> 1; osc[c].pan = in->pan;
+        {   const inst_t *wi = &chan[c].in;                 /* the wave is read live: turn a knob while a note rings */
+            uint32_t key = (1u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
+            if (wkey[c] != key) { wave_make(wi, wtab[c]); wkey[c] = key; }
+            osc[c].wav = wtab[c];
+        }
         osc[c].wshift = vol >= 12u ? 0u : vol >= 8u ? 1u : vol >= 4u ? 2u : 8u;     /* the four volumes of the wave channel */
         break;
     default: osc[c].inc = K_SMS / interp(SMS_N, pq); osc[c].vol = (uint8_t)vol; break;
@@ -316,7 +344,7 @@ static int chan_add(uint32_t kind)               /* the new channel's number, or
     c = chan_n;
     chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind];
     memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE;
-    memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1;
+    memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0;
     chan_n++;
     chan_lock = 0;
     return (int)c;
@@ -327,6 +355,7 @@ static void chan_remove(uint32_t c)
     if (c >= chan_n) return;
     chan_lock = 1;
     for (i = c; i + 1u < chan_n; i++) { chan[i] = chan[i + 1u]; vc[i] = vc[i + 1u]; osc[i] = osc[i + 1u]; }
+    for (i = 0; i < MAXCH; i++) wkey[i] = 0;
     chan_n--;
     memset(&vc[chan_n], 0, sizeof vc[chan_n]); vc[chan_n].stage = ST_IDLE;
     seq_chan_removed(c);
