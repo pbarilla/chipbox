@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Play online · Chipbox</title>
-<meta name="description" content="Play Chipbox, the chiptune groovebox firmware for the M-VAVE FM-1, in your browser: the same code the FM-1 runs.">
+<meta name="description" content="Play Chipbox, the chiptune groovebox for the delightful FM-1">
 <style>
   :root { --bg:#0e0e12; --panel:#181820; --deep:#101016; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#2a2a36; color-scheme:dark; }
   * { box-sizing:border-box; }
@@ -61,10 +61,10 @@
 <main>
 <header>
   <h1><a href="../">Chipbox</a><span class="tag">PLAY ONLINE</span></h1>
-  <p>the same code the FM-1 runs</p>
+
   <nav><a href="../">Home</a><a href="../install.html">Install</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
 </header>
-<p class="turn">Turn your phone sideways for bigger controls.</p>
+
 <div class="devicebox">
   <div class="device" id="device">
     <svg id="panel" viewBox="30 82 1040 664" aria-label="The FM-1"></svg>
@@ -73,12 +73,11 @@
   </div>
 </div>
 <div class="bar">
-  <span id="status" role="status">Off. Sound starts when you switch it on.</span>
   <button id="mute" type="button" aria-pressed="false">Mute</button>
-  <span id="midi">No MIDI keyboard</span>
-  <button id="reset" type="button" title="Forget your projects and start again">Factory reset</button>
+  <span id="midi"></span>
+  <button id="reset" type="button" title="Whoopsie daisy!">Factory reset</button>
 </div>
-<p class="help">Your projects stay in this browser. Keys: <kbd>Z</kbd>–<kbd>/</kbd> and <kbd>Q</kbd>–<kbd>Y</kbd>, sharps above. <kbd>Space</kbd> play, <kbd>Enter</kbd> home, <kbd>`</kbd> rec, <kbd>\</kbd> fx, <kbd>1</kbd> arp, <kbd>Tab</kbd> glo, <kbd>[</kbd> <kbd>]</kbd> octave. Arrows: select and presets. Knobs: wheel or drag.</p>
+
 </main>
 <script src="chipbox.js"></script>
 <script>
@@ -257,7 +256,7 @@
     function hook() {
       var n = 0;
       m.inputs.forEach(function (inp) { n++; inp.onmidimessage = function (ev) { if (mod && ev.data.length === 3) mod._web_midi(ev.data[0], ev.data[1], ev.data[2]); wake(); }; });
-      $("midi").textContent = n ? "MIDI keyboard connected" : "No MIDI keyboard";
+      $("midi").textContent = n ? "MIDI OK" : "";
     }
     hook(); m.onstatechange = hook;
   }).catch(function () {});
