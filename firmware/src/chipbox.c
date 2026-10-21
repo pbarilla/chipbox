@@ -191,14 +191,15 @@ static void app_main(void)
     uint8_t rec_hold[27] = {0}, rec_pg[27] = {0}, rec_st[27] = {0}, rec_ch[27] = {0};     /* a recorded note still held: where it went, to set its length when the key comes up */
     uint32_t rec_t0[27] = {0};
     settings_load(&set, sizeof set);
-    if (!set.seeded) {                                  /* once: the sample songs go into the empty slots (Tetris in project 2) */
+    if (!set.seeded) {                                  /* once: Korobeiniki goes into project 1 of a new device, or into project 2 of one that has a song there already */
         set.seeded = 1; dirty = 1; t_change = fm1_ms;
-        if (!proj_exists(1)) { seq_tetris(); proj_save(1); }
+        if (!proj_exists(0)) { seq_tetris(); proj_save(0); }
+        else if (!proj_exists(1)) { seq_tetris(); proj_save(1); }
     }
     act_ms = fm1_ms;
-    proj_cur = set.proj < PROJ_SLOTS ? set.proj : 0;                  /* the project you left open; the demo tune on a new device */
+    proj_cur = set.proj < PROJ_SLOTS ? set.proj : 0;                  /* the project you left open; Korobeiniki on a new device */
     proj_loaded = proj_load(proj_cur) == 0;
-    if (!proj_loaded) { if (proj_cur == 0u) { seq_demo(); proj_edited(); } else proj_blank(); }
+    if (!proj_loaded) { if (proj_cur == 0u) { seq_tetris(); proj_edited(); } else proj_blank(); }
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
     for (k = 0; k < CHIPS; k++)
         if (set.an[k] >= AN_COUNT[k]) set.an[k] = AN_COUNT[k] > 1u ? 1u : 0u;

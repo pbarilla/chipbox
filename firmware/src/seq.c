@@ -222,46 +222,14 @@ static void seq_clear(void)                     /* an empty project: no channels
     seq_bpm = 120;
 }
 
-/* a little tune to hear it with: A minor, F, C, G; the first project of a new device */
 static void seq_put(uint32_t p, uint32_t t, uint32_t s, uint32_t note, uint32_t vel, uint32_t gate)
 {
     step_t *x = &pat[p][t][s];
     x->note = (uint8_t)note; x->vel = (uint8_t)vel; x->gate = (uint8_t)gate;
 }
 static int chan_add(uint32_t kind);
-static void seq_demo(void)
-{
-    static const uint8_t ROOT[4] = {45, 41, 48, 43};
-    static const uint8_t TUNE[16] = {0, 0, 2, 0, 4, 0, 2, 0, 3, 0, 2, 0, 1, 0, 0, 0};      /* chord tone per step for the leads, 0 = rest */
-    static const uint8_t KIND[9] = {KD_NES_PU, KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_SMS, KD_SMS};
-    uint32_t p, s, r, k;
-    seq_clear();
-    for (k = 0; k < 9u; k++) chan_add(KIND[k]);
-    chan[0].in.arp = 7; chan[0].in.arp_rate = 1;                                   /* NES pulse: arp stabs (power chord) */
-    chan[4].in.arp = 3; chan[4].in.arp_rate = 2; chan[4].in.arp_dir = 2;           /* Game Boy pulse: a long shimmer */
-    chan[7].in.arp = 2; chan[7].in.arp_rate = 1; chan[7].in.arp_dir = 1;           /* Master System: down arps */
-    page_n = 4;
-    song_len = 6; song[0] = 0; song[1] = 0; song[2] = 1; song[3] = 2; song[4] = 3; song[5] = 3;       /* A A B C D D */
-    for (p = 0; p < 4u; p++) {
-        r = ROOT[p];
-        for (s = 0; s < 16u; s++) {
-            uint32_t n = TUNE[s];
-            if (n) {
-                seq_put(p, 3, s, r + 24u + ((n * 3u) % 8u), 110, 4);                        /* GB PU: the tune */
-                if (!(s & 1u)) seq_put(p, 6, s, r + 12u + n * 2u, 100, 5);                  /* SMS: a line under it */
-            }
-            if (!(s & 3u)) seq_put(p, 5, s, r + 12u, 127, 5);                               /* GB WAV: bass quarters */
-        }
-        seq_put(p, 0, 0, r + 24u, 100, 11); seq_put(p, 0, 6, r + 24u, 100, 5); seq_put(p, 0, 10, r + 24u, 100, 5);    /* NES PU: arp stabs */
-        seq_put(p, 1, 3, r + 31u, 90, 8); seq_put(p, 1, 11, r + 36u, 90, 8);                /* NES PU: answers */
-        for (s = 0; s < 16u; s += 3u) seq_put(p, 2, s, r + ((s & 3u) ? 12u : 0u), 127, 5);  /* NES TRI: bass */
-        seq_put(p, 7, 2, r + 24u, 90, 3); seq_put(p, 7, 10, r + 24u, 90, 3);                /* SMS: down arps */
-        seq_put(p, 4, 0, r + 24u, 80, 22);                                                  /* GB PU: a long shimmer */
-        seq_put(p, 8, 0, r + 12u, 127, 30); seq_put(p, 8, 8, r + 19u, 127, 20);             /* SMS: low drone */
-    }
-}
 
-/* Korobeiniki (the Russian folk song, public domain; the Tetris tune): eight bars, one page each, in A minor */
+/* Korobeiniki (the Russian folk song, public domain; the Tetris tune): eight bars, one page each, in A minor. The first project of a new device */
 static void seq_tetris(void)
 {
     static const uint8_t N[8][6] = {{76, 71, 72, 74, 72, 71}, {69, 69, 72, 76, 74, 72}, {71, 72, 74, 76, 0, 0}, {72, 69, 69, 0, 0, 0},

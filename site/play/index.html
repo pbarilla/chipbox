@@ -5,64 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Play online · Chipbox</title>
 <meta name="description" content="Play Chipbox, the chiptune groovebox firmware for the M-VAVE FM-1, in your browser: the same code the FM-1 runs.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
 <style>
-:root { --ground:#f4f5f6; --ink:#1c1f23; --muted:#5b626a; --rule:#d9dde1; --accent:#a35a08; --card:#fff; color-scheme:light; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --ground:#131518; --ink:#e6e8eb; --muted:#9aa1a9; --rule:#2d3137; --accent:#f0a043; --card:#1a1d21; color-scheme:dark; }
-}
-:root[data-theme="dark"] { --ground:#131518; --ink:#e6e8eb; --muted:#9aa1a9; --rule:#2d3137; --accent:#f0a043; --card:#1a1d21; color-scheme:dark; }
-* { box-sizing:border-box; }
-body { background:var(--ground); color:var(--ink); margin:0; padding-inline:16px; padding-block:28px 48px; font:400 16px/1.55 "Barlow","Helvetica Neue",Arial,sans-serif; }
-main { max-width:1040px; margin:0 auto; }
-header { display:flex; flex-wrap:wrap; align-items:baseline; gap:.4rem 1.2rem; margin:0 0 1rem; }
-h1 { font:700 2rem/1.1 "Barlow Semi Condensed","Barlow",sans-serif; margin:0; }
-header p { margin:0; color:var(--muted); }
-header nav { margin-left:auto; display:flex; gap:1rem; }
-a { color:var(--accent); }
-.devicebox { overflow-x:auto; overscroll-behavior-x:contain; }
-.device { position:relative; width:100%; min-width:560px; aspect-ratio:1040/664; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:manipulation; }
-.device svg { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
-.device canvas { position:absolute; left:calc((361 - 30) / 1040 * 100%); top:calc((145 - 82) / 664 * 100%); width:calc(208 / 1040 * 100%); height:calc(208 / 664 * 100%); image-rendering:pixelated; background:#000; border-radius:2px; pointer-events:none; }
-.ctl { cursor:pointer; }
-.ctl.knob { cursor:ns-resize; }
-.btnface { fill:#202125; stroke:#34353a; stroke-width:2; transition:fill .06s; }
-.lit .btnface { fill:#f0a043; }
-.lit text.btn { fill:#1b1205; }
-.held .btnface, .held .keyface { stroke:#f0a043; stroke-width:3; }
-.keyface.white { fill:#696a6d; }
-.keyface.black { fill:#5c5d60; }
-.keyface { transition:fill .06s; }
-.lit .keyface.white { fill:#f3b25c; }
-.lit .keyface.black { fill:#e0902c; }
-.dim .keyface.white { fill:#8a7a62; }
-.dim .keyface.black { fill:#6e6050; }
-.knobface { fill:#17181b; stroke:#404146; stroke-width:4; }
-.notch { stroke:#c8c9cd; stroke-width:5; stroke-linecap:round; }
-text { font-family:"Barlow Semi Condensed","Barlow",sans-serif; font-weight:700; text-anchor:middle; }
-text.lab { fill:#7a7b80; font-size:17px; letter-spacing:.04em; }
-text.btn { fill:#a9aaaf; font-size:15px; }
-.start { position:absolute; inset:0; display:grid; place-items:center; background:rgba(10,11,13,.55); border-radius:4.4% / 6.9%; }
-.start button { font:600 1.25rem "Barlow Semi Condensed","Barlow",sans-serif; letter-spacing:.04em; padding:.7em 1.6em; border-radius:999px; border:0; background:#f0a043; color:#1b1205; cursor:pointer; }
-.start[hidden] { display:none; }
-.turn { display:none; margin:0 0 .8rem; color:var(--muted); font-size:.92rem; }
-@media (orientation: portrait) and (max-width: 700px) { .turn { display:block; } }
-.bar { display:flex; flex-wrap:wrap; gap:.5rem 1.2rem; align-items:center; margin:.9rem 0 0; color:var(--muted); font-size:.92rem; }
-.bar button { font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--rule); border-radius:8px; padding:.3em .8em; cursor:pointer; }
-.bar button[aria-pressed="true"] { background:var(--ink); color:var(--card); border-color:var(--ink); }
-.help { margin:1.4rem 0 0; color:var(--muted); font-size:.92rem; max-width:70ch; }
-kbd { font:600 .85em ui-monospace,Menlo,monospace; background:var(--card); border:1px solid var(--rule); border-radius:4px; padding:0 .3em; color:var(--ink); }
-:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-@media (prefers-reduced-motion: reduce) { .btnface, .keyface { transition:none; } }
+  :root { --bg:#0e0e12; --panel:#181820; --deep:#101016; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#2a2a36; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width:1040px; margin:0 auto; padding:32px 16px 72px; }
+  header { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 20px; margin:0 0 20px; }
+  h1 { font-size:44px; margin:0; letter-spacing:.02em; line-height:1.1; }
+  h1 a { color:inherit; text-decoration:none; }
+  .tag { display:inline-block; padding:2px 10px; background:var(--red); color:#fff; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
+  header p { margin:0; color:var(--dim); }
+  header nav { margin-left:auto; display:flex; gap:16px; }
+  a { color:var(--blue); }
+  .devicebox { overflow-x:auto; overscroll-behavior-x:contain; }
+  .device { position:relative; width:100%; min-width:560px; aspect-ratio:1040/664; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:manipulation; }
+  .device svg { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+  .device canvas { position:absolute; left:calc((361 - 30) / 1040 * 100%); top:calc((145 - 82) / 664 * 100%); width:calc(208 / 1040 * 100%); height:calc(208 / 664 * 100%); image-rendering:pixelated; background:#000; pointer-events:none; }
+  .body { fill:var(--panel); stroke:#3a3a4a; stroke-width:4; }
+  .bezel { fill:#0a0a0e; }
+  .tray { fill:var(--deep); }
+  .ctl { cursor:pointer; }
+  .ctl.knob { cursor:ns-resize; }
+  .btnface { fill:#23232e; stroke:#3a3a4a; stroke-width:2; transition:fill .06s; }
+  .lit .btnface { fill:var(--red); stroke:var(--red); }
+  .lit text.btn { fill:#fff; }
+  .held .btnface, .held .keyface { stroke:var(--blue); stroke-width:3; }
+  .keyface.white { fill:#4a4a5a; }
+  .keyface.black { fill:#3a3a48; }
+  .keyface { transition:fill .06s; }
+  .lit .keyface.white { fill:var(--red); }
+  .lit .keyface.black { fill:#b8322a; }
+  .dim .keyface.white { fill:#6a4044; }
+  .dim .keyface.black { fill:#52343a; }
+  .knobface { fill:var(--bg); stroke:#3a3a4a; stroke-width:4; }
+  .notch { stroke:var(--ink); stroke-width:5; stroke-linecap:round; }
+  text { font-family:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight:700; text-anchor:middle; }
+  text.lab { fill:var(--dim); font-size:14px; letter-spacing:.1em; }
+  text.btn { fill:#b8b8c8; font-size:13px; letter-spacing:.04em; }
+  .start { position:absolute; inset:0; display:grid; place-items:center; background:rgba(14,14,18,.6); border-radius:4.4% / 6.9%; }
+  .start button { display:inline-block; padding:12px 24px; background:var(--ink); color:var(--bg); border:0; font:700 16px ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing:.06em; cursor:pointer; }
+  .start[hidden] { display:none; }
+  .turn { display:none; margin:0 0 12px; color:var(--dim); font-size:14px; }
+  @media (orientation: portrait) and (max-width: 700px) { .turn { display:block; } h1 { font-size:34px; } }
+  .bar { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; margin:16px 0 0; color:var(--dim); font-size:14px; }
+  .bar button { font:inherit; color:var(--ink); background:transparent; border:0; box-shadow:inset 0 0 0 2px var(--dim); padding:6px 14px; cursor:pointer; }
+  .bar button[aria-pressed="true"] { background:var(--ink); color:var(--bg); box-shadow:none; }
+  .help { margin:24px 0 0; color:var(--dim); font-size:14px; max-width:70ch; }
+  kbd { font:inherit; background:var(--panel); padding:1px 6px; color:var(--ink); }
+  footer { margin-top:56px; color:var(--dim); font-size:14px; }
+  :focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce) { .btnface, .keyface { transition:none; } }
 </style>
 </head>
 <body>
 <main>
 <header>
-  <h1><a href="../" style="color:inherit;text-decoration:none">Chipbox</a></h1>
-  <p>in the browser: the same code the FM-1 runs</p>
+  <h1><a href="../">Chipbox</a><span class="tag">PLAY ONLINE</span></h1>
+  <p>the same code the FM-1 runs</p>
   <nav><a href="../">Home</a><a href="../install.html">Install</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
 </header>
 <p class="turn">Turn your phone sideways for bigger controls.</p>
@@ -94,11 +93,11 @@ kbd { font:600 .85em ui-monospace,Menlo,monospace; background:var(--card); borde
   function txt(x, y, s, cls, parent) { var e = mk("text", { x: x, y: y, "class": cls }, parent); e.textContent = s; return e; }
 
   /* the panel, drawn in the screenshot's own units */
-  mk("rect", { x: 32.5, y: 84.5, width: 1035, height: 659, rx: 46, fill: "#232428", stroke: "#6b6c70", "stroke-width": 5 });
-  mk("rect", { x: 342, y: 127, width: 246, height: 246, rx: 22, fill: "#151619" });
-  mk("rect", { x: 90, y: 349, width: 218, height: 59, rx: 10, fill: "#1a1b1e" });
-  mk("rect", { x: 621, y: 247, width: 416, height: 146, rx: 14, fill: "#1a1b1e" });
-  mk("rect", { x: 67, y: 435, width: 966, height: 280, rx: 14, fill: "#1a1b1e" });
+  mk("rect", { x: 32.5, y: 84.5, width: 1035, height: 659, rx: 46, "class": "body" });
+  mk("rect", { x: 342, y: 127, width: 246, height: 246, rx: 6, "class": "bezel" });
+  mk("rect", { x: 90, y: 349, width: 218, height: 59, rx: 10, "class": "tray" });
+  mk("rect", { x: 621, y: 247, width: 416, height: 146, rx: 14, "class": "tray" });
+  mk("rect", { x: 67, y: 435, width: 966, height: 280, rx: 14, "class": "tray" });
 
   /* knobs: wheel or drag. the encoders: SELECT 0, ALGORITHM 1, KNOB1-4 2-5, PRESETS 6; MASTER is the page's own volume */
   var KNOBS = [["MASTER", "m", 139, 187], ["SELECT", 0, 253, 185], ["PRESETS", 6, 139, 295], ["ALGORITHM", 1, 253, 295],
