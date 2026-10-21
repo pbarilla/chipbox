@@ -40,7 +40,7 @@ jobs:
             grep -q "$sha" site/firmware/SHA256SUMS      # the release's own checksum must match what we serve
             printf '{"version":"%s","file":"%s","sha256":"%s"}\n' "${tag#v}" "$(basename "$f")" "$sha" > site/firmware/latest.json
           fi
-      - name: Build the firmware for the browser (site/play: the Play online page)
+      - name: Build the firmware for the browser (the Play online page, site/play)
         run: ./web/build.sh
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
