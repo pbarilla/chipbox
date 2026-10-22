@@ -158,7 +158,7 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
 }
 static void hdr_beat(void)                      /* playing: four dots under the tempo, the beat's lit (over an animation too) */
 {
-    uint32_t b = seq_ticks / 24u & 3u, i;
+    uint32_t b = (uint32_t)seq_step / 4u & 3u, i;
     if (!seq_run || seq_hold) return;
     for (i = 0; i < 4u; i++) cv_rect(190 + (int32_t)i * 11, 32, 8, 4, i == b ? (b == 0u ? RGB(80, 220, 120) : R_WHITE) : RGB(60, 60, 74));
 }
@@ -373,7 +373,7 @@ static void anim_frame(const theme_t *t, uint32_t chip)
 static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t sel, uint32_t last_note)
 {
     char s[16];
-    uint32_t note = view == 1u || view == 3u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 0u ? last_note : 0u;
+    uint32_t note = view == 1u || view == 3u ? (sel < chan_n && !IS_DRUM(chan[sel].kind) ? pat[seq_view][sel][rack_cur].note : 0u) : view == 0u ? last_note : 0u;
     uint16_t fg = view == 0u ? t->fg : RGB(230, 230, 235);
     /* the same places on every screen: the chip's name on the left, the page in the middle with the note beside it, the tempo on the right */
     if (view != 2u && sel < chan_n) ico_system(chip, 6, console_y(chip), 0, 0);
@@ -424,10 +424,10 @@ static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t c
 {
     static uint32_t sig[16], nav_d = 9;
     uint32_t cur[16], on = anim_on();
-    cur[0] = view; cur[1] = sel; cur[2] = view == 1u || view == 3u ? (sel < chan_n ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
+    cur[0] = view; cur[1] = sel; cur[2] = view == 1u || view == 3u ? (sel < chan_n && !IS_DRUM(chan[sel].kind) ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
     cur[3] = seq_run; cur[4] = seq_bpm; cur[5] = seq_view; cur[6] = page_n; cur[7] = chip; cur[8] = on ? an_kind : 0u;
     cur[9] = on ? (fm1_ms - an_t0) / 50u : 0u; cur[10] = rack_rm; cur[11] = chan_n; cur[12] = rec_on ? 1u + ((fm1_ms / 350u) & 1u) : 0u; cur[13] = (uint32_t)((int32_t)seq_rate + 8) | ((uint32_t)seq_hold << 8);
-    cur[14] = on ? an_arg : 0u; cur[15] = seq_run && !seq_hold ? 1u + (seq_ticks / 24u & 3u) : 0u;
+    cur[14] = on ? an_arg : 0u; cur[15] = seq_run && !seq_hold ? 1u + ((uint32_t)seq_step / 4u & 3u) : 0u;
     uint32_t full = hdr_force;
     if (!hdr_force && !memcmp(cur, sig, sizeof cur)) return;
     memcpy(sig, cur, sizeof cur);

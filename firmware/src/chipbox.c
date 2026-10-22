@@ -77,7 +77,7 @@ static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[
 static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD; }                              /* page 4 is its operators */
 static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI; }                       /* the NES triangle has no level control */
 static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU; }
-static uint32_t pages(uint32_t c) { return has_wave(c) || has_fm(c) ? 4u : 3u; }                  /* pages of knobs */
+static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : has_wave(c) || has_fm(c) ? 4u : 3u; }                  /* pages of knobs */
 static uint32_t has_k1(uint32_t c)                                                               /* knob 1 does something on the tone page */
 {
     return has_wave(c) || has_duty(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_MD;
@@ -165,6 +165,8 @@ static void channel_glyph(uint32_t c, int32_t x, int32_t y, int32_t w, int32_t h
     else wave_glyph(G_PULSE, has_duty(c) ? (chan[c].kind == KD_VRC6_PU ? (uint32_t)(in->duty & 7u) / 2u + 1u : D8[in->duty & 3u]) : 4u, x, y, w, h, col);
 }
 #define KEY0 53u                                /* key 0 = F3 */
+static const int8_t BLK_IDX[27] = {-1, 0, -1, 1, -1, 2, -1, -1, 3, -1, 4, -1, -1, 5, -1, 6, -1, 7, -1, -1, 8, -1, 9, -1, -1, 10, -1};    /* a black key's number, 0 to 10 */
+static const uint8_t BLK_KEY[11] = {1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25};        /* the key of each black key */
 static void note_name(char *s, uint32_t note)   /* "C#4"; blank for none (0 or 255) */
 {
     static const char *const NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
@@ -203,7 +205,7 @@ static void app_main(void)
     uint32_t prev = 0, k, t_change = 0, dirty = 0, note_drawn = ~0u, chip_drawn = ~0u;
     uint32_t last_note = 255u, view = 1, rack_force = 1, chip_page = 0, sel = 0;     /* view: 0 the chip, 1 the rack, 2 the song; sel: the channel (in the rack, one past the last is "add") */
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, home_now, home_tap, edit_was = 0, edit_t0 = 0, edit_now, edit_used = 0, edit_rel, edit_clr = 255u;
-    uint32_t btn_was = 0, crit_next = 0, crit_n = 0, sys_req = 0;
+    uint32_t btn_was = 0, crit_next = 0, crit_n = 0, sys_req = 0, play_t0 = 0, play_wait = 0, sel_was = 0, sel_t0 = 0, sel_used = 0, sel_now;
     int32_t ed_hold_k = -1;                             /* STEP: the key held now and where its note went: KNOB 2 sets that note's length */
     uint32_t ed_hold_step = 0;
     uint8_t held[27] = {0}, held_ch[27] = {0}, ch_drawn = 99;
@@ -223,15 +225,11 @@ static void app_main(void)
         boot_screen(n);
     }
 #endif
-    if (set.demo < DEMO_N) {                            /* the demos a device has not got yet go in, what was there moves down */
-        uint32_t d;
-        for (d = set.demo; d < DEMO_N; d++) { proj_shuffle_down(d); proj_demo_write(d); }
-        set.demo = DEMO_N; set.proj = 0; dirty = 1; t_change = fm1_ms;
-    }
+    proj_demo_sync();                                   /* project 1 is the demo: always there, always as shipped */
     act_ms = fm1_ms;
     proj_cur = set.proj < PROJ_SLOTS ? set.proj : 0;                  /* the project you left open; Korobeiniki on a new device */
     proj_loaded = proj_load(proj_cur) == 0;
-    if (!proj_loaded) { if (proj_cur == 0u) { seq_tetris(); proj_edited(); } else proj_blank(); }
+    if (!proj_loaded) { if (proj_cur == 0u) seq_tetris(); else proj_blank(); }
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
     for (k = 0; k < 2u; k++)
         if (set.an[k] >= AN_COUNT[k]) set.an[k] = AN_COUNT[k] > 1u ? 1u : 0u;
@@ -283,10 +281,23 @@ static void app_main(void)
             if (down >> k & 1u) {
                 held[k] = (uint8_t)(base + k); held_ch[k] = (uint8_t)sel;
                 if (sel < chan_n) {
-                    chip_note(sel, held[k], 127);
-                    last_note = held[k]; midi_send(0x90 | (sel & 15u), held[k], 100);
+                    uint32_t dr = IS_DRUM(chan[sel].kind), bk = BLK_IDX[k] < 0 ? 99u : (uint32_t)BLK_IDX[k];      /* a drum channel: the black keys are the kit (BD SD CP TM CH OH CY CB) */
+                    if (!dr) chip_note(sel, held[k], 127);
+                    else if (bk < 11u) { if (view == 3u) ed_lane = bk; chip_note(sel, DR_LANE_TYPE[bk], 127); }
+                    last_note = dr ? 255u : held[k]; midi_send(0x90 | (sel & 15u), held[k], 100);
                     if (!menu_on && !pick_on && !rack_rm) {
-                        if (rec_on && seq_run && !seq_hold && view != 2u) {      /* recording: the note goes on the step nearest the playhead */
+                        if (dr) {                                                  /* the lanes: the white keys are the 16 steps; the same hit again takes it away */
+                            uint32_t p;
+                            if (view == 3u) for (p = 0; p < FXN; p++) if (FX_KEY[p] == k) {
+                                step_t *x = &pat[seq_view][sel][p];
+                                uint32_t h = dstep_hits(x), a = dstep_acc(x), bit = 1u << ed_lane, env = fm1_in.buttons >> BTN_ENV & 1u;
+                                if (env) { if (h & bit && a & bit) a &= ~bit; else { h |= bit; a |= bit; } }          /* ENV held: an accented hit (on one already there: accent on, off) */
+                                else if (h & bit) { h &= ~bit; a &= ~bit; }                                         /* the same hit again takes it away */
+                                else h |= bit;
+                                dstep_set(x, h, a); proj_edited();
+                            }
+                        }
+                        else if (rec_on && seq_run && !seq_hold && view != 2u) {      /* recording: the note goes on the step nearest the playhead */
                             uint32_t a, sb, stp = 0, pg;
                             do { a = seq_step; sb = seq_sub; } while (a != seq_step);
                             stp = (a * SEQ_PPS + sb + SEQ_PPS / 2u) / SEQ_PPS % SEQ_LEN; pg = seq_pat;
@@ -328,7 +339,16 @@ static void app_main(void)
             e = fm1_enc_take(ENC_SELECT);
             if (!e) e = fm1_enc_take(ENC_PRESETS);
             if (e) { pick_sel = (pick_sel + (e < 0 ? PROJ_SLOTS - 1u : 1u)) % PROJ_SLOTS; pick_del = 0; pick_dirty = 1; }
-            if (edit_now && fm1_ms - edit_t0 >= 600u && !pick_del && pick_have[pick_sel] && (pick_sel >= DEMO_N || set.unlocked)) { pick_del = 1; pick_dirty = 1; }
+            if (edit_now && fm1_ms - edit_t0 >= 600u && !pick_del && pick_have[pick_sel] && pick_sel != 0u) { pick_del = 1; pick_dirty = 1; }
+            sel_now = fm1_in.buttons >> BTN_SEL & 1u;                                   /* hold SEL on a project: a copy in the first free slot */
+            if (sel_now && !sel_was) { sel_t0 = fm1_ms; sel_used = 0; }
+            if (sel_now && !sel_used && !pick_del && pick_have[pick_sel] && fm1_ms - sel_t0 >= 600u) {
+                uint32_t f;
+                sel_used = 1;
+                for (f = 1; f < PROJ_SLOTS && pick_have[f]; f++) {}
+                if (f < PROJ_SLOTS) { seq_stop(); if (proj_copy(pick_sel, f) == 0) { pick_scan(); pick_sel = f; pick_dirty = 1; } }
+            }
+            sel_was = sel_now;
             if ((b & (1u << BTN_OCT_UP)) || (home_tap && !pick_del)) {       /* OCT+ (yes) or a HOME tap opens the slot under the frame */
                 if (pick_del) {
                     proj_clear(pick_sel);
@@ -352,12 +372,12 @@ static void app_main(void)
             else if (view != 2u && sel < chan_n) { chip_off(sel); view = 3; ed_cur = 0; anim_start(AN_VIEW, 4u); rack_force = 1; chip_drawn = ~0u; }
         }
         if (sys_req) {                                  /* the menu (it replaces a help list that is open) */
-            SYSM[2].text = set.unlocked ? "Lock Demos" : "Unlock Demos";
             menu_open_pick(SYSM, sizeof SYSM / sizeof SYSM[0]); menu_kind = MK_MENU;
         } else if (b & (1u << BTN_GLO)) {               /* help for the view you are on; GLO or HOME again goes back */
             if (menu_on) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
             else if (fx_layer) { menu_open(HELP_FX, sizeof HELP_FX / sizeof HELP_FX[0]); menu_kind = MK_HELP; }
             else if (view == 2u) { menu_open(HELP_SONG, sizeof HELP_SONG / sizeof HELP_SONG[0]); menu_kind = MK_HELP; }
+            else if (view == 3u && sel < chan_n && IS_DRUM(chan[sel].kind)) { menu_open(HELP_DRUM, sizeof HELP_DRUM / sizeof HELP_DRUM[0]); menu_kind = MK_HELP; }
             else if (view == 3u) { menu_open(HELP_STEP, sizeof HELP_STEP / sizeof HELP_STEP[0]); menu_kind = MK_HELP; }
             else if (view) { menu_open(HELP_RACK, sizeof HELP_RACK / sizeof HELP_RACK[0]); menu_kind = MK_HELP; }
             else { menu_open(HELP_CHIP, sizeof HELP_CHIP / sizeof HELP_CHIP[0]); menu_kind = MK_HELP; }
@@ -371,7 +391,18 @@ static void app_main(void)
         if (b & (1u << BTN_PLAY)) {                     /* PLAY: in the song, the song from the cursor; anywhere else, the page on show round and round */
             if (seq_run && seq_hold) { seq_rate = 2; seq_hold = 0; anim_start(AN_PLAY, 0); }                   /* paused on the tape: go on */
             else if (seq_run) { seq_stop(); rec_on = 0; duck_ch = 255; anim_start(AN_PAUSE, 0); }
+            else if (view == 1u) { play_wait = 1; play_t0 = fm1_ms; }                                          /* the rack: a tap plays on from this page, a hold loops it */
             else { if (view == 2u) seq_play(song_cur < song_len ? song_cur : 0u, 0); else seq_play(0, 1); anim_start(AN_PLAY, 0); }
+        }
+        if (play_wait) {
+            if (fm1_ms - play_t0 >= 350u && (fm1_in.buttons >> BTN_PLAY & 1u)) { play_wait = 0; seq_play(0, 1); anim_start(AN_PLAY, 0); }
+            else if (rel & (1u << BTN_PLAY)) {
+                uint32_t s = 0;
+                play_wait = 0;
+                while (s < song_len && song[s] != seq_view) s++;
+                if (s < song_len) seq_play(s, 0); else seq_play(0, 1);
+                anim_start(AN_PLAY, 0);
+            }
         }
         if ((b & (1u << BTN_FX)) && !menu_on) {          /* FX: the punch-in layer on and off */
             fx_layer ^= 1u;
@@ -380,7 +411,7 @@ static void app_main(void)
             else fx_off();
             rack_force = 1; chip_drawn = ~0u;
         }
-        if ((b & (1u << BTN_REC)) && !menu_on && view != 2u && view != 3u && sel < chan_n) {      /* REC: arm (and start the page round and round); again: disarm */
+        if ((b & (1u << BTN_REC)) && !menu_on && view != 2u && view != 3u && sel < chan_n && !IS_DRUM(chan[sel].kind)) {      /* REC: arm (and start the page round and round); again: disarm */
             if (rec_on) { rec_on = 0; duck_ch = 255; seq_stop(); anim_start(AN_REC, 1); }                  /* REC again: stop recording and the playing */
             else { rec_on = 1; duck_ch = (uint8_t)sel; if (!seq_run) seq_play(0, 1); anim_start(AN_REC, 0); }
         }
@@ -405,35 +436,33 @@ static void app_main(void)
             } else anim_start(AN_UNDO, 0);
         }
         undo_tick();
-        if (b & (1u << BTN_SAVE)) { if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
+        if ((b & (1u << BTN_SAVE)) && proj_cur != 0u) { if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
         if (in_menu) {                                  /* in a menu only SELECT does anything (and, in a pick list, OCT+ yes, OCT- no) */
             e = fm1_enc_take(ENC_SELECT);
             if (e) menu_scroll(e);
             e = fm1_enc_take(ENC_PRESETS);
             if (e) menu_scroll(e);
             if (menu_on && (b & (1u << BTN_OCT_UP))) {
-                if (menu_kind == MK_ADD) {
-                    int c = chan_add(menu_sel - 1u);
+                if (menu_kind == MK_ADD) {                      /* a console: its channels */
+                    add_console = menu_sel - 1u;
+                    menu_open_pick(ADD_SUB[add_console].l, ADD_SUB[add_console].n); menu_kind = MK_ADD2;
+                } else if (menu_kind == MK_ADD2) {
+                    int c = chan_add(ADD_SUB[add_console].kind[menu_sel - 1u]);
                     if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                 } else if (menu_kind == MK_MENU) {
-                    if (menu_sel == 1u) { menu_open(CONF_DEMO, sizeof CONF_DEMO / sizeof CONF_DEMO[0]); menu_kind = MK_DEMO; }
-                    else if (menu_sel == 3u) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
-                    else { set.unlocked ^= 1u; dirty = 1; t_change = fm1_ms; menu_on = 0; rack_force = 1; chip_drawn = ~0u; anim_start(AN_SAVE, 0); }
-                } else if (menu_kind == MK_DEMO || menu_kind == MK_FACTORY) {
-                    uint32_t d;
+                    menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY;
+                } else if (menu_kind == MK_FACTORY) {
                     seq_stop(); rec_on = 0; duck_ch = 255;
-                    if (menu_kind == MK_FACTORY) {              /* every project goes, the settings start again */
-                        for (k = 0; k < PROJ_SLOTS; k++) proj_clear(k);
-                        set.oct = 0; set.unlocked = 0;
-                    } else if (proj_dirty) proj_save(proj_cur);
-                    for (d = DEMO_N; d > 0u; d--) proj_demo_write(d - 1u);        /* the first goes last: it is the one left in memory */
-                    proj_cur = 0; proj_dirty = 0; proj_loaded = 1; undo_reset();
-                    set.proj = 0; set.demo = DEMO_N; dirty = 1; t_change = fm1_ms;
+                    for (k = 1; k < PROJ_SLOTS; k++) proj_clear(k);               /* every project goes, the demo stays */
+                    set.oct = 0;
+                    proj_cur = 0; proj_dirty = 0; proj_loaded = proj_load(0) == 0; undo_reset();
+                    set.proj = 0; dirty = 1; t_change = fm1_ms;
                     sel = 0; rack_rm = 0; last_note = 255u; view = 1;
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u; anim_start(AN_OPEN, 0);
                 }
-            } else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind != MK_HELP) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
+            } else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind == MK_ADD2) { menu_open_pick(ADD_MENU, sizeof ADD_MENU / sizeof ADD_MENU[0]); menu_kind = MK_ADD; menu_sel = add_console + 1u; }       /* back to the consoles */
+            else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind != MK_HELP) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
             fm1_enc_take(ENC_ALGORITHM);
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
         } else if (view == 2u) {                        /* the song: SELECT moves (and plays the page once), PRESETS changes the slot's page, OCT+ a new blank page, OCT- removes the slot, EDIT opens the page in the rack */
@@ -492,13 +521,18 @@ static void app_main(void)
                 }
             }
             for (k = 2; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
-            if ((b & (1u << BTN_EDIT)) && sel < chan_n) { step_t *x = &pat[seq_view][sel][ed_cur]; if (x->note) { x->note = 0; proj_edited(); } }
+            if ((b & (1u << BTN_EDIT)) && sel < chan_n && IS_DRUM(chan[sel].kind)) {         /* drums: EDIT clears the picked drum on this page */
+                uint32_t p, any = 0;
+                for (p = 0; p < SEQ_LEN; p++) { step_t *x = &pat[seq_view][sel][p]; uint32_t h = dstep_hits(x); if (h >> ed_lane & 1u) { dstep_set(x, h & ~(1u << ed_lane), dstep_acc(x) & ~(1u << ed_lane)); any = 1; } }
+                if (any) proj_edited();
+            }
+            else if ((b & (1u << BTN_EDIT)) && sel < chan_n) { step_t *x = &pat[seq_view][sel][ed_cur]; if (x->note) { x->note = 0; proj_edited(); } }
             if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
             if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
             if ((uint32_t)(set.oct + 2) != oct_was) anim_cont(AN_OCT, oct_was << 4 | (uint32_t)(set.oct + 2), 900u);
         } else {
         if (view == 1u && sel == chan_n && chan_n < MAXCH && (b & (1u << BTN_OCT_UP))) {                 /* OCT+ (yes) on the "+" row: add a channel */
-            menu_open_pick(ADD_MENU, sizeof ADD_MENU / sizeof ADD_MENU[0]); menu_kind = MK_ADD;
+            menu_open_pick(ADD_MENU, sizeof ADD_MENU / sizeof ADD_MENU[0]); menu_kind = MK_ADD; add_console = 0;
         } else if (rack_rm) {                           /* removing a channel: OCT+ yes, OCT- no */
             if (b & (1u << BTN_OCT_UP)) { uint32_t gone = KIND_CHIP[chan[sel].kind]; seq_stop(); chan_remove(sel); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_REMOVE, gone | (uint32_t)sel << 8); }
             else if (b & (1u << BTN_OCT_DOWN)) { rack_rm = 0; rack_inval = 1; }
@@ -549,7 +583,7 @@ static void app_main(void)
             }
             if ((st & 0xF0u) == 0xB0u && d1 == 102u) { if (d2 >= 64u) seq_play(0, 0); else if (seq_run) seq_stop(); continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 103u) { seq_bpm = d2 * 2u; proj_edited(); continue; }
-            if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
+            if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (proj_cur != 0u && proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 108u) { fx_apply(d2 == 0u ? 0u : d2 <= FXN ? fx_held | FXB(d2 - 1u) : d2 <= 2u * FXN ? fx_held & ~FXB(d2 - 1u - FXN) : fx_held); if (d2 && d2 <= FXN) anim_fx(d2 - 1u); continue; }     /* test: pad d2-1 on; d2 17..32: pad off; 0: all off */
             if ((st & 0xF0u) == 0xB0u && d1 == 106u) { if (chan_add(d2) >= 0) proj_edited(); continue; }              /* test: add a channel of kind d2 */
             if ((st & 0xF0u) == 0xB0u && d1 == 107u) { if (chan_n) { seq_stop(); chan_remove(chan_n - 1u); proj_edited(); } continue; }     /* test: remove the last channel */
@@ -568,11 +602,19 @@ static void app_main(void)
             uint32_t p;
             for (k = 0; k < 27u; k++) { fm1_led_key(KEY_LED(k), 0); fm1_led_glow(KEY_LED(k), 0); }
             for (p = 0; p < FXN; p++) { fm1_led_glow(KEY_LED(FX_KEY[p]), 1); if (fx_mask >> p & 1u) fm1_led_key(KEY_LED(FX_KEY[p]), 1); }
-        } else for (k = 0; k < 27u; k++) { fm1_led_glow(KEY_LED(k), 0); fm1_led_key(KEY_LED(k), lit >> k & 1u); }
+        } else {
+            uint32_t dr = sel < chan_n && IS_DRUM(chan[sel].kind);
+            if (dr && view == 3u) {                                                  /* the lanes: the picked drum's black key, and a white key for each of its steps */
+                uint32_t p;
+                lit = 1u << BLK_KEY[ed_lane];
+                for (p = 0; p < FXN; p++) if (dstep_hits(&pat[seq_view][sel][p]) >> ed_lane & 1u) lit |= 1u << FX_KEY[p];
+            }
+            for (k = 0; k < 27u; k++) { fm1_led_glow(KEY_LED(k), dr && BLK_IDX[k] >= 0); fm1_led_key(KEY_LED(k), lit >> k & 1u); }       /* a drum channel: the eight kit keys glow */
+        }
         fx_solo_ch = (fx_held & FXB(FX_SOLO)) && sel < chan_n ? (uint8_t)sel : 255u;
-        proj_unlocked = set.unlocked;
         fm1_led_glow(BTN_LFO, undo_cnt > 0u);
         fm1_led_key(BTN_ARP, rack_tails);
+        fm1_led_glow(BTN_ENV, view == 3u && sel < chan_n && IS_DRUM(chan[sel].kind));          /* drums: ENV is the accent */
         fm1_led_key(BTN_SEQ, view == 3u);
         fm1_led_key(BTN_FX, fx_layer);
         fm1_led_key(BTN_PLAY, seq_run);
@@ -597,7 +639,7 @@ static void app_main(void)
             if (rack_force) { fx_view_force = 1; hdr_force = 1; rack_force = 0; }
             fx_view_update(); hdr_update(view, sel, t, ch_chip, last_note);
         }
-        else if (view == 3u && sel < chan_n) { ed_update(sel, base, rack_force); rack_force = 0; hdr_update(3, sel, t, ch_chip, last_note); }
+        else if (view == 3u && sel < chan_n) { if (IS_DRUM(chan[sel].kind)) drum_update(sel, rack_force); else ed_update(sel, base, rack_force); rack_force = 0; hdr_update(3, sel, t, ch_chip, last_note); }
         else if (view == 2u) { sg_update(rack_force); rack_force = 0; hdr_update(2, sel, t, ch_chip, last_note); }
         else if (view == 1u) { rack_update(sel, rack_force); rack_force = 0; hdr_update(1, sel, t, ch_chip, last_note); }
         else if (sel < chan_n) {
@@ -609,7 +651,7 @@ static void app_main(void)
             hdr_update(0, sel, t, ch_chip, last_note);
         }
 
-        if (proj_dirty && !seq_run && !pick_on && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
+        if (proj_dirty && proj_cur != 0u && !seq_run && !pick_on && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
             if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } else proj_t_fail = fm1_ms;
         }
         if (dirty && quiet() && fm1_ms - t_change > 2000u) {

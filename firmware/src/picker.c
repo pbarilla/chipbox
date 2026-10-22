@@ -6,7 +6,6 @@ static uint32_t pick_on, pick_sel, pick_del, pick_dirty, pick_fresh;
 static uint16_t pick_rows[PROJ_SLOTS][MAXCH];
 static uint8_t pick_chips[PROJ_SLOTS][MAXCH], pick_have[PROJ_SLOTS];
 static uint32_t pick_nch[PROJ_SLOTS];
-static uint8_t proj_unlocked;                   /* the demo projects can be cleared only when this is set (the menu) */
 
 static void pick_scan(void)
 {
@@ -27,9 +26,10 @@ static void pick_draw(void)
         for (col = 0; col < 2u; col++) {
             uint32_t s = row * 2u + col;
             int32_t x = 6 + (int32_t)col * 118;
-            char num[2] = {(char)('1' + s), 0};
+            char num[2] = {(char)('0' + s), 0};                 /* 1 to 7; the first tile is the demo */
             rk_rect(x, 3, 112, 52, pick_have[s] ? RGB(30, 30, 40) : RGB(22, 22, 28));
-            cv_text(x + 12, 11, &FONT_L, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
+            if (s) cv_text(x + 12, 11, &FONT_L, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
+            else cv_text(x + 5, 18, &FONT_S, "DEMO", RGB(235, 235, 240));
             if (pick_have[s] && pick_nch[s]) {                          /* a row a channel, a block a step: the rows share the height, 16 channels or 2 */
                 int32_t rh = 43 / (int32_t)pick_nch[s], y0;
                 if (rh > 7) rh = 7;
@@ -41,7 +41,7 @@ static void pick_draw(void)
                 }
             }
             if (s == proj_cur) rk_rect(x + 30, 9, 6, 6, RGB(80, 220, 120));
-            if (s < DEMO_N && !proj_unlocked) {                         /* a demo: a padlock */
+            if (s == 0u) {                                              /* the demo: a padlock */
                 uint16_t lk = RGB(140, 140, 155);
                 rk_rect(x + 30, 44, 8, 6, lk); rk_rect(x + 31, 40, 1, 4, lk); rk_rect(x + 36, 40, 1, 4, lk); rk_rect(x + 31, 39, 6, 1, lk);
             }

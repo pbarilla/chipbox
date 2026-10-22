@@ -2,7 +2,7 @@
 /* STEP: one channel's page, a note at a time. SEQ in the rack or chip view opens it; SEQ or HOME closes it. 16 blocks with the note in each,
  * the keyboard below. A key sets the block and moves on; SELECT moves the cursor; EDIT clears the block; PLAY loops the page.
  * Included by chipbox.c after songview.c. */
-static uint32_t ed_cur;
+static uint32_t ed_cur, ed_lane;                 /* the cursor's step; the drum picked on a drum channel */
 static void ed_update(uint32_t c, uint32_t base, uint32_t force)
 {
     static uint32_t sig[4];
@@ -59,4 +59,36 @@ static void ed_update(uint32_t c, uint32_t base, uint32_t force)
         }
     }
     cv_blit(0, 148);
+}
+
+/* DRUMS: a drum channel's page as lanes, a row per drum and a block per step. The black keys pick the drum (the 11: BD SD LT MT HT RS CP CH OH CR RD),
+ * the 16 white keys are the steps: the same hit again takes it away, ENV held makes it an accent (brighter, louder). It works while the page plays. */
+static void drum_update(uint32_t c, uint32_t force)
+{
+    static const char *const LN[11] = {"BD", "SD", "LT", "MT", "HT", "RS", "CP", "CH", "OH", "CR", "RD"};
+    static uint32_t sig[3];
+    uint32_t cur[3], i, h = 0, b, ln, ps = seq_run && !seq_hold ? seq_step : 99u;
+    for (i = 0; i < SEQ_LEN; i++) h = h * 31u + dstep_hits(&pat[seq_view][c][i]) + 7u * dstep_acc(&pat[seq_view][c][i]) + 3u;
+    cur[0] = h; cur[1] = ed_lane | ps << 8 | c << 16 | (uint32_t)seq_view << 24; cur[2] = 0;
+    if (!force && !memcmp(cur, sig, sizeof cur)) return;
+    memcpy(sig, cur, sizeof cur);
+    if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+    for (b = 0; b < 2u; b++) {                                                  /* two bands: six lanes, then five */
+        uint32_t first = b * 6u, n = b ? 5u : 6u;
+        cv_begin(240, n * 15u, R_BG);
+        rk_ox = 0;
+        for (ln = first; ln < first + n; ln++) {
+            int32_t y = (int32_t)(ln - first) * 15;
+            uint32_t sel = ln == ed_lane;
+            if (sel) rk_rect(0, y, 240, 15, R_SEL);
+            rack_label(3, y + 2, LN[ln], sel ? DRUM_LC[ln] : mix16(R_BG, DRUM_LC[ln], 150));
+            for (i = 0; i < SEQ_LEN; i++) {
+                uint32_t on = dstep_hits(&pat[seq_view][c][i]) >> ln & 1u, ac = dstep_acc(&pat[seq_view][c][i]) >> ln & 1u;
+                rk_rect(rack_x(i), y + 1, 10, 13, on ? (ac ? mix16(DRUM_LC[ln], R_WHITE, 140) : DRUM_LC[ln]) : mix16(sel ? R_SEL : R_BG, DRUM_LC[ln], 56));
+                if (on && ac) rk_rect(rack_x(i), y + 1, 10, 3, R_WHITE);                       /* an accent: a white cap */
+                if (i == ps) rk_rect(rack_x(i) + 4, y, 2, 15, R_WHITE);                          /* the playhead */
+            }
+        }
+        cv_blit(0, 48u + b * 90u);
+    }
 }

@@ -1,55 +1,23 @@
-# the wave page of the Game Boy wave channel
-100 btn 12
-200 held 0x100
-250 held 0
-400 enc 6 1
-460 enc 6 1
-520 enc 6 1
-580 enc 6 1
-640 enc 6 1
-700 enc 1 1
-760 enc 1 1
-820 enc 1 1
-980 shot
-1180 enc 2 1
-1260 shot
-1410 enc 2 -1
-1440 enc 2 -1
-1470 enc 2 -1
-1500 enc 2 -1
-1530 enc 2 -1
-1560 enc 2 -1
-1590 enc 2 -1
-1720 shot
-1920 enc 3 1
-1950 enc 3 1
-1980 enc 3 1
-2010 enc 3 1
-2040 enc 3 1
-2070 enc 3 1
-2100 enc 3 1
-2130 enc 3 1
-2260 shot
-2460 enc 4 1
-2490 enc 4 1
-2520 enc 4 1
-2550 enc 4 1
-2580 enc 4 1
-2610 enc 4 1
-2640 enc 4 1
-2670 enc 4 1
-2700 enc 4 1
-2730 enc 4 1
-2860 shot
-3060 enc 5 1
-3090 enc 5 1
-3120 enc 5 1
-3150 enc 5 1
-3180 enc 5 1
-3210 enc 5 1
-3240 enc 5 1
-3270 enc 5 1
-3300 enc 5 1
-3430 shot
-3830 shot
-4230 end
+# the wave page of a Game Boy wave channel (added to Tetris): SHAPE, FOLD, STEP, TWIST
+100 enc 6 -1
+200 btn 1
+300 enc 0 1
+330 enc 0 1
+360 enc 0 1
+500 btn 1
+1700 held 0x100
+1750 held 0
+2300 enc 1 1
+2360 enc 1 1
+2420 enc 1 1
+2800 enc 2 -5
+2830 enc 2 -5
+3000 enc 3 4
+3030 enc 3 4
+3060 enc 3 4
+3090 enc 3 4
+3300 enc 4 3
+3330 enc 4 3
+3360 enc 4 3
+3700 shot
+4200 end

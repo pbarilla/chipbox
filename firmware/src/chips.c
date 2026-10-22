@@ -12,8 +12,10 @@
 #define OS 4u                                   /* oscillator steps per output frame */
 #define MAXCH 16u
 enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIPS };
-enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KINDS };
-static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD};
+enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_DRUM0, KINDS = KD_DRUM0 + 8 };       /* the drum kits, one a console, in the order of the chips */
+#define IS_DRUM(k) ((k) >= KD_DRUM0)
+static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD,
+                                         CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD};
 
 /* ---- instruments: what a note sounds like, per channel */
 typedef struct {
@@ -39,8 +41,10 @@ static const inst_t INST_DEF[KINDS] = {
     I(0, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* VRC6 saw */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* AY: wave = the noise mix 0..15 */
     {1, 0, 6, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* Mega Drive FM: duty = algorithm 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),     /* drums: a kit per console */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
 };
-static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM"};
+static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM"};
 
 /* the arp's chords: octave, major, minor, maj7, min7, sus4, power, dim */
 static const uint8_t ARP_N[8] = {2, 4, 4, 4, 4, 4, 4, 4};
@@ -216,11 +220,11 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
 }
 
 /* the voices of a chip that sound now */
-static uint32_t active_of(uint32_t chip, uint8_t *list)
+static uint32_t active_of(uint32_t chip, uint8_t *list, uint32_t drum)
 {
     uint32_t c, n = 0;
     for (c = 0; c < chan_n; c++)
-        if (KIND_CHIP[chan[c].kind] == chip && vc[c].stage != ST_IDLE) list[n++] = (uint8_t)c;
+        if (KIND_CHIP[chan[c].kind] == chip && vc[c].stage != ST_IDLE && (uint32_t)IS_DRUM(chan[c].kind) == drum) list[n++] = (uint8_t)c;
     return n;
 }
 static int32_t nes_mix(int32_t psum, int32_t tsum)      /* the APU's two nonlinear mixers; past their tables the last slope goes on */
@@ -374,12 +378,113 @@ static void r_sms(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
     }
 }
 
+/* ---- drums: a channel is a whole kit, the key picks the drum (its pitch class), up to four hits ring at once.
+ * A hit is a tone with a pitch that falls, noise through a filter, an envelope each (exponential, per sample), a 1 ms attack so it never pops.
+ * The kit says what the tone and noise are made of: the NES (triangle, 15 / 7 step noise, 4 bit), the Game Boy (pulse, 4 bit), Mega Drive FM (sines, six square metal),
+ * the OPLL (the Yamaha XOR of fast squares), the Atari TIA (pulse, 5 / 4 step poly counters). */
+typedef struct { uint16_t f0, f1, td, nd, cut; uint8_t pd, ta, na, filt, metal, burst; } drum_t;
+static const drum_t DRUM[13] = {              /* by pitch class: C kick, C# kick 2, D snare, D# clap, E tom, F tom, F# hat, G tom, G# open hat, A cowbell, A# crash, B rim */
+    {160,  48, 150,  10, 3000, 28, 100,   6, 2, 0, 0}, {120,  40, 220,   0,    0, 20, 100,   0, 0, 0, 0},
+    {220, 170,  90, 150,  900, 18,  55,  90, 2, 0, 0}, {  0,   0,   0, 130, 1100,  0,   0, 100, 2, 0, 1},
+    {130,  85, 260,  20, 3000, 60, 100,   4, 2, 0, 0}, {180, 120, 220,  20, 3000, 55, 100,   4, 2, 0, 0},
+    {  0,   0,   0,  40, 6500,  0,   0, 100, 2, 1, 0}, {250, 170, 180,  20, 3000, 50, 100,   4, 2, 0, 0},
+    {  0,   0,   0, 320, 6500,  0,   0, 100, 2, 1, 0}, {560, 560, 160,   0,    0,  0,  60,   0, 0, 3, 0},
+    {  0,   0,   0, 900, 5000,  0,   0, 100, 2, 1, 0}, {520, 400,  25,  12, 2000,  4,  80,  40, 2, 0, 0},
+    {  0,   0,   0, 700, 7500,  0,   0,  70, 2, 1, 0},
+};
+typedef struct {
+    uint8_t on, type, wave, bits, filt, metal, width, burst;
+    uint16_t age;
+    int32_t pe, te, ne, ta, na, vel, a1, lp;
+    uint32_t pdm, tdm, ndm, ph, f0, f1, lfsr, nph, ninc, sq[6], sqi[6];
+} dv_t;
+#define DVN 8u                                       /* hits that can ring at once on one channel */
+static dv_t dv[MAXCH][DVN];
+/* a drum channel's step is a set of drums (11 lanes) and which of them are accented; see dstep_hits in seq.c */
+static const uint8_t DR_LANE_TYPE[11] = {0, 2, 4, 5, 7, 11, 3, 6, 8, 10, 12};       /* lanes BD SD LT MT HT RS CP CH OH CR RD: their drum in DRUM[] */
+static uint32_t dv_dm(uint32_t ms) { uint32_t t = ms * 44u; return t < 2u ? 0u : 65536u - 65536u / t; }        /* decay multiplier per sample, Q16 */
+static void dv_hit(uint32_t c, uint32_t note, uint32_t vel)
+{
+    static const uint8_t WAVE[8] = {1, 2, 0, 3, 2, 3, 2, 0}, BITS[8] = {4, 4, 8, 5, 5, 5, 5, 12};        /* by console: NES GB SMS PCE TIA VRC6 AY MD */
+    static const uint16_t MET[6] = {205, 304, 370, 523, 540, 800};
+    uint32_t type = note < 13u ? note : note % 12u, kit = chan[c].kind - KD_DRUM0, k, j = 0;
+    const drum_t *d = &DRUM[type];
+    dv_t *v;
+    if (type == 6u) for (k = 0; k < DVN; k++) if (dv[c][k].on && dv[c][k].type == 8u) dv[c][k].on = 0;     /* a closed hat chokes an open one */
+    for (k = 0; k < DVN && dv[c][k].on; k++) {}
+    if (k == DVN) { for (k = 1; k < DVN; k++) if (dv[c][k].age > dv[c][j].age) j = k; k = j; }
+    v = &dv[c][k];
+    memset(v, 0, sizeof *v);
+    v->on = 1; v->type = (uint8_t)type; v->wave = WAVE[kit]; v->bits = BITS[kit]; v->filt = d->filt; v->burst = d->burst;
+    v->width = (kit == 4u ? (type == 2u || type == 3u ? 5u : 4u) : ((kit == 0u || kit == 1u || kit == 5u || kit == 6u) && d->metal == 1u ? 7u : 15u));
+    v->metal = kit == 7u ? d->metal : kit == 2u ? (d->metal == 1u ? 2u : d->metal) : d->metal == 3u ? 3u : 0u;     /* Mega Drive: six squares; Master System: the Yamaha XOR; the rest make hats from noise */
+    v->vel = (int32_t)vel + 1;
+    v->f0 = d->f0 * 97392u; v->f1 = d->f1 * 97392u;
+    v->pe = d->pd ? 32767 : 0; v->pdm = dv_dm(d->pd);
+    v->te = 32767; v->tdm = dv_dm(d->td); v->ta = d->ta;
+    v->ne = 32767; v->ndm = dv_dm(d->nd); v->na = d->na;
+    v->lfsr = (1u << (v->width - 1u)) | 1u;
+    v->ninc = (d->cut ? d->cut * 3u : 16000u) * 97392u;
+    v->a1 = d->cut ? (int32_t)(205887u * d->cut / (44100u + 6u * d->cut)) : 16384;
+    if (v->metal == 3u) { v->sqi[0] = 560u * 97392u; v->sqi[1] = 845u * 97392u; }
+    else if (v->metal == 2u) { v->sqi[0] = 1046u * 97392u; v->sqi[1] = 16742u * 97392u; v->sqi[2] = 33484u * 97392u; }
+    else for (k = 0; k < 6u; k++) v->sqi[k] = (uint32_t)MET[k] * 97392u;
+}
+static int32_t dv_run(dv_t *v)
+{
+    int32_t out = 0, t;
+    if (v->age < 65535u) v->age++;
+    if (v->ta) {                                            /* the tone: its pitch falls from f0 to f1 */
+        v->ph += v->f1 + ((v->f0 - v->f1) >> 15) * (uint32_t)v->pe;
+        v->pe = (int32_t)(((uint32_t)v->pe * v->pdm) >> 16);
+        if (v->wave == 0u) t = SIN_T[v->ph >> 22];
+        else if (v->wave == 1u) { t = (int32_t)(v->ph >> 16); t = (t < 32768 ? t : 65535 - t) - 16384; }
+        else if (v->wave == 3u) t = (int32_t)(v->ph >> 17) - 16384;
+        else t = v->ph >> 31 ? 16384 : -16384;
+        out = (t * v->te >> 15) * v->ta / 100;
+        v->te = (int32_t)(((uint32_t)v->te * v->tdm) >> 16);
+    }
+    if (v->na) {                                            /* the noise: a shift register, or squares for the metal, through a filter */
+        t = 0;
+        if (v->metal) {
+            uint32_t i, n = v->metal == 3u ? 2u : v->metal == 2u ? 3u : 6u;
+            if (v->metal == 2u) { for (i = 0; i < 3u; i++) v->sq[i] += v->sqi[i]; t = (((v->sq[0] >> 31) | (v->sq[1] >> 31)) ^ (v->sq[2] >> 31)) ? 9000 : -9000; }
+            else { for (i = 0; i < n; i++) { v->sq[i] += v->sqi[i]; t += v->sq[i] >> 31 ? (v->metal == 3u ? 2200 : 5200) : (v->metal == 3u ? -2200 : -5200); } }
+        } else {
+            uint32_t old = v->nph;
+            v->nph += v->ninc;
+            if (v->nph < old) v->lfsr = v->lfsr >> 1 | (((v->lfsr ^ v->lfsr >> 1) & 1u) << (v->width - 1u));
+            t = v->lfsr & 1u ? 12000 : -12000;
+        }
+        if (v->filt) { v->lp += ((t - v->lp) * v->a1) >> 15; t = v->filt == 2u ? t - v->lp : v->lp; }
+        if (v->burst && (v->age == 441u || v->age == 882u)) v->ne = 32767;      /* a clap is three hits */
+        out += (t * v->ne >> 15) * v->na / 100;
+        v->ne = (int32_t)(((uint32_t)v->ne * v->ndm) >> 16);
+    }
+    if (v->age < 44u) out = out * (int32_t)v->age / 44;     /* 1 ms in: no click */
+    if (v->bits < 12u) { int32_t sh = 15 - (int32_t)v->bits; out = out >> sh << sh; }
+    if ((!v->ta || v->te < 80) && (!v->na || v->ne < 80) && (!v->burst || v->age > 1000u)) v->on = 0;
+    return out * v->vel >> 7;
+}
+static void r_drum(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, k, j;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (k = 0; k < na; k++) {
+            uint32_t c = act[k];
+            for (j = 0; j < DVN; j++) if (dv[c][j].on) acc += dv_run(&dv[c][j]) * (int32_t)PCE_AMP[osc[c].vol & 15u] >> 8;
+        }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+
 /* ---- the 60 Hz tick: envelope, vibrato, sweep and arp, then the oscillator */
 static void chip_clear(uint32_t chip)
 {
     uint32_t c;
     for (c = 0; c < chan_n; c++)
-        if (KIND_CHIP[chan[c].kind] == chip) { memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; }
+        if (KIND_CHIP[chan[c].kind] == chip) { memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; memset(dv[c], 0, sizeof dv[c]); }
     switch (chip) {
     case CHIP_NES: memset(hp_nes, 0, sizeof hp_nes); lp_nes = 0; break;
     case CHIP_GB: memset(hp_gb, 0, sizeof hp_gb); break;
@@ -396,6 +501,12 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
     const inst_t *in = &vc[c].in;
     int32_t pq, lfo = 0;
     uint32_t vol;
+    if (IS_DRUM(chan[c].kind)) {                    /* the hits ring on their own: the voice sounds while one does */
+        uint32_t j, on = 0;
+        for (j = 0; j < DVN; j++) on |= dv[c][j].on;
+        osc[c].vol = in->vol & 15u; vc[c].env = on ? 3840u : 0u; vc[c].stage = on ? ST_SUS : ST_IDLE;
+        return on;
+    }
     switch (vc[c].stage) {
     case ST_ATK:
         vc[c].env += in->atk ? 3840u / in->atk : 3840u;
@@ -454,6 +565,7 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
     if (op == EV_ON) {
         awake[chip] = AWAKE;
         vc[c].in = chan[c].in;
+        if (IS_DRUM(chan[c].kind)) dv_hit(c, a, b);
         vc[c].on = 1; vc[c].age = 0; vc[c].note = (uint8_t)a; vc[c].vel = (uint8_t)b; vc[c].bend = 0; vc[c].vph = 0;
         vc[c].arp_t = 0; vc[c].arp_k = 0; vc[c].arp_off = 0;
         vc[c].stage = ST_ATK; vc[c].env = 0;
@@ -476,7 +588,7 @@ static int chan_add(uint32_t kind)               /* the new channel's number, or
     c = chan_n;
     chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind];
     memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE;
-    memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0;
+    memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0; memset(dv[c], 0, sizeof dv[c]);
     chan_n++;
     chan_lock = 0;
     return (int)c;
@@ -486,10 +598,10 @@ static void chan_remove(uint32_t c)
     uint32_t i;
     if (c >= chan_n) return;
     chan_lock = 1;
-    for (i = c; i + 1u < chan_n; i++) { chan[i] = chan[i + 1u]; vc[i] = vc[i + 1u]; osc[i] = osc[i + 1u]; }
+    for (i = c; i + 1u < chan_n; i++) { chan[i] = chan[i + 1u]; vc[i] = vc[i + 1u]; osc[i] = osc[i + 1u]; memcpy(dv[i], dv[i + 1u], sizeof dv[i]); }
     for (i = 0; i < MAXCH; i++) wkey[i] = 0;
     chan_n--;
-    memset(&vc[chan_n], 0, sizeof vc[chan_n]); vc[chan_n].stage = ST_IDLE;
+    memset(&vc[chan_n], 0, sizeof vc[chan_n]); vc[chan_n].stage = ST_IDLE; memset(dv[chan_n], 0, sizeof dv[chan_n]);
     seq_chan_removed(c);
     chan_lock = 0;
 }
@@ -506,8 +618,8 @@ static int32_t soft(int32_t x)
 static void chip_render(int32_t *out, uint32_t n)
 {
     static int32_t mix[2u * 256u];
-    static uint8_t act[MAXCH];
-    uint32_t i = 0, chip, k, na;
+    static uint8_t act[MAXCH], actd[MAXCH];
+    uint32_t i = 0, chip, k, na, nd;
     if (chan_lock) return;
     if (!booted) { for (chip = 0; chip < CHIPS; chip++) chip_clear(chip); booted = 1; }
     while (ev_r != ev_w) {
@@ -522,9 +634,9 @@ static void chip_render(int32_t *out, uint32_t n)
         if (run > 256u) run = 256u;
         for (chip = 0; chip < CHIPS; chip++) {
             if (!awake[chip]) continue;
-            na = active_of(chip, act);
+            na = active_of(chip, act, 0); nd = active_of(chip, actd, 1);
             memset(mix, 0, 8u * run);
-            switch (chip) {
+            if (na) switch (chip) {
             case CHIP_NES: r_nes(mix, run, act, na); break;
             case CHIP_GB: r_gb(mix, run, act, na); break;
             case CHIP_PCE: r_pce(mix, run, act, na); break;
@@ -535,6 +647,7 @@ static void chip_render(int32_t *out, uint32_t n)
             default: r_sms(mix, run, act, na); break;
             }
             post(chip, mix, run);
+            if (nd) r_drum(mix, run, actd, nd);                 /* the console's drum kit, past its analog stage */
             for (k = 0; k < 2u * run; k++) out[2u * i + k] += mix[k];
         }
         i += run; tick_left -= run;

@@ -1,38 +1,13 @@
-# the README / site screenshots: the three main views. rack (playing), chip (a Game Boy channel), song (built up a little)
+# the README / site screenshots: rack (playing), chip (a Game Boy channel), song. Tetris, a fresh flash
 100 enc 6 1
 130 enc 6 1
-160 enc 6 1
 300 btn 12
 1200 shot
 1300 btn 12
 1500 held 0x100
 1550 held 0
-2000 shot
-2100 held 0x100
-2150 held 0
-2300 enc 0 -1
-2330 enc 0 -1
-2400 btn 1
-2450 enc 6 1
-2600 btn 1
-2650 enc 6 1
-2700 enc 6 1
-2850 btn 1
-2900 enc 6 1
-2930 enc 6 1
-2960 enc 6 1
-3100 btn 1
-3150 enc 6 1
-3300 btn 1
-3350 enc 6 1
-3500 btn 1
-3550 enc 6 1
-3580 enc 6 1
-3750 btn 1
-3800 enc 6 1
-3830 enc 6 1
-3860 enc 6 1
-4000 btn 12
-4100 btn 12
-5400 shot
-6000 end
+2500 shot
+2700 held 0x100
+2750 held 0
+3500 shot
+3900 end

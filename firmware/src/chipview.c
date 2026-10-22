@@ -76,12 +76,22 @@ static void chip_tabs(const theme_t *t, uint32_t c)
 }
 
 /* the envelope as it plays: rise, fall to the held level, hold, fade; the time axis is squeezed to fit */
-static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np, uint32_t fm)
+static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np, uint32_t fm, uint32_t drum)
 {
     int32_t base = CV_ENV_H - 10, top = 12, w[4], total, x, ys, i;
     int32_t px[5], py[5];
     cv_begin(240, CV_ENV_H, t->bg);
     skin_box(chip, t, 3, 0, 234, CV_ENV_H, t->bar);
+    if (drum) {                                                 /* the kit: its eight lanes, each in its colour */
+        static const char *const LN[11] = {"BD", "SD", "LT", "MT", "HT", "RS", "CP", "CH", "OH", "CR", "RD"};
+        int32_t k;
+        for (k = 0; k < 11; k++) {
+            cv_rect(12 + k * 20, 14, 19, 48, DRUM_LC[k]);
+            rk_ox = 0; rack_label(13 + k * 20, 32, LN[k], RGB(28, 26, 30));
+        }
+        cv_blit(0, CV_ENV_Y);
+        return;
+    }
     { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
     if (page == 3u && fm) {                                     /* the FM: how hard the modulator hits, and how fast it dies away over two seconds */
@@ -171,7 +181,7 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
     cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
         int32_t x = CV_CARD_X(k), i;
-        const char *lab = page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_AY ? "NOISE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : "SWEEP";
+        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_AY ? "NOISE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : "SWEEP";
         uint16_t lc = page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c))) ? t->dim : t->fg;
         skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
         if (!*lab) continue;
@@ -221,6 +231,6 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
 static void chip_panels(const theme_t *t, uint32_t c, uint32_t page)
 {
     chip_tabs(t, c);
-    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, pages(c), has_fm(c));
+    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, pages(c), has_fm(c), IS_DRUM(chan[c].kind));
     chip_cards(t, c, page);
 }

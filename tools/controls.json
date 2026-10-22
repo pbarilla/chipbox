@@ -55,13 +55,12 @@
    "RACK": "Record. Again: stop",
    "CHIP": "Record. Again: stop",
    "SONG": "",
-   "STEP": "",
    "FX": ""
   },
   {
    "id": "PLAY",
    "name": "PLAY",
-   "RACK": "Loop the page",
+   "RACK": "Play on from this page. Hold: loop the page",
    "CHIP": "Loop the page",
    "SONG": "Play the song",
    "STEP": "Loop the page",
@@ -73,7 +72,7 @@
    "RACK": "Hold: remove channel",
    "CHIP": "",
    "SONG": "Tap: open page. Hold: copy page",
-   "STEP": "Clear the block",
+   "STEP": "Clear the block (drums: clear the picked drum on this page)",
    "FX": ""
   },
   {
@@ -195,8 +194,13 @@
    "RACK": "Play. Stopped: write a note at the playhead",
    "CHIP": "Play",
    "SONG": "Play",
-   "STEP": "Set the block, move on",
+   "STEP": "Set the block, move on (drums: black keys pick the drum, white keys are the 16 steps)",
    "FX": "Pads (white keys)"
+  },
+  {
+   "id": "ENV",
+   "name": "ENV",
+   "STEP": "Drums: hold while placing a hit for an accent"
   }
  ],
  "pads": [
@@ -222,6 +226,7 @@
   "EDIT while recording wipes the notes the line passes",
   "TAPE pad: the song pauses, SELECT is the tape dial",
   "HOLD pad: tap pads to keep them on, tap HOLD to clear",
-  "Demos are locked. GLO + HOME, Unlock Demos"
+  "Project 1 is the demo: edit it all you like, it never saves. In the project list, hold SEL on a project to copy it",
+  "Drums: add them under any console. SEQ opens the 11 lanes: a black key picks the drum, the white keys place it on the 16 steps, the same hit again takes it away, ENV held makes it an accent"
  ]
 }

@@ -44,7 +44,7 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
         for (c = 0; c < chan_n; c++)
             for (s = 0; s < SEQ_LEN; s++) {
                 const step_t *x = &pat[pg][c][s];
-                if (!x->note) continue;
+                if (!x->note && !(IS_DRUM(chan[c].kind) && (x->vel & 7u))) continue;
                 if (n + PROJ_EV > PROJ_BANK - PROJ_HDR) return 0;
                 p[n++] = (uint8_t)pg; p[n++] = (uint8_t)c; p[n++] = (uint8_t)s; p[n++] = x->note; p[n++] = x->vel; p[n++] = x->gate;
                 ev++;
@@ -166,11 +166,11 @@ static int proj_load(uint32_t slot)             /* 0: the slot's project is now 
     }
     return -1;
 }
-static int proj_save(uint32_t slot)
+static int proj_write_buf(uint32_t slot, uint32_t len)     /* proj_buf's first len bytes into the slot's older bank */
 {
     proj_hdr_t h, nh;
     int b = proj_newest(slot, &h);
-    uint32_t bank = b < 0 ? 0u : (uint32_t)(b ^ 1), len = proj_pack(proj_buf), i, sectors, base = proj_base(slot, bank);
+    uint32_t bank = b < 0 ? 0u : (uint32_t)(b ^ 1), i, sectors, base = proj_base(slot, bank);
     if (!len) return -1;                        /* too big for a bank */
     sectors = (PROJ_HDR + len + 0xFFFu) / 0x1000u;
     for (i = 0; i < sectors; i++) if (pf_erase(base + i * 0x1000u)) return -1;
@@ -178,6 +178,11 @@ static int proj_save(uint32_t slot)
     nh.magic = PROJ_MAGIC; nh.seq = b < 0 ? 1u : h.seq + 1u; nh.len = len; nh.crc = proj_crc(proj_buf, len);
     if (pf_write(base, &nh, sizeof nh)) return -1;
     return 0;
+}
+static int proj_save(uint32_t slot)             /* project 1 (slot 0) is the demo: nothing is ever saved into it */
+{
+    if (slot == 0u) return 0;
+    return proj_write_buf(slot, proj_pack(proj_buf));
 }
 static void proj_open(uint32_t slot)            /* switch projects: stop, keep what is unsaved, load (or start blank) */
 {
@@ -225,19 +230,24 @@ static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t
     }
 }
 
-/* project 1 is the demo song (seq_tetris). What was in memory is gone: save it first if it matters. */
-#define DEMO_N 4u                               /* the demo songs, in projects 1 to 4. set.demo counts the ones a device has been given: a new one goes in, the songs move down */
-static void proj_demo_write(uint32_t k)         /* demo k into project k + 1 (what was in memory is gone) */
+/* slot 0 is the demo (Korobeiniki): made again at every boot if it is not exactly what the firmware makes, so an update or a damaged slot never leaves two */
+static void proj_demo_sync(void)
 {
+    proj_hdr_t h;
+    uint32_t len;
     seq_stop();
-    if (k == 0u) seq_tetris(); else if (k == 1u) seq_mountain(); else if (k == 2u) seq_elise(); else seq_toccata();
-    proj_save(k);
+    seq_tetris();                               /* what was in memory is gone: this runs before the first project is opened */
+    len = proj_pack(proj_buf);
+    if (proj_newest(0, &h) >= 0 && h.len == len && h.crc == proj_crc(proj_buf, len)) return;
+    proj_write_buf(0, len);
 }
-static void proj_shuffle_down(uint32_t from)    /* free project `from`: the songs from there move down one; with all full the last is lost */
+static int proj_copy(uint32_t from, uint32_t to)    /* a project into another slot (the open one as it is in memory) */
 {
-    uint32_t f, i;
-    for (f = from; f < PROJ_SLOTS && proj_exists(f); f++) {}
-    if (f == from) return;
-    if (f >= PROJ_SLOTS) f = PROJ_SLOTS - 1u;
-    for (i = f; i > from; i--) if (proj_load(i - 1u) == 0) proj_save(i);
+    proj_hdr_t h;
+    int b;
+    uint32_t len;
+    if (from == proj_cur && from != 0u) { len = proj_pack(proj_buf); return proj_write_buf(to, len); }
+    b = proj_newest(from, &h);
+    if (b < 0 || !proj_bank_ok(from, (uint32_t)b, &h)) return -1;
+    return proj_write_buf(to, h.len);
 }

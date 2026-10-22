@@ -54,6 +54,9 @@ static uint16_t glyph35(uint32_t ch)
     case '9': return G35(7, 5, 7, 1, 7);
     case 'A': return G35(2, 5, 7, 5, 5);
     case 'V': return G35(5, 5, 5, 5, 2);
+    case 'B': return G35(6, 5, 6, 5, 6);
+    case 'L': return G35(4, 4, 4, 4, 7);
+    case 'O': return G35(7, 5, 5, 5, 7);
     case 'Y': return G35(5, 5, 2, 2, 2);
     case 'F': return G35(7, 4, 6, 4, 4);
     case '1': return G35(2, 6, 2, 2, 7);
@@ -86,6 +89,8 @@ static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t
         if (lit && chip == CHIP_SMS) rk_rect(x, y + 12, 10, 3, mix16(c, R_BG, 120));                         /* a shaded base */
     }
 }
+static const uint16_t DRUM_LC[11] = {RGB(255, 80, 120), RGB(236, 232, 236), RGB(230, 120, 40), RGB(255, 150, 60), RGB(255, 180, 90), RGB(180, 140, 255), RGB(255, 150, 190), RGB(250, 215, 70), RGB(255, 240, 150), RGB(80, 210, 220), RGB(110, 220, 120)};     /* BD SD LT MT HT RS CP CH OH CR RD */
+static const int8_t DOT_X[4] = {0, 3, 5, 8};
 static int32_t rack_x(uint32_t i) { return R_X0 + (int32_t)i * 12 + (int32_t)(i / 4u) * 2; }
 
 /* three rows from x = xa, w wide; rows b*3 .. b*3+2 of what shows; sel = the selected row (a channel, or one past the last: "add"); line = the playhead's x or -1 */
@@ -106,8 +111,14 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
             for (i = 0; i < SEQ_LEN; i++) {
                 const step_t *s = &pat[seq_view][row][i];
                 int32_t x = rack_x(i);
-                rack_block(chip, x, y + 2, s->note ? on : off, s->note != 0);
-                if (rack_tails && s->note && s->gate > 6u) {            /* a long note: a line under the row, out to the step where it ends */
+                if (IS_DRUM(chan[row].kind)) {                        /* a drum step: a dot a lane, four across, three down; an accent is whiter */
+                    uint32_t ln, h = dstep_hits(s), ac = dstep_acc(s);
+                    for (ln = 0; ln < 11u; ln++) {
+                        uint16_t lc = h >> ln & 1u ? (ac >> ln & 1u ? mix16(DRUM_LC[ln], R_WHITE, 150) : DRUM_LC[ln]) : mix16(on_row ? R_SEL : R_BG, DRUM_LC[ln], 40);
+                        rk_rect(x + DOT_X[ln & 3u], y + 2 + (int32_t)(ln >> 2) * 5, 2, 4, lc);
+                    }
+                } else rack_block(chip, x, y + 2, s->note ? on : off, s->note != 0);
+                if (rack_tails && !IS_DRUM(chan[row].kind) && s->note && s->gate > 6u) {            /* a long note: a line under the row, out to the step where it ends */
                     uint32_t e = i + (s->gate + 5u) / 6u - 1u;
                     if (e > 15u) e = 15u;
                     rk_rect(x, y + 17, rack_x(e) + 10 - x, 2, on);
