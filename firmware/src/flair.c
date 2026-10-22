@@ -40,7 +40,7 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
         cv_text(198, 5, &FONT_L, n, R_WHITE);
         break; }
     case AN_CHAN: {                                 /* the channel's console pops up with its name, a dot for each channel with yours lit */
-        uint32_t idx = arg & 255u, chip = (arg >> 8) & 3u;
+        uint32_t idx = arg & 255u, chip = (arg >> 8) & 7u;
         const theme_t *ct = &THEME[chip];
         int32_t sp = chan_n ? 180 / (int32_t)chan_n : 14, x0;
         if (sp > 14) sp = 14;

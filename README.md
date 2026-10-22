@@ -35,6 +35,9 @@ want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno w
 ## Install
 
 [ihavenocluewhatimdoing.com/chipbox/install.html](https://ihavenocluewhatimdoing.com/chipbox/install.html)
+## Tutorial
+
+ihavenocluewhatimdoing.com/chipbox/manual
 
 ## Playing nice with others
 

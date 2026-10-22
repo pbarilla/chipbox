@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* The sound chips: NES 2A03 (pulse, triangle), Game Boy (pulse, wave), Master System PSG (tone). Included by chipbox.c after platform.c.
+/* The sound chips: NES 2A03 (pulse, triangle), Game Boy (pulse, wave), Master System PSG (tone), PC Engine HuC6280 (wave), Atari TIA, Konami VRC6 (pulse, saw), AY-3-8910, Mega Drive FM. Included by chipbox.c after platform.c.
  *
  * A channel is one voice of one chip, added by the user: up to MAXCH, any mix (fifteen Game Boy pulses are fine).
  * Layers, top down:
@@ -11,9 +11,9 @@
 
 #define OS 4u                                   /* oscillator steps per output frame */
 #define MAXCH 16u
-enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIPS };
-enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KINDS };
-static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS};
+enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIPS };
+enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KINDS };
+static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD};
 
 /* ---- instruments: what a note sounds like, per channel */
 typedef struct {
@@ -33,8 +33,14 @@ static const inst_t INST_DEF[KINDS] = {
     I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* Game Boy pulse */
     I(15, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Game Boy wave */
     I(0, 0, 0, 6, 14, 4, 5, 4, 0, 1),           /* Master System tone */
+    I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* PC Engine wave: a saw to start with */
+    I(5, 0, 0, 4, 12, 3, 5, 0, 0, 1),           /* Atari TIA: wave = the sound type 0..9 */
+    I(0, 3, 0, 5, 10, 4, 5, 0, 0, 1),           /* VRC6 pulse: duty 0..7 */
+    I(0, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* VRC6 saw */
+    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* AY: wave = the noise mix 0..15 */
+    {1, 0, 6, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* Mega Drive FM: duty = algorithm 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay */
 };
-static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN"};
+static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM"};
 
 /* the arp's chords: octave, major, minor, maj7, min7, sus4, power, dim */
 static const uint8_t ARP_N[8] = {2, 4, 4, 4, 4, 4, 4, 4};
@@ -74,16 +80,22 @@ static void chip_off(uint32_t c) { ev_push(EV_OFF, c, 0, 0); }
 enum { ST_ATK, ST_DEC, ST_SUS, ST_REL, ST_IDLE };
 static struct {
     uint8_t on, note, vel, stage, vph, arp_t, arp_off;
+    uint16_t age;                               /* ticks since the note began */
     uint16_t env;                               /* Q8, 0..15 */
     uint32_t arp_k;
     int32_t bend;                               /* Q8 semitones from sweep */
     inst_t in;
 } vc[MAXCH];
-static struct { uint32_t ph, inc; const uint8_t *wav; uint8_t duty, vol, pan, wshift; } osc[MAXCH];
+static struct { uint32_t ph, inc; const uint8_t *wav; uint8_t duty, vol, pan, wshift; uint32_t ph2, ph3, inc2, inc3, idx, rng; int32_t y1, y2; uint8_t alg, fb; } osc[MAXCH];
 #define AWAKE 30u                               /* ticks a chip keeps rendering after its last voice ends */
 static uint8_t awake[CHIPS], booted;
 static uint32_t tick_left, tick_len = FS / 60u;
 
+static uint32_t interp32(const uint32_t *T, uint32_t pq)
+{
+    uint32_t n = pq >> 8, fr = pq & 255u, a = T[n], b = T[n < 127u ? n + 1u : n];
+    return a + (uint32_t)((((int32_t)(b - a)) >> 8) * (int32_t)fr);
+}
 static uint32_t interp(const uint16_t *T, uint32_t pq)  /* a table indexed by note, between notes by the Q8 fraction */
 {
     uint32_t n = pq >> 8, fr = pq & 255u;
@@ -97,9 +109,9 @@ static uint32_t interp(const uint16_t *T, uint32_t pq)  /* a table indexed by no
  *   Game Boy (DMG): output capacitor, charge factor 0.999958 per 4.19 MHz cycle, about 28 Hz   (Pan Docs)
  *   clean: only a 14 Hz DC blocker. SMS: nothing. */
 enum { AN_CLEAN, AN_HW, AN_ALT, AN_MODES };
-static volatile uint32_t analog_mode[CHIPS] = {AN_HW, AN_HW, 0};
+static volatile uint32_t analog_mode[CHIPS] = {AN_HW, AN_HW};
 typedef struct { int32_t x1, y1; } hpf_t;
-static hpf_t hp_nes[2], hp_gb[2];               /* NES: two stages; Game Boy: left, right */
+static hpf_t hp_nes[2], hp_gb[2], hp_x[2];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
 static int32_t lp_nes;
 static int32_t hpf(hpf_t *f, int32_t x, int32_t b)
 {
@@ -115,7 +127,7 @@ static int32_t lpf(int32_t *y, int32_t x, int32_t a)
 static void post(uint32_t chip, int32_t *out, uint32_t n)
 {
     uint32_t i, m = analog_mode[chip];
-    if (chip >= CHIP_SMS) return;
+    if (chip >= CHIP_SMS && chip != CHIP_VRC6 && chip != CHIP_AY) return;
     for (i = 0; i < n; i++) {
         int32_t l = out[2u * i], r = out[2u * i + 1u];
         if (chip == CHIP_NES) {
@@ -123,6 +135,8 @@ static void post(uint32_t chip, int32_t *out, uint32_t n)
             else if (m == AN_ALT) l = hpf(&hp_nes[0], l, B_FAM_HP37);
             else l = hpf(&hp_nes[0], l, B_DC_HP14);
             r = l;
+        } else if (chip != CHIP_GB) {
+            l = hpf(&hp_x[chip == CHIP_AY], l, B_DC_HP14); r = l;
         } else {
             int32_t b = m == AN_CLEAN ? B_DC_HP14 : B_GB_HPDMG;
             l = hpf(&hp_gb[0], l, b); r = hpf(&hp_gb[1], r, b);
@@ -173,6 +187,30 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         }
         osc[c].wshift = vol >= 12u ? 0u : vol >= 8u ? 1u : vol >= 4u ? 2u : 8u;     /* the four volumes of the wave channel */
         break;
+    case KD_PCE:                                        /* the HuC6280: 32 samples a cycle, f = clk / (32 N), the wave read live like the Game Boy's; the volume in 3 dB steps */
+        t = interp(PCE_NT, pq); osc[c].inc = K_SMS / (t ? t : 1u); osc[c].pan = in->pan; osc[c].vol = (uint8_t)vol;
+        {   const inst_t *wi = &chan[c].in;
+            uint32_t key = (1u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
+            if (wkey[c] != key) { wave_make(wi, wtab[c]); wkey[c] = key; }
+            osc[c].wav = wtab[c];
+        }
+        break;
+    case KD_TIA: {                                      /* a pattern of bits stepped round: tonal ones play the note as their cycle, the long noisy ones as their step rate */
+        uint32_t w = chan[c].in.wave > 9u ? 9u : chan[c].in.wave, len = TIA_LEN[w];
+        t = interp32(NOTE_INC, pq);
+        osc[c].inc = len > 186u ? t / len * 32u : t; osc[c].duty = (uint8_t)w; osc[c].vol = (uint8_t)vol;
+        break; }
+    case KD_VRC6_PU: osc[c].inc = interp32(NOTE_INC, pq); osc[c].duty = in->duty & 7u; osc[c].vol = (uint8_t)vol; break;
+    case KD_VRC6_SAW: osc[c].inc = interp32(NOTE_INC, pq); osc[c].vol = (uint8_t)vol; break;
+    case KD_AY: osc[c].inc = interp32(NOTE_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol; break;
+    case KD_MD: {                                       /* three operators: A (the ratio, with feedback), B, C (the carrier at the note) */
+        const inst_t *wi = &chan[c].in;
+        uint32_t alg = wi->duty & 3u, age = vc[c].age, ix = 4096u / (16u + age * (wi->wt & 15u));
+        t = interp32(NOTE_INC, pq);
+        osc[c].inc = t; osc[c].inc2 = (t >> 1) * FM_RAT[wi->wave & 15u]; osc[c].inc3 = alg == 1u ? t : t * 2u;
+        osc[c].idx = FM_IDX[wi->wf & 15u] * ix >> 8; osc[c].fb = wi->wc & 15u; osc[c].alg = (uint8_t)alg;
+        osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan;
+        break; }
     default: osc[c].inc = K_SMS / interp(SMS_N, pq); osc[c].vol = (uint8_t)vol; break;
     }
 }
@@ -229,6 +267,97 @@ static void r_gb(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         out[2u * i + 1u] += r * 150;
     }
 }
+static void r_pce(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t v;
+                osc[c].ph += osc[c].inc;
+                v = ((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 15) * PCE_AMP[osc[c].vol & 15u];
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l + (l >> 2); out[2u * i + 1u] += r + (r >> 2);
+    }
+}
+static void r_tia(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], x = (osc[c].ph >> 16) * TIA_LEN[osc[c].duty] >> 16;
+                int32_t a = TIA_AMP[osc[c].vol & 15u];
+                osc[c].ph += osc[c].inc;
+                acc += TIA_BITS[osc[c].duty][x >> 3] >> (x & 7u) & 1u ? a : -a;
+            }
+        out[2u * i] += acc * 9; out[2u * i + 1u] += acc * 9;
+    }
+}
+static void r_vrc6(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                osc[c].ph += osc[c].inc;
+                if (chan[c].kind == KD_VRC6_PU) { if ((osc[c].ph >> 28) <= osc[c].duty) acc += (int32_t)osc[c].vol * 2; }
+                else { int32_t v = (int32_t)(((osc[c].ph >> 16) * 7u >> 16) * osc[c].vol * 3u >> 3); acc += v > 31 ? 31 : v; }
+            }
+        out[2u * i] += acc * 72; out[2u * i + 1u] += acc * 72;
+    }
+}
+static void r_ay(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], nz = osc[c].duty, old = osc[c].ph2;
+                int32_t tb = osc[c].ph >> 31 ? 1 : -1, nb;
+                osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc2;
+                if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 3) & 1u) << 16));
+                if (!osc[c].rng) osc[c].rng = 1u;
+                nb = osc[c].rng & 1u ? 1 : -1;
+                acc += (tb * (int32_t)(16u - nz) + nb * (int32_t)nz) * AY_AMP[osc[c].vol & 15u];
+            }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+#define FMOS 2u
+#define FMS(ph, m) SIN_T[(((ph) + (m)) >> 22) & 1023u]       /* a sine at a phase pushed by a modulation */
+#define FMM(x, i) ((uint32_t)(x) * (i) << 2)                  /* a modulator's output times the depth, as a phase */
+static void r_md(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < FMOS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t a, b, o, v;
+                osc[c].ph += osc[c].inc << 1; osc[c].ph2 += osc[c].inc2 << 1; osc[c].ph3 += osc[c].inc3 << 1;
+                a = FMS(osc[c].ph2, (uint32_t)((osc[c].y1 + osc[c].y2) >> 1) * FM_FB[osc[c].fb] << 2);
+                osc[c].y2 = osc[c].y1; osc[c].y1 = a;
+                if (osc[c].alg == 0u) o = FMS(osc[c].ph, FMM(a, osc[c].idx));
+                else if (osc[c].alg == 1u) { b = FMS(osc[c].ph3, FMM(a, osc[c].idx)); o = FMS(osc[c].ph, FMM(b, osc[c].idx)); }
+                else if (osc[c].alg == 2u) o = (FMS(osc[c].ph, FMM(a, osc[c].idx)) + FMS(osc[c].ph3, 0u)) >> 1;
+                else o = (a + FMS(osc[c].ph3, 0u) + FMS(osc[c].ph, 0u)) / 3;
+                v = o * PCE_AMP[osc[c].vol & 15u] >> 8;
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l + (l >> 1); out[2u * i + 1u] += r + (r >> 1);
+    }
+}
 static void r_sms(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
 {
     uint32_t i, s, k;
@@ -254,6 +383,8 @@ static void chip_clear(uint32_t chip)
     switch (chip) {
     case CHIP_NES: memset(hp_nes, 0, sizeof hp_nes); lp_nes = 0; break;
     case CHIP_GB: memset(hp_gb, 0, sizeof hp_gb); break;
+    case CHIP_VRC6: memset(&hp_x[0], 0, sizeof hp_x[0]); break;
+    case CHIP_AY: memset(&hp_x[1], 0, sizeof hp_x[1]); break;
     default: break;
     }
 }
@@ -283,6 +414,7 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
         break; }
     default: break;
     }
+    if (vc[c].age < 65535u) vc[c].age++;
     vc[c].bend += (int32_t)in->sweep * 4;
     if (in->vib_dep) { vc[c].vph = (uint8_t)(vc[c].vph + in->vib_spd * 8u); lfo = (VIB[vc[c].vph >> 3] * (int32_t)in->vib_dep) >> 3; }
     if (in->arp && vc[c].on) {                  /* the arp: a new chord note every few ticks while the key is down */
@@ -322,7 +454,7 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
     if (op == EV_ON) {
         awake[chip] = AWAKE;
         vc[c].in = chan[c].in;
-        vc[c].on = 1; vc[c].note = (uint8_t)a; vc[c].vel = (uint8_t)b; vc[c].bend = 0; vc[c].vph = 0;
+        vc[c].on = 1; vc[c].age = 0; vc[c].note = (uint8_t)a; vc[c].vel = (uint8_t)b; vc[c].bend = 0; vc[c].vph = 0;
         vc[c].arp_t = 0; vc[c].arp_k = 0; vc[c].arp_off = 0;
         vc[c].stage = ST_ATK; vc[c].env = 0;
         if (!vc[c].in.atk) { vc[c].env = 3840u; vc[c].stage = ST_DEC; }
@@ -395,6 +527,11 @@ static void chip_render(int32_t *out, uint32_t n)
             switch (chip) {
             case CHIP_NES: r_nes(mix, run, act, na); break;
             case CHIP_GB: r_gb(mix, run, act, na); break;
+            case CHIP_PCE: r_pce(mix, run, act, na); break;
+            case CHIP_TIA: r_tia(mix, run, act, na); break;
+            case CHIP_VRC6: r_vrc6(mix, run, act, na); break;
+            case CHIP_AY: r_ay(mix, run, act, na); break;
+            case CHIP_MD: r_md(mix, run, act, na); break;
             default: r_sms(mix, run, act, na); break;
             }
             post(chip, mix, run);

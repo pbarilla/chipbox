@@ -1,0 +1,27 @@
+# PC Engine: add list with logos, the new channel, its chip view, wave page
+100 enc 6 -1
+200 btn 1
+400 shot
+500 enc 0 1
+550 enc 0 1
+600 enc 0 1
+650 enc 0 1
+700 enc 0 1
+900 shot
+1000 btn 1
+1200 shot
+1500 keys 0x5
+1600 keys 0
+2500 shot
+2600 held 0x100
+2650 held 0
+3000 shot
+3100 enc 1 1
+3500 shot
+3600 enc 1 1
+3900 shot
+4000 enc 1 1
+4400 shot
+4500 enc 1 1
+4900 shot
+5000 end

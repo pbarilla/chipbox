@@ -25,7 +25,7 @@
   "GLO": "help",
   "HOME": "view",
   "SAVE": "",
-  "ARP": "",
+  "ARP": "tails",
   "SEQ": "steps",
   "PLAY": "",
   "REC": ""
@@ -75,6 +75,11 @@
    "SONG": "Tap: open page. Hold: copy page",
    "STEP": "Clear the block",
    "FX": ""
+  },
+  {
+   "id": "ARP",
+   "name": "ARP",
+   "RACK": "Note tails on / off"
   },
   {
    "id": "LFO",

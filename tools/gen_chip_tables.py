@@ -55,6 +55,9 @@ arr("NES_TND", "int32_t", [round(60000 * (0 if k == 0 else 163.67 / (24329 / k +
 # Game Boy: pulse f = 131072 / (2048 - x), wave f = 65536 / (2048 - x), 11 bits
 arr("GB_PX", "uint16_t", [clamp(2048 - round(131072 / f(n)), 0, 2047) for n in N])
 arr("GB_WX", "uint16_t", [clamp(2048 - round(65536 / f(n)), 0, 2047) for n in N])
+# PC Engine (HuC6280): a wave channel steps through 32 samples, f = clk / (32 N), N 12 bits: the same K as the Master System's tone (inc = K / N). Volume in 3 dB steps
+arr("PCE_NT", "uint16_t", [clamp(round(SMS_CLK / (32 * f(n))), 1, 4095) for n in N])
+arr("PCE_AMP", "uint8_t", [0] + [round(100 * 10 ** (-3 * (15 - i) / 20)) for i in range(1, 16)])
 fr = sorted({round(262144 / ((0.5 if r == 0 else r) * 2 ** s), 3) for s in range(14) for r in range(8)}, reverse=True)
 out.append(f"#define GB_NNUM {len(fr)}u")
 arr("GB_NSTEP", "uint32_t", [round(h / FSO * 65536) for h in fr], 8)              # noise LFSR clocks per step, Q16
@@ -73,6 +76,59 @@ out.append("};")
 arr("SMS_N", "uint16_t", [clamp(round(SMS_CLK / (32 * f(n))), 1, 1023) for n in N])
 arr("SMS_AMP", "int16_t", [0] + [round(4500 * 10 ** (-(15 - v) / 10)) for v in range(1, 16)])
 arr("SMS_NSTEP", "uint32_t", [round(SMS_CLK / d / FSO * 65536) for d in (512, 1024, 2048)], 3)
+
+# exact pitch: the phase step per oscillator step for every note, 32-bit phase
+arr("NOTE_INC", "uint32_t", [inc_k(f(n)) for n in N], 8)
+
+# Atari TIA: ten of the 16 sound types, one cycle each as bits (a step is one divider period). 4 and 5 bit poly counters are Atari's own taps
+def poly(bits, taps, hold=1):
+    st, seq = (1 << bits) - 1, []
+    for _ in range((1 << bits) - 1):
+        seq.append(st & 1)
+        st = (st >> 1) | ((((st >> taps[0]) ^ (st >> taps[1])) & 1) << (bits - 1))
+    return [b for b in seq for _ in range(hold)]
+def pure(h, l): return [1] * h + [0] * l
+def gated():                                    # 5 bit poly, clocked only while the 4 bit poly is high
+    a, b, sa, sb, seq = poly(4, (0, 1)), poly(5, (0, 2)), 0, 0, []
+    for _ in range(15 * 31):
+        if a[sa % 15]: sb += 1
+        sa += 1
+        seq.append(b[sb % 31])
+    return seq
+TIA = [
+    ([0, 1], 2),                                # pure /2
+    ([0] * 3 + [1] * 3, 6),                     # pure /6
+    (pure(13, 18), 31),                         # pure /31
+    ([b for b in pure(13, 18) for _ in range(3)], 93),
+    (poly(5, (0, 2), 6), 186),                  # 5 bit poly /6
+    (poly(4, (0, 1)), 15),                      # buzz
+    ([b for b in poly(4, (0, 1)) for _ in range(31)], 465),
+    (gated(), 465),
+    (poly(5, (0, 2)), 31),
+    (poly(9, (0, 4)), 511),                     # white noise
+]
+out.append(f"#define TIA_N {len(TIA)}u")
+arr("TIA_LEN", "uint16_t", [len(b) for b, _ in TIA], 10)
+rows = []
+for b, _ in TIA:
+    by = [0] * 64
+    for i, v in enumerate(b): by[i >> 3] |= v << (i & 7)
+    rows.append(by)
+out.append("static const uint8_t TIA_BITS[%d][64] = {" % len(TIA))
+for r in rows: out.append("    {" + ", ".join(map(str, r)) + "},")
+out.append("};")
+arr("TIA_AMP", "uint8_t", [round(100 * v / 15) for v in range(16)])
+
+# VRC6: pulse volume 0..15 as is; the saw steps 7 times, 5 bit out of a 6 bit rate (3 x volume)
+# AY-3-8910 / YM2149: 16 levels, about 3 dB apart
+AY = [0, 0.0137, 0.0205, 0.0291, 0.0423, 0.0618, 0.0847, 0.1369, 0.1691, 0.2647, 0.3527, 0.4499, 0.5704, 0.6873, 0.8482, 1.0]
+arr("AY_AMP", "uint8_t", [round(100 * v) for v in AY])
+
+# Mega Drive FM (YM2612 style, three operators): a sine, modulation depth, feedback, ratios (in halves)
+arr("SIN_T", "int16_t", [round(16384 * math.sin(2 * math.pi * i / 1024)) for i in range(1024)], 16)
+arr("FM_IDX", "uint32_t", [round(65536 * (0.6 * i) / (2 * math.pi)) for i in range(16)], 8)
+arr("FM_FB", "uint32_t", [round(65536 * (4 * math.pi * i / 15) / (2 * math.pi)) for i in range(16)], 8)
+arr("FM_RAT", "uint8_t", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 20, 24, 28], 16)
 
 # punch-in filters: a one-pole low-pass / high-pass coefficient (Q14) for 16 cutoffs; 0 = open (bypassed)
 def pole(f):

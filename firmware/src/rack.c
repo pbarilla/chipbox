@@ -13,6 +13,7 @@ static uint32_t hdr_force;                      /* set when a whole screen was p
 static void win_ask(const char *q);
 static uint32_t song_cur, song_top;             /* the song's cursor (a slot; one past the last is the "add" cell) and its first row shown */
 static uint32_t rec_on;                         /* recording: keys land on the step the playhead is at */
+static uint32_t rack_tails;                     /* ARP: show a line under the long notes (kept in the settings) */
 static uint32_t rack_cur, rack_inval, rack_rm, rack_top;     /* the cursor's step; set to repaint after an edit; a channel waits to be removed; the first row shown */
 
 static uint16_t mix16(uint16_t a, uint16_t b, uint32_t k)       /* a towards b by k / 256 */
@@ -38,8 +39,23 @@ static uint16_t glyph35(uint32_t ch)
     case 'I': return G35(7, 2, 2, 2, 7);
     case 'N': return G35(7, 5, 5, 5, 5);
     case 'W': return G35(5, 5, 7, 7, 5);
+    case 'C': return G35(7, 4, 4, 4, 7);
+    case 'E': return G35(7, 4, 6, 4, 7);
+    case 'D': return G35(6, 5, 5, 5, 6);
+    case 'M': return G35(5, 7, 7, 5, 5);
+    case 'G': return G35(7, 4, 5, 5, 7);
+    case 'H': return G35(5, 5, 7, 5, 5);
+    case 'S': return G35(7, 4, 7, 1, 7);
+    case '0': return G35(7, 5, 5, 5, 7);
+    case '4': return G35(5, 5, 7, 1, 1);
+    case '6': return G35(7, 4, 7, 5, 7);
+    case '7': return G35(7, 1, 2, 2, 2);
+    case '8': return G35(7, 5, 7, 5, 7);
+    case '9': return G35(7, 5, 7, 1, 7);
     case 'A': return G35(2, 5, 7, 5, 5);
     case 'V': return G35(5, 5, 5, 5, 2);
+    case 'Y': return G35(5, 5, 2, 2, 2);
+    case 'F': return G35(7, 4, 6, 4, 4);
     case '1': return G35(2, 6, 2, 2, 7);
     case '2': return G35(7, 1, 7, 4, 7);
     case '3': return G35(7, 1, 7, 1, 7);
@@ -59,6 +75,11 @@ static void rack_label(int32_t x, int32_t y, const char *s, uint16_t col)
 static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t lit)     /* a step, in each chip's style */
 {
     if (chip == CHIP_GB) { rk_rect(x + 1, y, 8, 15, c); rk_rect(x, y + 1, 10, 13, c); }                      /* rounded */
+    else if (chip == CHIP_PCE) { rk_rect(x + 2, y, 6, 15, c); rk_rect(x, y + 2, 10, 11, c); }                /* corners cut */
+    else if (chip == CHIP_VRC6) { rk_rect(x + 3, y, 4, 15, c); rk_rect(x + 1, y + 3, 8, 9, c); rk_rect(x, y + 5, 10, 5, c); }     /* a gem */
+    else if (chip == CHIP_MD) { rk_rect(x, y, 8, 3, c); rk_rect(x, y + 3, 10, 9, c); rk_rect(x + 3, y + 12, 7, 3, c); }          /* slanted, like the 16-bit mark */
+    else if (chip == CHIP_TIA) { uint32_t r; rk_rect(x, y, 10, 15, c); for (r = 0; r < 3u; r++) rk_rect(x, y + 3 + (int32_t)r * 4, 10, 1, R_BG); }     /* scan lines */
+    else if (chip == CHIP_AY) { rk_rect(x, y, 10, 15, c); rk_rect(x, y, 10, 2, lit ? R_WHITE : c); }         /* a bright top */
     else {
         rk_rect(x, y, 10, 15, c);
         if (lit && chip == CHIP_NES) { uint16_t hi = mix16(c, R_WHITE, 110); rk_rect(x, y, 10, 1, hi); rk_rect(x, y, 1, 15, hi); }     /* bevelled */
@@ -86,7 +107,7 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
                 const step_t *s = &pat[seq_view][row][i];
                 int32_t x = rack_x(i);
                 rack_block(chip, x, y + 2, s->note ? on : off, s->note != 0);
-                if (s->note && s->gate > 6u) {                          /* a long note: a line under the row, out to the step where it ends */
+                if (rack_tails && s->note && s->gate > 6u) {            /* a long note: a line under the row, out to the step where it ends */
                     uint32_t e = i + (s->gate + 5u) / 6u - 1u;
                     if (e > 15u) e = 15u;
                     rk_rect(x, y + 17, rack_x(e) + 10 - x, 2, on);

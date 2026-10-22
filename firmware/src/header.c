@@ -57,6 +57,46 @@ static void ico_chip(int32_t x, int32_t y, uint16_t body, uint16_t pin, uint16_t
     cv_rect(x + 6, y + 6, 4, 4, dark);
 }
 /* the consoles, tiny (a Game Boy 20 x 28, an NES 38 x 22, a Master System 38 x 20); x is the left edge, bg shows through the corners */
+/* the chips' logos, made up: the chip's own number in the console's colours. Returns the width; rack_label is the little 3 x 5 font from rack.c */
+static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
+{
+    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612"};
+    const char *s = NUM[chip < CHIPS ? chip : 0];
+    int32_t n = 0, w;
+    while (s[n]) n++;
+    w = n * 8 - 2 + 10;
+    rk_ox = 0;
+    if (chip == CHIP_NES) {                     /* a red pill with a white rim */
+        cv_rect(x, y, w, 14, R_WHITE); cv_rect(x + 1, y + 1, w - 2, 12, RGB(190, 40, 34));
+        rack_label(x + 5, y + 2, s, R_WHITE);
+    } else if (chip == CHIP_GB) {               /* dark green with the light green, a slanted stripe */
+        cv_rect(x, y, w, 14, RGB(48, 98, 48)); cv_rect(x + w - 8, y, 3, 14, RGB(155, 188, 15)); cv_rect(x + w - 4, y, 2, 14, RGB(110, 150, 30));
+        rack_label(x + 4, y + 2, s, RGB(155, 188, 15));
+    } else if (chip == CHIP_SMS) {              /* blue with a white underline */
+        cv_rect(x, y, w, 14, RGB(40, 90, 210)); cv_rect(x + 3, y + 11, w - 6, 1, R_WHITE);
+        rack_label(x + 5, y + 1, s, R_WHITE);
+    } else if (chip == CHIP_PCE) {              /* orange, corners cut */
+        cv_rect(x + 2, y, w - 4, 14, RGB(240, 130, 32)); cv_rect(x, y + 2, w, 10, RGB(240, 130, 32));
+        rack_label(x + 5, y + 2, s, RGB(40, 24, 20));
+    } else if (chip == CHIP_TIA) {              /* woodgrain brown, the Atari stripes under the letters */
+        cv_rect(x, y, w, 14, RGB(112, 66, 34));
+        cv_rect(x + 3, y + 10, w - 6, 1, RGB(236, 130, 40)); cv_rect(x + 3, y + 11, w - 6, 1, RGB(214, 64, 44)); cv_rect(x + 3, y + 12, w - 6, 1, RGB(150, 70, 170));
+        rack_label(x + 5, y + 1, s, RGB(244, 226, 196));
+    } else if (chip == CHIP_VRC6) {             /* gold, corners cut */
+        cv_rect(x + 2, y, w - 4, 14, RGB(236, 184, 40)); cv_rect(x, y + 2, w, 10, RGB(236, 184, 40));
+        cv_rect(x + 2, y + 2, w - 4, 1, RGB(255, 226, 120));
+        rack_label(x + 5, y + 2, s, RGB(36, 20, 44));
+    } else if (chip == CHIP_AY) {               /* black with a white rim, the rainbow underneath */
+        cv_rect(x, y, w, 14, R_WHITE); cv_rect(x + 1, y + 1, w - 2, 12, RGB(10, 10, 12));
+        cv_rect(x + 1, y + 9, w - 2, 1, RGB(224, 40, 40)); cv_rect(x + 1, y + 10, w - 2, 1, RGB(236, 210, 40)); cv_rect(x + 1, y + 11, w - 2, 1, RGB(40, 200, 60)); cv_rect(x + 1, y + 12, w - 2, 1, RGB(40, 200, 220));
+        rack_label(x + 5, y + 1, s, R_WHITE);
+    } else {                                    /* Sega black, a blue edge */
+        cv_rect(x, y, w, 14, RGB(10, 10, 14)); cv_rect(x, y, w, 1, R_WHITE); cv_rect(x, y + 13, w, 1, R_WHITE);
+        cv_rect(x, y + 1, 3, 12, RGB(0, 98, 210));
+        rack_label(x + 6, y + 2, s, R_WHITE);
+    }
+    return w;
+}
 static int32_t console_w(uint32_t chip) { return chip == CHIP_GB ? 20 : 38; }
 static int32_t console_y(uint32_t chip) { return chip == CHIP_GB ? 7 : 11; }              /* where the bar draws it */
 static void ico_console(uint32_t chip, int32_t x, int32_t y)
@@ -78,6 +118,34 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x, y + 15, 38, 7, RGB(114, 112, 111));
         cv_rect(x + 3, y + 17, 1, 1, RGB(154, 42, 38)); cv_rect(x + 5, y + 17, 6, 3, RGB(111, 100, 89)); cv_rect(x + 12, y + 17, 6, 3, RGB(111, 100, 89));
         cv_rect(x + 29, y + 5, 8, 17, RGB(58, 58, 57)); cv_rect(x + 31, y + 17, 4, 3, RGB(90, 88, 86));
+    } else if (chip == CHIP_PCE) {              /* the PC Engine: a flat white box, the card slot on top, an orange logo and a slider on the front */
+        cv_rect(x + 1, y, 36, 2, RGB(238, 236, 230)); cv_rect(x, y + 2, 38, 16, RGB(232, 230, 222)); cv_rect(x + 1, y + 18, 36, 2, RGB(188, 186, 178));
+        cv_rect(x + 7, y + 4, 24, 3, RGB(36, 36, 46)); cv_rect(x + 8, y + 5, 22, 1, RGB(90, 90, 104));
+        cv_rect(x + 5, y + 10, 14, 3, RGB(236, 124, 32)); cv_rect(x + 5, y + 14, 8, 1, RGB(124, 124, 136));
+        cv_rect(x + 25, y + 10, 9, 3, RGB(132, 132, 144)); cv_rect(x + 28, y + 11, 3, 1, RGB(236, 124, 32));
+    } else if (chip == CHIP_TIA) {              /* Atari 2600: black top with the four switches, a woodgrain front */
+        cv_rect(x + 1, y, 36, 1, RGB(70, 70, 74)); cv_rect(x, y + 1, 38, 8, RGB(30, 30, 34));
+        cv_rect(x + 3, y + 3, 3, 3, RGB(170, 170, 176)); cv_rect(x + 8, y + 3, 3, 3, RGB(170, 170, 176)); cv_rect(x + 27, y + 3, 3, 3, RGB(170, 170, 176)); cv_rect(x + 32, y + 3, 3, 3, RGB(170, 170, 176));
+        cv_rect(x + 14, y + 2, 10, 5, RGB(52, 52, 58));
+        cv_rect(x, y + 9, 38, 11, RGB(136, 82, 44));
+        cv_rect(x, y + 11, 38, 1, RGB(104, 60, 30)); cv_rect(x, y + 14, 38, 1, RGB(104, 60, 30)); cv_rect(x, y + 17, 38, 1, RGB(104, 60, 30));
+        cv_rect(x, y + 20, 38, 1, RGB(60, 34, 18));
+    } else if (chip == CHIP_VRC6) {             /* the Famicom: cream top, a deep red front, a gold strip */
+        cv_rect(x + 2, y, 34, 1, RGB(240, 236, 224)); cv_rect(x, y + 1, 38, 9, RGB(232, 228, 214));
+        cv_rect(x + 8, y + 3, 22, 3, RGB(196, 190, 176)); cv_rect(x + 9, y + 4, 20, 1, RGB(120, 116, 106));
+        cv_rect(x, y + 10, 38, 10, RGB(150, 30, 38)); cv_rect(x, y + 10, 38, 1, RGB(196, 60, 60));
+        cv_rect(x + 4, y + 13, 8, 2, RGB(236, 184, 40)); cv_rect(x + 14, y + 13, 8, 2, RGB(236, 184, 40));
+        cv_rect(x + 28, y + 12, 6, 6, RGB(36, 20, 24)); cv_rect(x + 29, y + 13, 4, 1, RGB(120, 70, 70));
+    } else if (chip == CHIP_AY) {               /* a ZX Spectrum: a black slab, rows of grey keys, the rainbow in the corner */
+        cv_rect(x + 1, y, 36, 1, RGB(50, 50, 56)); cv_rect(x, y + 1, 38, 19, RGB(18, 18, 22));
+        { int32_t r, k; for (r = 0; r < 4; r++) for (k = 0; k < 10; k++) cv_rect(x + 3 + k * 3 + (r & 1), y + 3 + r * 4, 2, 2, RGB(150, 150, 158)); }
+        cv_rect(x + 29, y + 15, 2, 4, RGB(224, 40, 40)); cv_rect(x + 31, y + 14, 2, 5, RGB(236, 210, 40)); cv_rect(x + 33, y + 13, 2, 6, RGB(40, 200, 60)); cv_rect(x + 35, y + 12, 2, 7, RGB(40, 200, 220));
+    } else if (chip == CHIP_MD) {               /* Mega Drive: black, a round lid with a silver ring, the power slider and 16-BIT */
+        cv_rect(x + 2, y, 34, 1, RGB(54, 54, 62)); cv_rect(x, y + 1, 38, 19, RGB(14, 14, 18));
+        cv_rect(x + 4, y + 3, 16, 12, RGB(30, 30, 36)); cv_rect(x + 5, y + 2, 14, 14, RGB(30, 30, 36)); cv_rect(x + 6, y + 4, 12, 10, RGB(8, 8, 10));
+        cv_rect(x + 6, y + 4, 12, 1, RGB(170, 170, 178));
+        cv_rect(x + 24, y + 4, 10, 2, RGB(160, 160, 168)); cv_rect(x + 24, y + 9, 6, 1, RGB(0, 98, 210)); cv_rect(x + 24, y + 12, 10, 3, RGB(52, 52, 58)); cv_rect(x + 25, y + 13, 4, 1, RGB(210, 40, 44));
+        cv_rect(x, y + 19, 38, 1, RGB(70, 70, 78));
     } else {                                    /* Master System: black, a slanted top with the red panel and the cartridge slot, a red pinstripe, POWER, ports, the card slot */
         cv_rect(x + 5, y, 33, 1, RGB(48, 48, 54)); cv_rect(x + 4, y + 1, 34, 1, RGB(44, 44, 50)); cv_rect(x + 3, y + 2, 35, 1, RGB(40, 40, 46)); cv_rect(x + 2, y + 3, 36, 6, RGB(36, 36, 42));
         cv_rect(x + 17, y + 1, 14, 8, RGB(196, 40, 44)); cv_rect(x + 18, y, 12, 2, RGB(86, 86, 94)); cv_rect(x + 19, y + 5, 4, 2, RGB(20, 20, 24)); cv_rect(x + 25, y + 5, 4, 2, RGB(240, 240, 244));
@@ -87,6 +155,24 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x + 17, y + 14, 5, 3, RGB(66, 66, 72)); cv_rect(x + 24, y + 14, 5, 3, RGB(66, 66, 72));
         cv_rect(x + 31, y + 13, 6, 6, RGB(10, 10, 14)); cv_rect(x + 31, y + 13, 6, 1, RGB(80, 80, 88));
     }
+}
+static void hdr_beat(void)                      /* playing: four dots under the tempo, the beat's lit (over an animation too) */
+{
+    uint32_t b = seq_ticks / 24u & 3u, i;
+    if (!seq_run || seq_hold) return;
+    for (i = 0; i < 4u; i++) cv_rect(190 + (int32_t)i * 11, 32, 8, 4, i == b ? (b == 0u ? RGB(80, 220, 120) : R_WHITE) : RGB(60, 60, 74));
+}
+/* the rule under the bar on the chip screens, each console's own */
+static void hdr_rule(uint32_t chip, const theme_t *t)
+{
+    int32_t x;
+    if (chip == CHIP_NES || chip == CHIP_VRC6) { cv_rect(0, 38, 240, 2, t->acc); cv_rect(0, 40, 240, 1, t->fg); }       /* red and white; gold and cream */
+    else if (chip == CHIP_GB) { for (x = 0; x < 240; x += 6) cv_rect(x, 38, 4, 3, t->fg); }                  /* a dotted rule */
+    else if (chip == CHIP_PCE) cv_rect(0, 38, 240, 3, t->acc);                                               /* an orange bar */
+    else if (chip == CHIP_TIA) { cv_rect(0, 38, 240, 1, RGB(236, 130, 40)); cv_rect(0, 39, 240, 1, RGB(214, 64, 44)); cv_rect(0, 40, 240, 1, RGB(150, 70, 170)); cv_rect(0, 41, 240, 1, RGB(0, 98, 210)); }
+    else if (chip == CHIP_AY) { cv_rect(0, 38, 240, 1, RGB(224, 40, 40)); cv_rect(0, 39, 240, 1, RGB(236, 210, 40)); cv_rect(0, 40, 240, 1, RGB(40, 200, 60)); cv_rect(0, 41, 240, 1, RGB(40, 200, 220)); }
+    else if (chip == CHIP_MD) { cv_rect(0, 38, 240, 3, t->acc); cv_rect(0, 41, 240, 1, t->fg); }
+    else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
 }
 /* a console, lifted dy (the animations drop it in from above) */
 static void ico_system(uint32_t chip, int32_t x, int32_t y, int32_t dy, uint16_t unused)
@@ -295,16 +381,8 @@ static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t se
     if (note) { note_name(s, note); cv_text(134, 14, &FONT_S, s, fg); }
     fmt_u(s, seq_bpm);
     cv_text(234 - text_w(&FONT_L, s), 5, &FONT_L, s, fg);
-    if (view == 0u) {                               /* the chip screens keep their console's rule */
-        int32_t x;
-        if (chip == CHIP_NES) { cv_rect(0, 38, 240, 2, t->acc); cv_rect(0, 40, 240, 1, t->fg); }                 /* the Famicom's red and white */
-        else if (chip == CHIP_GB) { for (x = 0; x < 240; x += 6) cv_rect(x, 38, 4, 3, t->fg); }                  /* a dotted rule */
-        else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
-    } else cv_rect(0, HDR_H - 1, 240, 1, rec_on ? RGB(235, 50, 40) : RGB(50, 50, 60));
-    if (seq_run && !seq_hold) {                     /* playing: four dots under the tempo, the beat's lit */
-        uint32_t b = seq_ticks / 24u & 3u, i;
-        for (i = 0; i < 4u; i++) cv_rect(190 + (int32_t)i * 11, 32, 8, 4, i == b ? (b == 0u ? RGB(80, 220, 120) : R_WHITE) : RGB(60, 60, 74));
-    }
+    if (view == 0u) hdr_rule(chip, t);              /* the chip screens keep their console's rule */
+    else cv_rect(0, HDR_H - 1, 240, 1, rec_on ? RGB(235, 50, 40) : RGB(50, 50, 60));
     if (rec_on && view != 2u && ((fm1_ms / 350u) & 1u)) {            /* recording: a red dot that blinks */
         cv_rect(72, 15, 12, 12, RGB(235, 50, 40)); cv_rect(70, 17, 16, 8, RGB(235, 50, 40)); cv_rect(74, 13, 8, 16, RGB(235, 50, 40));
     }
@@ -359,11 +437,9 @@ static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t c
     rk_ox = 0;
     if (on) {
         anim_frame(t, chip);
-        if (view == 0u) { /* keep the chip's rule under an animation */
-            if (chip == CHIP_NES) { cv_rect(0, 38, 240, 2, t->acc); cv_rect(0, 40, 240, 1, t->fg); }
-            else if (chip == CHIP_SMS) { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }
-        }
+        if (view == 0u && chip != CHIP_GB) hdr_rule(chip, t);       /* keep the chip's rule under an animation */
     } else hdr_idle(t, view, chip, sel, last_note);
+    if (!on || an_kind != AN_CRIT) hdr_beat();
     cv_blit(0, 0);
     if (full || view != nav_d) { nav_draw(view); nav_d = view; }
 }

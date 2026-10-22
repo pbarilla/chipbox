@@ -25,12 +25,30 @@ static void skin_box(uint32_t chip, const theme_t *t, int32_t x, int32_t y, int3
         ring(x, y, w, h, 2, t->fg);
         cv_rect(x, y, 2, 2, t->bg); cv_rect(x + w - 2, y, 2, 2, t->bg); cv_rect(x, y + h - 2, 2, 2, t->bg); cv_rect(x + w - 2, y + h - 2, 2, 2, t->bg);
         ring(x + 2, y + 2, w - 4, h - 4, 1, t->bg);
+    } else if (chip == CHIP_PCE) {                              /* a light card, corners cut, an orange stripe along the top */
+        ring(x, y, w, h, 2, t->fg);
+        cv_rect(x, y, 3, 3, t->bg); cv_rect(x + w - 3, y, 3, 3, t->bg); cv_rect(x, y + h - 3, 3, 3, t->bg); cv_rect(x + w - 3, y + h - 3, 3, 3, t->bg);
+        cv_rect(x + 3, y + 2, w - 6, 3, t->acc);
     } else if (chip == CHIP_GB) {                               /* a thick rounded border with a drop shadow, like the DMG's dialogs */
         cv_rect(x + 2, y + h, w - 1, 2, t->dim);
         cv_rect(x + w, y + 2, 2, h - 1, t->dim);
         ring(x, y, w, h, 3, t->fg);
         cv_rect(x, y, 2, 2, t->bg); cv_rect(x + w - 2, y, 2, 2, t->bg); cv_rect(x, y + h - 2, 2, 2, t->bg); cv_rect(x + w - 2, y + h - 2, 2, 2, t->bg);
         ring(x + 3, y + 3, w - 6, h - 6, 1, t->bg);
+    } else if (chip == CHIP_VRC6) {                             /* a gold line round a plum one, corners cut deep */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x, y, 4, 4, t->bg); cv_rect(x + w - 4, y, 4, 4, t->bg); cv_rect(x, y + h - 4, 4, 4, t->bg); cv_rect(x + w - 4, y + h - 4, 4, 4, t->bg);
+        cv_rect(x + 4, y, 1, 1, t->acc); cv_rect(x + 3, y + 1, 1, 1, t->acc); cv_rect(x + 2, y + 2, 1, 1, t->acc); cv_rect(x + 1, y + 3, 1, 1, t->acc); cv_rect(x, y + 4, 1, 1, t->acc);
+    } else if (chip == CHIP_TIA) {                              /* a tan frame with the three Atari stripes along the top */
+        ring(x, y, w, h, 2, t->fg);
+        cv_rect(x + 3, y + 3, w - 6, 1, RGB(236, 130, 40)); cv_rect(x + 3, y + 4, w - 6, 1, RGB(214, 64, 44)); cv_rect(x + 3, y + 5, w - 6, 1, RGB(150, 70, 170));
+    } else if (chip == CHIP_AY) {                               /* a thin white frame, the rainbow under the top edge */
+        ring(x, y, w, h, 1, t->fg);
+        cv_rect(x + 1, y + 1, w - 2, 1, RGB(224, 40, 40)); cv_rect(x + 1, y + 2, w - 2, 1, RGB(236, 210, 40)); cv_rect(x + 1, y + 3, w - 2, 1, RGB(40, 200, 60)); cv_rect(x + 1, y + 4, w - 2, 1, RGB(40, 200, 220));
+    } else if (chip == CHIP_MD) {                               /* a white frame with a thick blue left edge, top-right and bottom-left corners cut */
+        ring(x, y, w, h, 2, t->fg);
+        cv_rect(x + 2, y + 2, 3, h - 4, RGB(0, 98, 210));
+        cv_rect(x + w - 4, y, 4, 4, t->bg); cv_rect(x, y + h - 4, 4, 4, t->bg);
     } else {                                                    /* a double line, corners cut: Phantasy Star's windows */
         ring(x, y, w, h, 1, t->fg); ring(x + 2, y + 2, w - 4, h - 4, 1, t->fg);
         cv_rect(x, y, 3, 1, t->bg); cv_rect(x, y + 1, 1, 2, t->bg); cv_rect(x + w - 3, y, 3, 1, t->bg); cv_rect(x + w - 1, y + 1, 1, 2, t->bg);
@@ -58,7 +76,7 @@ static void chip_tabs(const theme_t *t, uint32_t c)
 }
 
 /* the envelope as it plays: rise, fall to the held level, hold, fade; the time axis is squeezed to fit */
-static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np)
+static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np, uint32_t fm)
 {
     int32_t base = CV_ENV_H - 10, top = 12, w[4], total, x, ys, i;
     int32_t px[5], py[5];
@@ -66,6 +84,15 @@ static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
     skin_box(chip, t, 3, 0, 234, CV_ENV_H, t->bar);
     { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
+    if (page == 3u && fm) {                                     /* the FM: how hard the modulator hits, and how fast it dies away over two seconds */
+        for (i = 0; i < 72; i++) {
+            int32_t h = 2 + (int32_t)in->wf * 52 / 15 * 16 / (16 + i * 40 / 72 * (int32_t)in->wt);
+            cv_rect(12 + i * 3, base - h, 2, h, mix16(t->bar, t->acc, 90));
+            cv_rect(12 + i * 3, base - h, 2, 2, t->acc);
+        }
+        cv_blit(0, CV_ENV_Y);
+        return;
+    }
     if (page == 3u) {                                           /* the wave: 32 steps of 4 bits, as the chip plays them */
         uint8_t wv[32];
         wave_make(in, wv);
@@ -101,6 +128,22 @@ static void card_bar(const theme_t *t, uint32_t chip, int32_t x, int32_t v, int3
     if (chip == CHIP_NES) {                                     /* eight blocks, like a health bar */
         int32_t lit = (v * 8 + max - 1) / max;
         for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 36, 4, 10, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_PCE) {                              /* six slim pills */
+        int32_t lit = (v * 6 + max - 1) / max;
+        for (i = 0; i < 6; i++) cv_rect(x + 8 + i * 7, 34, 5, 14, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_VRC6) {                             /* five gems */
+        int32_t lit = (v * 5 + max - 1) / max;
+        for (i = 0; i < 5; i++) { int32_t gx = x + 8 + i * 8; uint16_t c = i < lit ? t->acc : t->dim; cv_rect(gx + 2, 34, 3, 14, c); cv_rect(gx, 37, 7, 8, c); }
+    } else if (chip == CHIP_TIA) {                              /* eight steps going up, like scan lines */
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 48 - 4 - i * 2, 3, 4 + i * 2, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_AY) {                               /* eight segments, a colour each */
+        static const uint16_t RB[4] = {RGB(224, 40, 40), RGB(236, 210, 40), RGB(40, 200, 60), RGB(40, 200, 220)};
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 36, 4, 10, i < lit ? RB[i >> 1] : t->dim);
+    } else if (chip == CHIP_MD) {                               /* six slanted blocks */
+        int32_t lit = (v * 6 + max - 1) / max;
+        for (i = 0; i < 6; i++) { int32_t bx = x + 8 + i * 7; uint16_t c = i < lit ? t->acc : t->dim; cv_rect(bx, 34, 5, 4, c); cv_rect(bx + 1, 38, 5, 4, c); cv_rect(bx + 2, 42, 4, 4, c); }
     } else if (chip == CHIP_GB) {                               /* five chunky cells */
         int32_t lit = (v * 5 + max - 1) / max;
         for (i = 0; i < 5; i++) cv_rect(x + 8 + i * 8, 34, 7, 14, i < lit ? t->acc : t->dim);
@@ -120,20 +163,22 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
     static const char *const ENVL[4] = {"ATK", "DEC", "SUS", "REL"};
     static const char *const ARPL[4] = {"SHAPE", "RATE", "DIR", ""};
     static const char *const WAVL[4] = {"SHAPE", "FOLD", "STEP", "TWIST"};
+    static const char *const FML[4] = {"RATIO", "INDEX", "FB", "DECAY"};
     static const uint8_t BARS[4] = {2, 4, 6, 9};
     const inst_t *in = &chan[c].in;
-    uint32_t chip = KIND_CHIP[chan[c].kind], k, k1 = has_wave(c) || has_duty(c);
+    uint32_t chip = KIND_CHIP[chan[c].kind], k, k1 = has_k1(c), fm = has_fm(c);
     int32_t sw = in->sweep;
     cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
         int32_t x = CV_CARD_X(k), i;
-        const char *lab = page == 3u ? WAVL[k] : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : chip == CHIP_GB ? "PAN" : "SWEEP";
+        const char *lab = page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_AY ? "NOISE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : "SWEEP";
         uint16_t lc = page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c))) ? t->dim : t->fg;
         skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
         if (!*lab) continue;
         cv_text(x + (CV_CARD_W - text_w(&FONT_S, lab)) / 2, 4, &FONT_S, lab, lc);
         if (page == 3u) {
-            if (k == 0u) {                                                      /* the shape alone, small */
+            if (fm) card_bar(t, chip, x, k == 0u ? in->wave : k == 1u ? in->wf : k == 2u ? in->wc : in->wt, 15);
+            else if (k == 0u) {                                                 /* the shape alone, small */
                 inst_t base = *in; uint8_t wv[32];
                 base.wf = base.wc = base.wt = 0; wave_make(&base, wv);
                 for (i = 0; i < 32; i++) cv_rect(x + 8 + i * 40 / 32, 50 - wv[i] * 20 / 15, 2, 2, t->acc);
@@ -153,10 +198,15 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
                 tri_icon(x + 39, 28, 1, d == 2u ? on : t->dim); tri_icon(x + 39, 35, 0, d == 2u ? on : t->dim);
             }
         } else if (page == 1u) card_bar(t, chip, x, k == 0u ? in->atk : k == 1u ? in->dec : k == 2u ? in->sus : in->rel, 15);
-        else if (k == 0u) { if (k1) channel_glyph(c, x + 8, 26, 40, 26, t->acc); }
+        else if (k == 0u) {
+            if (chan[c].kind == KD_TIA) card_bar(t, chip, x, in->wave, 9);
+            else if (chan[c].kind == KD_AY) card_bar(t, chip, x, in->wave, 15);
+            else if (fm) { for (i = 0; i < 4; i++) cv_rect(x + 6 + i * 12, 34, 10, 12, i == (int32_t)in->duty ? t->acc : t->dim); }       /* which of four */
+            else if (k1) channel_glyph(c, x + 8, 26, 40, 26, t->acc);
+        }
         else if (k == 1u) { if (has_vol(c)) card_bar(t, chip, x, in->vol, 15); }
         else if (k == 2u) card_bar(t, chip, x, in->vib_dep, 15);
-        else if (chip == CHIP_GB) {                                 /* left, centre, right */
+        else if (has_pan(c)) {                                      /* left, centre, right */
             int32_t p;
             for (p = 0; p < 3; p++) cv_rect(x + 7 + p * 15, 36, 12, 10, p == (int32_t)in->pan ? t->acc : t->dim);
         } else {                                                    /* centred: down to the left, up to the right */
@@ -171,6 +221,6 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
 static void chip_panels(const theme_t *t, uint32_t c, uint32_t page)
 {
     chip_tabs(t, c);
-    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, has_wave(c) ? 4u : 3u);
+    chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, pages(c), has_fm(c));
     chip_cards(t, c, page);
 }

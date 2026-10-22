@@ -10,7 +10,7 @@ static const mline_t HELP_CHIP[] = {
 };
 static const mline_t HELP_RACK[] = {
     MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
+    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("ARP - Note Tails"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
 };
 static const mline_t HELP_STEP[] = {
     MH("Knobs"), ML("Select - Move"), ML("Presets - Change Channel"), ML("Algorithm - Flip Page"),
@@ -25,7 +25,7 @@ static const mline_t HELP_SONG[] = {
     MH("Buttons"), ML("OCT+ - New Page"), ML("OCT- - Remove Page"), ML("EDIT - Open Page"), ML("EDIT Hold - Copy Page"), ML("HOME - Next View"), ML("FX - Punch In"), ML("PLAY - Play Song"), ML("SAVE - Save"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
 };
 static const mline_t ADD_MENU[] = {                      /* in the order of the kinds in chips.c */
-    MH("Add Channel"), ML("NES Pulse"), ML("NES Triangle"), ML("GB Pulse"), ML("GB Wave"), ML("SMS Tone"),
+    MH("Add Channel"), ML("NES Pulse"), ML("NES Triangle"), ML("GB Pulse"), ML("GB Wave"), ML("SMS Tone"), ML("PCE Wave"), ML("Atari TIA"), ML("VRC6 Pulse"), ML("VRC6 Saw"), ML("AY Tone"), ML("Mega Drive FM"),
 };
 static mline_t SYSM[4] = {MH("Menu"), ML("Restore Demos"), ML("Unlock Demos"), ML("Factory Reset")};       /* GLO + HOME */
 static const mline_t CONF_DEMO[] = {MH("Restore Demos?"), ML("OCT+ Yes"), ML("OCT- No")};
@@ -60,6 +60,11 @@ static void menu_draw(uint16_t accent)
             if (i >= menu_n) break;
             if (menu_pick && i == menu_sel) cv_rect(0, (int32_t)r * 20, 240, 20, R_SEL);
             cv_text(8, (int32_t)r * 20 + 2, &FONT_S, menu_lines[i].text, menu_lines[i].head ? accent : RGB(230, 230, 235));
+            if (menu_kind == MK_ADD && i >= 1u && i <= KINDS) {      /* the add list: each chip's logo at the right */
+                static const uint8_t LN[CHIPS] = {4, 3, 7, 7, 3, 4, 6, 6};
+                uint32_t ch = KIND_CHIP[i - 1u];
+                ico_logo(ch, 240 - 14 - ((int32_t)LN[ch] * 8 + 8), (int32_t)r * 20 + 3);
+            }
         }
         if (menu_n > MENU_ROWS)                 /* a thin bar at the right edge: where you are in the list */
             cv_rect(237, (int32_t)(240u * menu_top / menu_n) - (int32_t)b * 80, 3, (int32_t)(240u * MENU_ROWS / menu_n), RGB(90, 90, 100));

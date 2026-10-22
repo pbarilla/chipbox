@@ -228,6 +228,10 @@ static void seq_put(uint32_t p, uint32_t t, uint32_t s, uint32_t note, uint32_t 
     x->note = (uint8_t)note; x->vel = (uint8_t)vel; x->gate = (uint8_t)gate;
 }
 static int chan_add(uint32_t kind);
+static void fm_set(uint32_t c, uint32_t alg, uint32_t ratio, uint32_t index, uint32_t fb, uint32_t decay)      /* an FM channel's operators */
+{
+    chan[c].in.duty = (uint8_t)alg; chan[c].in.wave = (uint8_t)ratio; chan[c].in.wf = (uint8_t)index; chan[c].in.wc = (uint8_t)fb; chan[c].in.wt = (uint8_t)decay;
+}
 
 /* Korobeiniki (the Russian folk song, public domain; the Tetris tune): eight bars, one page each, in A minor. The first project of a new device */
 static void seq_tetris(void)
@@ -267,9 +271,12 @@ static void seq_mountain(void)
     static const uint8_t P1[7] = {59, 61, 62, 64, 66, 62, 66}, P2[7] = {64, 66, 67, 69, 71, 67, 71};
     uint32_t p, s;
     seq_clear();
-    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU); chan_add(KD_SMS); chan_add(KD_GB_WAV);
-    chan[2].in.vol = 7; chan[3].in.vol = 7;
-    chan[4].in.wave = 10; chan[4].in.wf = 5; chan[4].in.wt = 6; chan[4].in.vol = 8;           /* the drone: a folded, twisted triangle */
+    chan_add(KD_VRC6_PU); chan_add(KD_VRC6_SAW); chan_add(KD_VRC6_PU); chan_add(KD_NES_PU); chan_add(KD_TIA); chan_add(KD_AY);
+    chan[0].in.duty = 2; chan[0].in.dec = 4; chan[0].in.sus = 11;                              /* the lead: a thin pulse, the way Castlevania III has it */
+    chan[2].in.duty = 5; chan[2].in.vol = 7;                                                   /* an octave up, wider */
+    chan[3].in.duty = 1; chan[3].in.vol = 7;                                                   /* the stabs */
+    chan[4].in.wave = 5; chan[4].in.vol = 9;                                                   /* the drone: the 2600's buzz */
+    chan[5].in.wave = 15; chan[5].in.dec = 1; chan[5].in.sus = 0; chan[5].in.rel = 1; chan[5].in.vol = 11;     /* noise only: hats and snare */
     seq_bpm = 132; page_n = 8; song_len = 8;
     for (p = 0; p < 8u; p++) song[p] = (uint8_t)p;
     ph_put(0, 0, 0, P1, 0, 4, 4, 0, 90); seq_put(0, 1, 0, 47, 120, 22); seq_put(0, 1, 8, 47, 120, 22);                /* bars 1 and 2: the tune, one note in four steps */
@@ -285,6 +292,7 @@ static void seq_mountain(void)
         ph_put(p, 2, 0, n, 0, 7, 1, 12, 80); ph_put(p, 2, 8, n, 0, 7, 1, 12, 80);                                    /* an octave up joins */
         if (p >= 5u) for (s = 2; s < 16u; s += 4u) seq_put(p, 3, s, root + 19u, 90, 4);                             /* the off-beat stabs */
         if (p >= 6u) seq_put(p, 4, 0, 59, 100, 90);                                                                  /* the drone */
+        for (s = 0; s < 16u; s += 2u) seq_put(p, 5, s, s % 8u == 4u ? 64u : 100u, s % 8u == 4u ? 120u : 70u, 1);      /* snare on the off beats, hats between */
     }
 }
 
@@ -298,8 +306,10 @@ static void seq_elise(void)
     static const uint8_t LH[6][4] = {{8, 45, 52, 57}, {14, 40, 52, 56}, {20, 45, 52, 57}, {32, 45, 52, 57}, {38, 40, 52, 56}, {44, 45, 52, 57}};
     uint32_t i, at = 0, k;
     seq_clear();
-    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU);
-    chan[0].in.vib_dep = 2; chan[2].in.duty = 1; chan[2].in.vol = 6;
+    chan_add(KD_MD); chan_add(KD_MD); chan_add(KD_SMS);
+    fm_set(0, 0, 1, 7, 0, 9); chan[0].in.dec = 12; chan[0].in.sus = 5; chan[0].in.rel = 7;      /* the piano: one modulator at the same pitch, hit hard, dying away */
+    fm_set(1, 0, 1, 5, 3, 10); chan[1].in.dec = 6; chan[1].in.sus = 8; chan[1].in.rel = 5;     /* the left hand: a round bass */
+    chan[2].in.vol = 4; chan[2].in.sus = 8; chan[2].in.dec = 8;                                /* the Mega Drive's PSG doubling the tune, quiet */
     seq_bpm = 66; page_n = 4; song_len = 4;
     for (i = 0; i < 4u; i++) song[i] = (uint8_t)i;
     for (i = 0; i < sizeof L; i++) {
@@ -319,8 +329,11 @@ static void seq_toccata(void)
 {
     uint32_t i;
     seq_clear();
-    chan_add(KD_NES_PU); chan_add(KD_NES_TRI); chan_add(KD_GB_PU); chan_add(KD_SMS);
-    chan[0].in.vib_dep = 3; chan[2].in.arp = 3; chan[2].in.arp_rate = 3; chan[2].in.arp_dir = 2; chan[2].in.vol = 8; chan[3].in.vol = 7;
+    chan_add(KD_PCE); chan_add(KD_PCE); chan_add(KD_AY); chan_add(KD_PCE);
+    chan[0].in.wave = 10; chan[0].in.wf = 9; chan[0].in.wc = 3; chan[0].in.pan = 0; chan[0].in.atk = 0; chan[0].in.dec = 0; chan[0].in.sus = 15; chan[0].in.rel = 2; chan[0].in.vib_dep = 2; chan[0].in.vib_spd = 5;
+    chan[1].in.wave = 10; chan[1].in.wf = 0; chan[1].in.sus = 15; chan[1].in.dec = 0; chan[1].in.rel = 3;                   /* the pedal: a plain triangle */
+    chan[2].in.arp = 3; chan[2].in.arp_rate = 3; chan[2].in.arp_dir = 2; chan[2].in.vol = 8;
+    chan[3].in.wave = 10; chan[3].in.wf = 7; chan[3].in.wt = 4; chan[3].in.wc = 3; chan[3].in.pan = 2; chan[3].in.dec = 0; chan[3].in.sus = 15; chan[3].in.rel = 2; chan[3].in.vol = 13;     /* the second organ voice, on the right */
     seq_bpm = 84; page_n = 4; song_len = 4;
     for (i = 0; i < 4u; i++) song[i] = (uint8_t)i;
     for (i = 0; i < 2u; i++) {                                                     /* the motif high, then an octave down */
