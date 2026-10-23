@@ -177,6 +177,7 @@ static int proj_load(uint32_t slot)             /* 0: the slot's project is now 
     }
     return -1;
 }
+static uint32_t proj_mark;                      /* a demo's banks carry this bit in their number, so an older firmware's project in the slot can be told from it */
 static int proj_write_buf(uint32_t slot, uint32_t len)     /* proj_buf's first len bytes into the slot's older bank */
 {
     proj_hdr_t h, nh;
@@ -186,13 +187,13 @@ static int proj_write_buf(uint32_t slot, uint32_t len)     /* proj_buf's first l
     sectors = (PROJ_HDR + len + 0xFFFu) / 0x1000u;
     for (i = 0; i < sectors; i++) if (pf_erase(base + i * 0x1000u)) return -1;
     if (pf_write(base + PROJ_HDR, proj_buf, len)) return -1;
-    nh.magic = PROJ_MAGIC; nh.seq = b < 0 ? 1u : h.seq + 1u; nh.len = len; nh.crc = proj_crc(proj_buf, len);
+    nh.magic = PROJ_MAGIC; nh.seq = (b < 0 ? 1u : h.seq + 1u) | proj_mark; nh.len = len; nh.crc = proj_crc(proj_buf, len);
     if (pf_write(base, &nh, sizeof nh)) return -1;
     return 0;
 }
-static int proj_save(uint32_t slot)             /* project 1 (slot 0) is the demo: nothing is ever saved into it */
+static int proj_save(uint32_t slot)             /* slots 0 and 1 are the demos: nothing is ever saved into them */
 {
-    if (slot == 0u) return 0;
+    if (slot < PROJ_DEMOS) return 0;
     return proj_write_buf(slot, proj_pack(proj_buf));
 }
 static void proj_open(uint32_t slot)            /* switch projects: stop, keep what is unsaved, load (or start blank) */
@@ -241,23 +242,36 @@ static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t
     }
 }
 
-/* slot 0 is the demo (Korobeiniki): made again at every boot if it is not exactly what the firmware makes, so an update or a damaged slot never leaves two */
+/* slots 0 and 1 are the demos (Korobeiniki, the console symphony): made again at every boot if they are not exactly what the firmware makes, so an update or a damaged slot never leaves two */
+#include "demo2.h"
+static int proj_copy(uint32_t from, uint32_t to);
+static void seq_symphony(void) { proj_unpack(DEMO2, sizeof DEMO2); }
 static void proj_demo_sync(void)
 {
     proj_hdr_t h;
-    uint32_t len;
+    uint32_t len, s, f;
     seq_stop();
     seq_tetris();                               /* what was in memory is gone: this runs before the first project is opened */
     len = proj_pack(proj_buf);
-    if (proj_newest(0, &h) >= 0 && h.len == len && h.crc == proj_crc(proj_buf, len)) return;
-    proj_write_buf(0, len);
+    if (proj_newest(0, &h) < 0 || h.len != len || h.crc != proj_crc(proj_buf, len)) proj_write_buf(0, len);
+    if (proj_newest(1, &h) >= 0 && !(h.seq & 0x40000000u)) {         /* a project of an older firmware sits in slot 1: it moves to a free slot at the end */
+        for (f = PROJ_SLOTS - 1u; f > 1u && proj_exists(f); f--) {}
+        if (f > 1u) proj_copy(1, f);
+    }
+    seq_stop();
+    seq_symphony();
+    len = proj_pack(proj_buf);
+    if (proj_newest(1, &h) >= 0 && (h.seq & 0x40000000u) && h.len == len && h.crc == proj_crc(proj_buf, len)) return;
+    proj_mark = 0x40000000u;
+    proj_write_buf(1, len);
+    proj_mark = 0;
 }
 static int proj_copy(uint32_t from, uint32_t to)    /* a project into another slot (the open one as it is in memory) */
 {
     proj_hdr_t h;
     int b;
     uint32_t len;
-    if (from == proj_cur && from != 0u) { len = proj_pack(proj_buf); return proj_write_buf(to, len); }
+    if (from == proj_cur && from >= PROJ_DEMOS) { len = proj_pack(proj_buf); return proj_write_buf(to, len); }
     b = proj_newest(from, &h);
     if (b < 0 || !proj_bank_ok(from, (uint32_t)b, &h)) return -1;
     return proj_write_buf(to, h.len);

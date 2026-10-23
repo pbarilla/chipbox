@@ -27,6 +27,7 @@ enum { ENC_SELECT = 0, ENC_ALGORITHM = 1, ENC_KNOB1 = 2, ENC_KNOB2 = 3, ENC_KNOB
 #define PROJ_AT 0x00097000u
 #define PROJ_BANK 0x3000u                       /* 12 KB: 64 steps in every page of every track fits */
 #define PROJ_SLOTS 12u
+#define PROJ_DEMOS 2u                           /* the first two slots are the demos: Korobeiniki and the console symphony */
 #define PROJ_LEN (PROJ_SLOTS * 2u * PROJ_BANK)
 
 #ifdef CHIPBOX_HOST

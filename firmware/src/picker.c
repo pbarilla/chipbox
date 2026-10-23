@@ -27,10 +27,10 @@ static void pick_draw(void)
             uint32_t s = row * 3u + col;
             int32_t x = 7 + (int32_t)col * 79;
             char num[4];
-            fmt_u(num, s);                                      /* 1 to 11; the first tile is the demo */
+            fmt_u(num, s - PROJ_DEMOS + 1u);                    /* 1 to 10; the first two tiles are the demos */
             rk_rect(x, 3, 70, 52, pick_have[s] ? RGB(30, 30, 40) : RGB(22, 22, 28));
-            if (s) cv_text(x + 5, 5, &FONT_S, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
-            else cv_text(x + 5, 5, &FONT_S, "DEMO", RGB(235, 235, 240));
+            if (s >= PROJ_DEMOS) cv_text(x + 5, 5, &FONT_S, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
+            else cv_text(x + 5, 5, &FONT_S, s ? "DEMO 2" : "DEMO 1", RGB(235, 235, 240));
             if (pick_have[s] && pick_nch[s]) {                          /* a row a channel, a block a step: the rows share the height, 16 channels or 2 */
                 int32_t rh = 27 / (int32_t)pick_nch[s], y0;
                 if (rh > 6) rh = 6;
@@ -41,8 +41,8 @@ static void pick_draw(void)
                         rk_rect(x + 3 + (int32_t)c * 4, y0 + (int32_t)r * rh, 3, rh > 2 ? rh - 1 : 1, pick_rows[s][r] >> c & 1u ? on : mix16(R_BG, on, 46));
                 }
             }
-            if (s == proj_cur) rk_rect(x + 60, 9, 6, 6, RGB(80, 220, 120));
-            if (s == 0u) {                                              /* the demo: a padlock */
+            if (s == proj_cur) rk_rect(s < PROJ_DEMOS ? x + 46 : x + 60, 9, 6, 6, RGB(80, 220, 120));
+            if (s < PROJ_DEMOS) {                                       /* a demo: a padlock */
                 uint16_t lk = RGB(140, 140, 155);
                 rk_rect(x + 56, 15, 8, 6, lk); rk_rect(x + 57, 11, 1, 4, lk); rk_rect(x + 62, 11, 1, 4, lk); rk_rect(x + 57, 10, 6, 1, lk);
             }

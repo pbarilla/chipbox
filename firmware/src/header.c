@@ -142,11 +142,15 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x, y + 15, 38, 7, RGB(114, 112, 111));
         cv_rect(x + 3, y + 17, 1, 1, RGB(154, 42, 38)); cv_rect(x + 5, y + 17, 6, 3, RGB(111, 100, 89)); cv_rect(x + 12, y + 17, 6, 3, RGB(111, 100, 89));
         cv_rect(x + 29, y + 5, 8, 17, RGB(58, 58, 57)); cv_rect(x + 31, y + 17, 4, 3, RGB(90, 88, 86));
-    } else if (chip == CHIP_PCE) {              /* the PC Engine: a flat white box, the card slot on top, an orange logo and a slider on the front */
-        cv_rect(x + 1, y, 36, 2, RGB(238, 236, 230)); cv_rect(x, y + 2, 38, 16, RGB(232, 230, 222)); cv_rect(x + 1, y + 18, 36, 2, RGB(188, 186, 178));
-        cv_rect(x + 7, y + 4, 24, 3, RGB(36, 36, 46)); cv_rect(x + 8, y + 5, 22, 1, RGB(90, 90, 104));
-        cv_rect(x + 5, y + 10, 14, 3, RGB(236, 124, 32)); cv_rect(x + 5, y + 14, 8, 1, RGB(124, 124, 136));
-        cv_rect(x + 25, y + 10, 9, 3, RGB(132, 132, 144)); cv_rect(x + 28, y + 11, 3, 1, RGB(236, 124, 32));
+    } else if (chip == CHIP_PCE) {              /* the PC Engine: a flat white box, ribs either side of a raised card slot, an orange logo, a green slider and a round port on the front */
+        cv_rect(x + 1, y, 36, 1, RGB(244, 243, 240)); cv_rect(x, y + 1, 38, 11, RGB(236, 235, 230));
+        { int32_t r; for (r = 0; r < 4; r++) { cv_rect(x + 3, y + 3 + r * 2, 7, 1, RGB(190, 189, 184)); cv_rect(x + 28, y + 3 + r * 2, 7, 1, RGB(190, 189, 184)); } }
+        cv_rect(x + 11, y + 1, 16, 10, RGB(246, 245, 242)); cv_rect(x + 11, y + 10, 16, 1, RGB(206, 205, 200));
+        cv_rect(x + 14, y + 2, 10, 2, RGB(232, 96, 72));
+        cv_rect(x + 13, y + 6, 12, 2, RGB(34, 40, 36)); cv_rect(x + 15, y + 7, 8, 1, RGB(70, 90, 70));
+        cv_rect(x, y + 12, 38, 8, RGB(222, 221, 215)); cv_rect(x + 1, y + 20, 36, 1, RGB(170, 169, 162));
+        cv_rect(x + 2, y + 13, 5, 6, RGB(44, 160, 100)); cv_rect(x + 4, y + 13, 1, 6, RGB(30, 120, 76));
+        cv_rect(x + 21, y + 13, 4, 1, RGB(26, 26, 30)); cv_rect(x + 20, y + 14, 6, 3, RGB(26, 26, 30)); cv_rect(x + 21, y + 17, 4, 1, RGB(26, 26, 30)); cv_rect(x + 22, y + 15, 2, 1, RGB(90, 90, 98));
     } else if (chip == CHIP_TIA) {              /* Atari 2600: black top with the four switches, a woodgrain front */
         cv_rect(x + 1, y, 36, 1, RGB(70, 70, 74)); cv_rect(x, y + 1, 38, 8, RGB(30, 30, 34));
         cv_rect(x + 3, y + 3, 3, 3, RGB(170, 170, 176)); cv_rect(x + 8, y + 3, 3, 3, RGB(170, 170, 176)); cv_rect(x + 27, y + 3, 3, 3, RGB(170, 170, 176)); cv_rect(x + 32, y + 3, 3, 3, RGB(170, 170, 176));

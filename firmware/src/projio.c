@@ -65,7 +65,7 @@ static void proj_io(uint32_t cmd, const uint8_t *b, uint32_t n)
         uint32_t slot = b[0], total = (uint32_t)b[1] | (uint32_t)b[2] << 8, off = (uint32_t)b[3] | (uint32_t)b[4] << 8, dl = n - 5u;
         uint32_t st = 0;
         if (slot >= PROJ_SLOTS) st = 6u;
-        else if (slot == 0u) st = 3u;
+        else if (slot < PROJ_DEMOS) st = 3u;
         else if (off == 0u) {
             if (!total || total > PROJ_BANK - PROJ_HDR) st = 2u;
             else { px_len = total; px_got = 0; px_slot = slot; }

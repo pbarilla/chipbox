@@ -200,6 +200,44 @@ def mountain_king():                            # In the Hall of the Mountain Ki
     return p
 
 
+def stress():                                   # every console, 64 pages: sixteen sections of four, each led by another console
+    leads = ["NES_PU", "GB_WAV", "SMS", "PCE", "TIA", "VRC6_SAW", "AY", "MD", "VB", "POKEY", "SPK", "OPL", "WSG", "N163", "S5B"]
+    basses = ["PCE", "VRC6_SAW", "N163", "GB_WAV", "MD", "OPL", "S5B", "NES_PU"]
+    arps = ["AY", "POKEY", "SMS", "WSG", "VB", "TIA", "SPK", "PCE", "NES_PU", "S5B"]
+    progs = [["Am", "F", "C", "G"], ["Dm", "Bb", "F", "C"], ["Em", "C", "G", "D"], ["Cm", "Ab", "Eb", "Bb"]]
+    styles = ["oct", "walk", "sync", "quarter"]
+    dstyle = ["sparse", "rock", "four", "break"]
+    p = Project(140, 64)
+    ch = {k: p.add(k, **extra) for k, extra in [(k, {}) for k in leads]}
+    ch["PCE"] = ch["PCE"]
+    dr = p.add("DRUMS_NES")
+    for sec in range(16):
+        prog = progs[sec // 4]
+        for i in range(4):
+            pg = sec * 4 + i
+            c = CH[prog[i]]
+            if sec == 15:                           # everyone, as chords
+                for j, k in enumerate(["PCE", "N163", "WSG", "OPL", "S5B", "VRC6_SAW", "MD", "VB", "GB_WAV", "AY"]):
+                    p.notes(pg, ch[k], [tone(c, j % 3) + 12 * (1 + j // 3)] + [0] * 15, 95)
+                p.notes(pg, ch["NES_PU"], lead(c, i, 12), 8)
+                p.notes(pg, ch["SMS"], lead(c, i + 2, 0), 8)
+                drums(p, pg, dr, "four")
+                continue
+            L = leads[sec]
+            B = basses[sec % len(basses)]
+            if B == L: B = basses[(sec + 1) % len(basses)]
+            p.notes(pg, ch[L], lead(c, (sec + i) % 4, 12), 8)
+            p.notes(pg, ch[B], bass(c[0] - 12, styles[(sec + i // 2) % 4]), 7)
+            if sec % 2 == 1 and sec >= 3:
+                A = arps[sec % len(arps)]
+                if A in (L, B): A = "SPK" if "SPK" not in (L, B) else "TIA"
+                p.notes(pg, ch[A], [x if s % 2 == 0 else 0 for s, x in enumerate(arp(c, shift=12))], 4)
+            if sec >= 2 and sec != 7: drums(p, pg, dr, dstyle[(sec + i // 2) % 4])
+    p.song = list(range(64))
+    print("stress:", len(p.ev), "events,", len(p.bytes()), "bytes")
+    return p
+
+
 if __name__ == "__main__":
     (OUT / "samples").mkdir(exist_ok=True)
     new = samples()
@@ -207,5 +245,10 @@ if __name__ == "__main__":
     keep = [o for o in old if o["file"].split("/")[-1] in {"atari-8-bit.chipbox", "pc-speaker-ode.chipbox", "adlib-dungeon.chipbox", "namco-wsg-chase.chipbox", "namco-163-wall.chipbox", "sunsoft-5b-buzz.chipbox"}]
     keep = [{"name": o["name"], "file": o["file"]} for o in keep]
     singles = new[:9] + keep + new[9:]
+    sym = stress()
+    singles.append(mk("All consoles", sym, "all-consoles"))
+    d = sym.bytes()                             # the same project is the firmware's DEMO 2
+    rows = [", ".join(str(x) for x in d[i:i + 24]) for i in range(0, len(d), 24)]
+    (OUT.parent.parent / "firmware" / "gen" / "demo2.h").write_text("/* Made by tools/make_samples.py: the console symphony, DEMO 2 (a project, firmware/src/proj.c format). */\nstatic const uint8_t DEMO2[%d] = {\n    %s\n};\n" % (len(d), ",\n    ".join(rows)))
     (OUT / "samples.json").write_text(json.dumps(singles, indent=1) + "\n")
     print(len(singles), "samples")

@@ -17,13 +17,13 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
     char n[8];
     switch (kind) {
     case AN_OPEN: {                                 /* a floppy slides in over the slot and drops on it, the slot's number beside it */
-        int32_t tx = 30 + (int32_t)arg * 20 - 6, x = ms < 350u ? ease(ms, 350, 250, tx) : tx;
+        int32_t tx = 12 + (int32_t)arg * 16 - 6, x = ms < 350u ? ease(ms, 350, 250, tx) : tx;
         int32_t dip = ms >= 350u && ms < 450u ? (int32_t)(ms - 350u) / 25 : ms >= 450u && ms < 550u ? (int32_t)(550u - ms) / 25 : 0;
-        for (i = 0; i < 8; i++) cv_rect(30 + i * 20, 33, 14, 6, (uint32_t)i == arg && ms >= 350u ? sg_color((uint32_t)i) : RGB(58, 58, 72));
+        for (i = 0; i < 12; i++) cv_rect(12 + i * 16, 33, 11, 6, (uint32_t)i == arg && ms >= 350u ? sg_color((uint32_t)i) : RGB(58, 58, 72));
         ico_floppy(x, 3 + dip);
         if (ms >= 350u) {
-            sparks(30 + (int32_t)arg * 20 + 7, 33, ms - 350u, 400, 26, sg_color(arg));
-            if (arg) { fmt_u(n, arg); cv_text(206, 5, &FONT_L, n, R_WHITE); } else cv_text(190, 14, &FONT_S, "DEMO", R_WHITE);
+            sparks(12 + (int32_t)arg * 16 + 5, 33, ms - 350u, 400, 26, sg_color(arg));
+            if (arg >= PROJ_DEMOS) { fmt_u(n, arg - PROJ_DEMOS + 1u); cv_text(206, 5, &FONT_L, n, R_WHITE); } else cv_text(190, 14, &FONT_S, arg ? "DEMO 2" : "DEMO 1", R_WHITE);
         }
         break; }
     case AN_OCT: {                                  /* five octaves of keys, the one you are on lights, sliding from the one you left */
@@ -40,7 +40,7 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
         cv_text(198, 5, &FONT_L, n, R_WHITE);
         break; }
     case AN_CHAN: {                                 /* the channel's console pops up with its name, a dot for each channel with yours lit */
-        uint32_t idx = arg & 255u, chip = (arg >> 8) & 7u;
+        uint32_t idx = arg & 255u, chip = (arg >> 8) & 15u;
         const theme_t *ct = &THEME[chip];
         int32_t sp = chan_n ? 180 / (int32_t)chan_n : 14, x0;
         if (sp > 14) sp = 14;

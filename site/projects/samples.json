@@ -78,5 +78,9 @@
  {
   "name": "Namco 163, Namco WSG",
   "file": "samples/namco-163-namco-wsg.chipbox"
+ },
+ {
+  "name": "All consoles",
+  "file": "samples/all-consoles.chipbox"
  }
 ]

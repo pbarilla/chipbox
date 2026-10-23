@@ -68,7 +68,8 @@ static void menu_scroll(int32_t d)
 {
     if (menu_pick) {                            /* the bar moves over the lines that are not headings */
         uint32_t v = menu_sel;
-        do { v = (v + (d < 0 ? menu_n - 1u : 1u)) % menu_n; } while (menu_lines[v].head);
+        while (d < 0 ? v > 0u : v + 1u < menu_n) { v = d < 0 ? v - 1u : v + 1u; if (!menu_lines[v].head) break; }          /* no wrap */
+        if (menu_lines[v].head) v = menu_sel;
         menu_sel = v; menu_dirty = 1;
         if (v < menu_top + 1u) menu_top = v > 1u ? v : 0u;                                  /* the list follows the bar (the heading shows at the top) */
         else if (v >= menu_top + MENU_ROWS) menu_top = v + 1u - MENU_ROWS;
