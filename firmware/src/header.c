@@ -60,7 +60,7 @@ static void ico_chip(int32_t x, int32_t y, uint16_t body, uint16_t pin, uint16_t
 /* the chips' logos, made up: the chip's own number in the console's colours. Returns the width; rack_label is the little 3 x 5 font from rack.c */
 static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
 {
-    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612"};
+    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612", "VSU"};
     const char *s = NUM[chip < CHIPS ? chip : 0];
     int32_t n = 0, w;
     while (s[n]) n++;
@@ -90,6 +90,10 @@ static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x, y, w, 14, R_WHITE); cv_rect(x + 1, y + 1, w - 2, 12, RGB(10, 10, 12));
         cv_rect(x + 1, y + 9, w - 2, 1, RGB(224, 40, 40)); cv_rect(x + 1, y + 10, w - 2, 1, RGB(236, 210, 40)); cv_rect(x + 1, y + 11, w - 2, 1, RGB(40, 200, 60)); cv_rect(x + 1, y + 12, w - 2, 1, RGB(40, 200, 220));
         rack_label(x + 5, y + 1, s, R_WHITE);
+    } else if (chip == CHIP_VB) {               /* red on black, two scan lines through it */
+        cv_rect(x, y, w, 14, RGB(255, 36, 30)); cv_rect(x + 1, y + 1, w - 2, 12, RGB(10, 0, 0));
+        cv_rect(x + 1, y + 6, w - 2, 1, RGB(90, 10, 8));
+        rack_label(x + 5, y + 2, s, RGB(255, 36, 30));
     } else {                                    /* Sega black, a blue edge */
         cv_rect(x, y, w, 14, RGB(10, 10, 14)); cv_rect(x, y, w, 1, R_WHITE); cv_rect(x, y + 13, w, 1, R_WHITE);
         cv_rect(x, y + 1, 3, 12, RGB(0, 98, 210));
@@ -140,6 +144,11 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x + 1, y, 36, 1, RGB(50, 50, 56)); cv_rect(x, y + 1, 38, 19, RGB(18, 18, 22));
         { int32_t r, k; for (r = 0; r < 4; r++) for (k = 0; k < 10; k++) cv_rect(x + 3 + k * 3 + (r & 1), y + 3 + r * 4, 2, 2, RGB(150, 150, 158)); }
         cv_rect(x + 29, y + 15, 2, 4, RGB(224, 40, 40)); cv_rect(x + 31, y + 14, 2, 5, RGB(236, 210, 40)); cv_rect(x + 33, y + 13, 2, 6, RGB(40, 200, 60)); cv_rect(x + 35, y + 12, 2, 7, RGB(40, 200, 220));
+    } else if (chip == CHIP_VB) {               /* the Virtual Boy: a black visor with a red top and two lenses, on a stand with two legs */
+        cv_rect(x + 3, y, 32, 1, RGB(210, 30, 24)); cv_rect(x + 1, y + 1, 36, 2, RGB(255, 36, 30)); cv_rect(x, y + 3, 38, 11, RGB(18, 14, 16));
+        cv_rect(x + 7, y + 6, 8, 6, RGB(60, 8, 6)); cv_rect(x + 23, y + 6, 8, 6, RGB(60, 8, 6)); cv_rect(x + 9, y + 7, 4, 4, RGB(255, 36, 30)); cv_rect(x + 25, y + 7, 4, 4, RGB(255, 36, 30));
+        cv_rect(x + 16, y + 6, 6, 5, RGB(40, 36, 38)); cv_rect(x + 17, y + 14, 4, 3, RGB(50, 46, 48));
+        cv_rect(x + 8, y + 17, 3, 5, RGB(30, 28, 30)); cv_rect(x + 27, y + 17, 3, 5, RGB(30, 28, 30)); cv_rect(x + 11, y + 17, 16, 2, RGB(30, 28, 30));
     } else if (chip == CHIP_MD) {               /* Mega Drive: black, a round lid with a silver ring, the power slider and 16-BIT */
         cv_rect(x + 2, y, 34, 1, RGB(54, 54, 62)); cv_rect(x, y + 1, 38, 19, RGB(14, 14, 18));
         cv_rect(x + 4, y + 3, 16, 12, RGB(30, 30, 36)); cv_rect(x + 5, y + 2, 14, 14, RGB(30, 30, 36)); cv_rect(x + 6, y + 4, 12, 10, RGB(8, 8, 10));
@@ -172,6 +181,7 @@ static void hdr_rule(uint32_t chip, const theme_t *t)
     else if (chip == CHIP_TIA) { cv_rect(0, 38, 240, 1, RGB(236, 130, 40)); cv_rect(0, 39, 240, 1, RGB(214, 64, 44)); cv_rect(0, 40, 240, 1, RGB(150, 70, 170)); cv_rect(0, 41, 240, 1, RGB(0, 98, 210)); }
     else if (chip == CHIP_AY) { cv_rect(0, 38, 240, 1, RGB(224, 40, 40)); cv_rect(0, 39, 240, 1, RGB(236, 210, 40)); cv_rect(0, 40, 240, 1, RGB(40, 200, 60)); cv_rect(0, 41, 240, 1, RGB(40, 200, 220)); }
     else if (chip == CHIP_MD) { cv_rect(0, 38, 240, 3, t->acc); cv_rect(0, 41, 240, 1, t->fg); }
+    else if (chip == CHIP_VB) { cv_rect(0, 38, 240, 1, t->acc); cv_rect(0, 40, 240, 1, t->dim); cv_rect(0, 41, 240, 1, t->acc); }                  /* thin red lines */
     else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
 }
 /* a console, lifted dy (the animations drop it in from above) */

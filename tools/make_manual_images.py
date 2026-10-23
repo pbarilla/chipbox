@@ -117,6 +117,12 @@ JOBS = [
     ("t-chip", ["HOME"], "m_chip_sms", (), True), ("t-vol", ["KNOB2"], "m_chip_sms_vol", (), True),
     ("c-knobs", ["KNOB1", "KNOB2", "KNOB3", "KNOB4"], "m_chip_sms", (), True), ("c-algo", ["ALGORITHM"], "m_chip_env", (), True),
     ("z-home", ["HOME"], "m_song_before", (), True), ("z-slot8", ["OCT+", "PRESETS"], "m_song_slot8", (), True), ("z-play", ["PLAY"], "m_song_play", (), True),
+    ("a-picker", ["HOME"], "am_picker", (), True), ("a-slot", ["SELECT"], "am_slot", (), True), ("a-tempo", ["KNOB1"], "am_tempo", (), True),
+    ("a-cons", ["OCT+"], "am_cons", (), True), ("a-sub", ["OCT+"], "am_sub", (), True), ("a-lanes0", ["SEQ"], "am_lanes0", (), True),
+    ("a-ch0", [], "am_ch0", (17,), False), ("a-hats", [], "am_hats", (0, 4, 7, 11, 14, 18, 21, 24), False),
+    ("a-sd", [], "am_sd", (3, 7, 12, 14, 21, 26), False), ("a-bd", [], "am_bd", (1, 0, 4, 18, 19), False),
+    ("a-play", ["PLAY"], "am_play", (), True), ("a-song", ["HOME"], "am_song", (), True), ("a-song2", ["OCT+", "PRESETS"], "am_song2", (), True),
+    ("a-copy", ["EDIT"], "am_copy", (), True), ("a-bar3", [], "am_bar3", (), False), ("a-bar4", [], "am_bar4", (), False), ("a-final", ["PLAY"], "am_final", (), True),
     ("x-fx", ["FX"], "x_fx", (), True), ("x-tape", [], "x_tape", (), False), ("x-glo", ["GLO"], "m_help", (), True),
 ]
 

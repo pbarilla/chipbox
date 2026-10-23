@@ -39,6 +39,9 @@ static void skin_box(uint32_t chip, const theme_t *t, int32_t x, int32_t y, int3
         ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
         cv_rect(x, y, 4, 4, t->bg); cv_rect(x + w - 4, y, 4, 4, t->bg); cv_rect(x, y + h - 4, 4, 4, t->bg); cv_rect(x + w - 4, y + h - 4, 4, 4, t->bg);
         cv_rect(x + 4, y, 1, 1, t->acc); cv_rect(x + 3, y + 1, 1, 1, t->acc); cv_rect(x + 2, y + 2, 1, 1, t->acc); cv_rect(x + 1, y + 3, 1, 1, t->acc); cv_rect(x, y + 4, 1, 1, t->acc);
+    } else if (chip == CHIP_VB) {                               /* a thin red frame, notched at the corners, a dim line inside */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x, y, 2, 2, t->bg); cv_rect(x + w - 2, y, 2, 2, t->bg); cv_rect(x, y + h - 2, 2, 2, t->bg); cv_rect(x + w - 2, y + h - 2, 2, 2, t->bg);
     } else if (chip == CHIP_TIA) {                              /* a tan frame with the three Atari stripes along the top */
         ring(x, y, w, h, 2, t->fg);
         cv_rect(x + 3, y + 3, w - 6, 1, RGB(236, 130, 40)); cv_rect(x + 3, y + 4, w - 6, 1, RGB(214, 64, 44)); cv_rect(x + 3, y + 5, w - 6, 1, RGB(150, 70, 170));
@@ -75,6 +78,41 @@ static void chip_tabs(const theme_t *t, uint32_t c)
     cv_blit(0, CV_TABS_Y - 1);
 }
 
+/* the FM's operators for one algorithm: A, B, C as boxes, wires between them, a loop over A for feedback; a box that is not in use is dim */
+static void fm_diagram(const theme_t *t, uint32_t alg)
+{
+    static const int8_t POS[4][3][2] = {                        /* per algorithm: column and row of A, B, C; -1 = not in use */
+        {{1, 0}, {2, 2}, {2, 0}}, {{0, 1}, {1, 1}, {2, 1}}, {{1, 0}, {2, 2}, {2, 0}}, {{2, 0}, {2, 1}, {2, 2}}};
+    static const int8_t WIRE[4][2][2] = {{{0, 2}, {-1, -1}}, {{0, 1}, {1, 2}}, {{0, 2}, {-1, -1}}, {{-1, -1}, {-1, -1}}};      /* from -> to, modulation */
+    static const uint8_t USED[4] = {5, 7, 7, 7};                /* bit per operator: A = 1, B = 2, C = 4 */
+    static const uint8_t CARRY[4] = {4, 4, 6, 7};               /* which ones reach the output */
+    static const char LET[3] = {'A', 'B', 'C'};
+    int32_t bx[3], by[3], i, lo = 99, hi = 0, mid;
+    for (i = 0; i < 3; i++) { bx[i] = 26 + POS[alg][i][0] * 66; by[i] = 8 + POS[alg][i][1] * 20; }
+    for (i = 0; i < 2; i++) {
+        int32_t f = WIRE[alg][i][0], g = WIRE[alg][i][1];
+        if (f < 0) continue;
+        cv_rect(bx[f] + 30, by[f] + 7, bx[g] - bx[f] - 34, 2, t->fg);
+        cv_rect(bx[g] - 4, by[g] + 5, 1, 6, t->fg); cv_rect(bx[g] - 3, by[g] + 6, 1, 4, t->fg); cv_rect(bx[g] - 2, by[g] + 7, 1, 2, t->fg);
+    }
+    for (i = 0; i < 3; i++) {
+        char l[2];
+        l[0] = LET[i]; l[1] = 0;
+        cv_rect(bx[i], by[i], 30, 16, USED[alg] >> i & 1u ? t->acc : t->dim);
+        cv_text(bx[i] + 12, by[i] + 2, &FONT_S, l, t->bg);
+        if (CARRY[alg] >> i & 1u) {
+            cv_rect(bx[i] + 30, by[i] + 7, 174 - bx[i], 2, t->fg);
+            if (by[i] < lo) lo = by[i];
+            if (by[i] > hi) hi = by[i];
+        }
+    }
+    mid = (lo + hi) / 2 + 8;
+    cv_rect(202, lo + 7, 2, hi - lo + 2, t->fg);
+    cv_rect(204, mid - 1, 4, 2, t->fg);
+    cv_text(210, mid - 6, &FONT_S, "OUT", t->fg);
+    cv_rect(bx[0] + 5, by[0] - 5, 2, 5, t->fg); cv_rect(bx[0] + 5, by[0] - 5, 20, 2, t->fg); cv_rect(bx[0] + 23, by[0] - 5, 2, 5, t->fg);        /* feedback */
+}
+
 /* the envelope as it plays: rise, fall to the held level, hold, fade; the time axis is squeezed to fit */
 static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np, uint32_t fm, uint32_t drum)
 {
@@ -94,6 +132,11 @@ static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
     }
     { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
+    if (page == 0u && fm) {                                     /* the FM: the operators and how they connect */
+        fm_diagram(t, in->duty);
+        cv_blit(0, CV_ENV_Y);
+        return;
+    }
     if (page == 3u && fm) {                                     /* the FM: how hard the modulator hits, and how fast it dies away over two seconds */
         for (i = 0; i < 72; i++) {
             int32_t h = 2 + (int32_t)in->wf * 52 / 15 * 16 / (16 + i * 40 / 72 * (int32_t)in->wt);
@@ -141,6 +184,9 @@ static void card_bar(const theme_t *t, uint32_t chip, int32_t x, int32_t v, int3
     } else if (chip == CHIP_PCE) {                              /* six slim pills */
         int32_t lit = (v * 6 + max - 1) / max;
         for (i = 0; i < 6; i++) cv_rect(x + 8 + i * 7, 34, 5, 14, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_VB) {                               /* ten thin red lines, like its LEDs */
+        int32_t lit = (v * 10 + max - 1) / max;
+        for (i = 0; i < 10; i++) cv_rect(x + 8 + i * 4, 34, 2, 14, i < lit ? t->acc : t->dim);
     } else if (chip == CHIP_VRC6) {                             /* five gems */
         int32_t lit = (v * 5 + max - 1) / max;
         for (i = 0; i < 5; i++) { int32_t gx = x + 8 + i * 8; uint16_t c = i < lit ? t->acc : t->dim; cv_rect(gx + 2, 34, 3, 14, c); cv_rect(gx, 37, 7, 8, c); }

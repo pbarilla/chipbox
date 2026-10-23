@@ -201,6 +201,11 @@
    "id": "ENV",
    "name": "ENV",
    "STEP": "Drums: hold while placing a hit for an accent"
+  },
+  {
+   "id": "SEL",
+   "name": "SEL",
+   "RACK": "Hold: copy the channel (patch only, or patch and notes). In the project list: copy the project"
   }
  ],
  "pads": [
@@ -226,7 +231,7 @@
   "EDIT while recording wipes the notes the line passes",
   "TAPE pad: the song pauses, SELECT is the tape dial",
   "HOLD pad: tap pads to keep them on, tap HOLD to clear",
-  "Project 1 is the demo: edit it all you like, it never saves. In the project list, hold SEL on a project to copy it",
-  "Drums: add them under any console. SEQ opens the 11 lanes: a black key picks the drum, the white keys place it on the 16 steps, the same hit again takes it away, ENV held makes it an accent"
+  "Drums: add them under any console. SEQ opens the 11 lanes: a black key picks the drum, the white keys place it on the 16 steps, the same hit again takes it away, ENV held makes it an accent",
+  "Hold SEL on a channel to copy it, or on a project in the project list"
  ]
 }

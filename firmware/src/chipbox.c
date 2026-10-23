@@ -41,10 +41,12 @@ static const theme_t THEME[CHIPS] = {
      RGB(38, 26, 18), RGB(26, 17, 11), RGB(244, 226, 196), RGB(214, 158, 88), RGB(128, 96, 66), RGB(244, 226, 196), RGB(214, 158, 88)},
     {"KONAMI", {"PU1", "PU2", "SAW"},                                             /* the Famicom's deep red and gold, on a dark plum */
      RGB(34, 18, 34), RGB(22, 11, 24), RGB(240, 232, 214), RGB(240, 200, 40), RGB(130, 100, 120), RGB(240, 232, 214), RGB(240, 200, 40)},
-    {"AY", {"AY1", "AY2", "AY3"},                                                 /* a Spectrum: black, a teal accent, the rainbow in the rule */
+    {"AY-3-8910", {"AY1", "AY2", "AY3"},                                                 /* a Spectrum: black, a teal accent, the rainbow in the rule */
      RGB(12, 12, 14), RGB(4, 4, 6), RGB(236, 236, 236), RGB(40, 210, 190), RGB(90, 100, 100), RGB(236, 236, 236), RGB(40, 210, 190)},
     {"MEGA DRIVE", {"FM1", "FM2", "FM3"},                                         /* black, Sega blue, a violet for the notes */
      RGB(10, 10, 16), RGB(3, 3, 8), RGB(240, 240, 246), RGB(150, 112, 250), RGB(80, 74, 120), RGB(240, 240, 246), RGB(150, 112, 250)},
+    {"VIRTUAL BOY", {"VB1", "VB2", "VB3"},                                        /* red on black, the only colour its screens had */
+     RGB(6, 0, 0), RGB(0, 0, 0), RGB(255, 70, 60), RGB(255, 36, 30), RGB(120, 24, 22), RGB(255, 70, 60), RGB(255, 36, 30)},
 };
 
 static void text_on(uint32_t x, uint32_t y, uint32_t w, const felucca_font_t *f, const char *s, uint16_t c, uint16_t bg, int align)
@@ -73,7 +75,7 @@ static int quiet(void)
 }
 
 /* ---- parameters under the knobs */
-static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE; }
+static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV; }
 static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD; }                              /* page 4 is its operators */
 static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI; }                       /* the NES triangle has no level control */
 static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU; }
@@ -82,7 +84,7 @@ static uint32_t has_k1(uint32_t c)                                              
 {
     return has_wave(c) || has_duty(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_MD;
 }
-static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD; }
+static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return (ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD || ch == CHIP_VB) && !IS_DRUM(chan[c].kind); }
 static int8_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return (int8_t)(v < lo ? lo : v > hi ? hi : v); }
 static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* knob k of a page of cards, on channel c */
 {
@@ -112,7 +114,7 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
 }
 
 /* ---- the screen */
-static const uint8_t AN_COUNT[CHIPS] = {3, 2, 1, 1, 1, 1, 1, 1};
+static const uint8_t AN_COUNT[CHIPS] = {3, 2, 1, 1, 1, 1, 1, 1, 1};
 static void draw_header(const theme_t *t, uint32_t chip)
 {
     (void)chip;
@@ -146,7 +148,7 @@ static void channel_glyph(uint32_t c, int32_t x, int32_t y, int32_t w, int32_t h
 {
     static const uint8_t D8[4] = {1, 2, 4, 6};
     const inst_t *in = &chan[c].in;
-    if (chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE) {
+    if (chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV) {
         uint8_t wv[32];
         int32_t i;
         wave_make(in, wv);                                      /* the wave itself, as it is now */
@@ -205,7 +207,7 @@ static void app_main(void)
     uint32_t prev = 0, k, t_change = 0, dirty = 0, note_drawn = ~0u, chip_drawn = ~0u;
     uint32_t last_note = 255u, view = 1, rack_force = 1, chip_page = 0, sel = 0;     /* view: 0 the chip, 1 the rack, 2 the song; sel: the channel (in the rack, one past the last is "add") */
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, home_now, home_tap, edit_was = 0, edit_t0 = 0, edit_now, edit_used = 0, edit_rel, edit_clr = 255u;
-    uint32_t btn_was = 0, crit_next = 0, crit_n = 0, sys_req = 0, play_t0 = 0, play_wait = 0, sel_was = 0, sel_t0 = 0, sel_used = 0, sel_now;
+    uint32_t btn_was = 0, crit_next = 0, crit_n = 0, sys_req = 0, play_t0 = 0, play_wait = 0, sel_was = 0, sel_t0 = 0, sel_used = 0, sel_now, dup_was = 0, dup_t0 = 0, dup_used = 0;
     int32_t ed_hold_k = -1;                             /* STEP: the key held now and where its note went: KNOB 2 sets that note's length */
     uint32_t ed_hold_step = 0;
     uint8_t held[27] = {0}, held_ch[27] = {0}, ch_drawn = 99;
@@ -424,6 +426,15 @@ static void app_main(void)
                 if (x->note) { x->note = 0; rack_inval = 1; proj_edited(); }
             }
         }
+        {                                               /* hold SEL on a channel in the rack: a copy of it (its patch and its steps) at the end */
+            uint32_t sn = fm1_in.buttons >> BTN_SEL & 1u;
+            if (sn && !dup_was) { dup_t0 = fm1_ms; dup_used = 0; }
+            dup_was = sn;
+            if (sn && !dup_used && view == 1u && sel < chan_n && !menu_on && !pick_on && !fx_layer && !rack_rm && fm1_ms - dup_t0 >= 600u) {
+                dup_used = 1;
+                if (chan_n < MAXCH) { menu_open_pick(COPY_MENU, sizeof COPY_MENU / sizeof COPY_MENU[0]); menu_kind = MK_COPY; }       /* a window: patch only, patch and notes, cancel */
+            }
+        }
         if ((b & (1u << BTN_ARP)) && !menu_on && !pick_on) {          /* ARP: note tails on or off */
             rack_tails ^= 1u; set.an[2] = (uint8_t)((set.an[2] & 127u) | rack_tails << 7); dirty = 1; t_change = fm1_ms; rack_inval = 1;
         }
@@ -446,6 +457,16 @@ static void app_main(void)
                 if (menu_kind == MK_ADD) {                      /* a console: its channels */
                     add_console = menu_sel - 1u;
                     menu_open_pick(ADD_SUB[add_console].l, ADD_SUB[add_console].n); menu_kind = MK_ADD2;
+                } else if (menu_kind == MK_COPY) {
+                    int c;
+                    menu_on = 0; rack_force = 1; chip_drawn = ~0u;
+                    if (menu_sel < 3u && sel < chan_n && chan_n < MAXCH && (c = chan_add(chan[sel].kind)) >= 0) {       /* 1 patch only, 2 patch and notes */
+                        uint32_t p;
+                        chan[c].in = chan[sel].in;
+                        if (menu_sel == 2u) for (p = 0; p < page_n; p++) memcpy(pat[p][c], pat[p][sel], sizeof pat[p][c]);
+                        sel = (uint32_t)c; proj_edited(); rack_inval = 1;
+                        anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8);
+                    }
                 } else if (menu_kind == MK_ADD2) {
                     int c = chan_add(ADD_SUB[add_console].kind[menu_sel - 1u]);
                     if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }

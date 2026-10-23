@@ -81,6 +81,7 @@ static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t
     else if (chip == CHIP_PCE) { rk_rect(x + 2, y, 6, 15, c); rk_rect(x, y + 2, 10, 11, c); }                /* corners cut */
     else if (chip == CHIP_VRC6) { rk_rect(x + 3, y, 4, 15, c); rk_rect(x + 1, y + 3, 8, 9, c); rk_rect(x, y + 5, 10, 5, c); }     /* a gem */
     else if (chip == CHIP_MD) { rk_rect(x, y, 8, 3, c); rk_rect(x, y + 3, 10, 9, c); rk_rect(x + 3, y + 12, 7, 3, c); }          /* slanted, like the 16-bit mark */
+    else if (chip == CHIP_VB) { rk_rect(x, y, 10, 15, c); rk_rect(x, y + 7, 10, 1, R_BG); }                   /* two halves */
     else if (chip == CHIP_TIA) { uint32_t r; rk_rect(x, y, 10, 15, c); for (r = 0; r < 3u; r++) rk_rect(x, y + 3 + (int32_t)r * 4, 10, 1, R_BG); }     /* scan lines */
     else if (chip == CHIP_AY) { rk_rect(x, y, 10, 15, c); rk_rect(x, y, 10, 2, lit ? R_WHITE : c); }         /* a bright top */
     else {

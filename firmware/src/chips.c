@@ -11,11 +11,11 @@
 
 #define OS 4u                                   /* oscillator steps per output frame */
 #define MAXCH 16u
-enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIPS };
-enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_DRUM0, KINDS = KD_DRUM0 + 8 };       /* the drum kits, one a console, in the order of the chips */
+enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB, CHIPS };
+enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_VB_WAV, KD_DRUM0, KINDS = KD_DRUM0 + 9 };       /* the drum kits, one a console, in the order of the chips */
 #define IS_DRUM(k) ((k) >= KD_DRUM0)
-static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD,
-                                         CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD};
+static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB,
+                                         CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB};
 
 /* ---- instruments: what a note sounds like, per channel */
 typedef struct {
@@ -41,10 +41,11 @@ static const inst_t INST_DEF[KINDS] = {
     I(0, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* VRC6 saw */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* AY: wave = the noise mix 0..15 */
     {1, 0, 6, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* Mega Drive FM: duty = algorithm 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay */
+    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Virtual Boy: a wave, a triangle to start with */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),     /* drums: a kit per console */
-    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
 };
-static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM"};
+static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "VB", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM"};
 
 /* the arp's chords: octave, major, minor, maj7, min7, sus4, power, dim */
 static const uint8_t ARP_N[8] = {2, 4, 4, 4, 4, 4, 4, 4};
@@ -115,7 +116,7 @@ static uint32_t interp(const uint16_t *T, uint32_t pq)  /* a table indexed by no
 enum { AN_CLEAN, AN_HW, AN_ALT, AN_MODES };
 static volatile uint32_t analog_mode[CHIPS] = {AN_HW, AN_HW};
 typedef struct { int32_t x1, y1; } hpf_t;
-static hpf_t hp_nes[2], hp_gb[2], hp_x[2];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
+static hpf_t hp_nes[2], hp_gb[2], hp_x[2], hp_vb[2];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
 static int32_t lp_nes;
 static int32_t hpf(hpf_t *f, int32_t x, int32_t b)
 {
@@ -131,7 +132,7 @@ static int32_t lpf(int32_t *y, int32_t x, int32_t a)
 static void post(uint32_t chip, int32_t *out, uint32_t n)
 {
     uint32_t i, m = analog_mode[chip];
-    if (chip >= CHIP_SMS && chip != CHIP_VRC6 && chip != CHIP_AY) return;
+    if (chip >= CHIP_SMS && chip != CHIP_VRC6 && chip != CHIP_AY && chip != CHIP_VB) return;
     for (i = 0; i < n; i++) {
         int32_t l = out[2u * i], r = out[2u * i + 1u];
         if (chip == CHIP_NES) {
@@ -139,6 +140,8 @@ static void post(uint32_t chip, int32_t *out, uint32_t n)
             else if (m == AN_ALT) l = hpf(&hp_nes[0], l, B_FAM_HP37);
             else l = hpf(&hp_nes[0], l, B_DC_HP14);
             r = l;
+        } else if (chip == CHIP_VB) {
+            l = hpf(&hp_vb[0], l, B_DC_HP14); r = hpf(&hp_vb[1], r, B_DC_HP14);
         } else if (chip != CHIP_GB) {
             l = hpf(&hp_x[chip == CHIP_AY], l, B_DC_HP14); r = l;
         } else {
@@ -155,9 +158,9 @@ static const uint8_t GB_DUTY[4] = {0x01, 0x81, 0x87, 0x7E};
 /* the Game Boy wave: 32 steps of 4 bits made from the shape (a blend of pulse, saw, triangle, sine), twisted, folded and crushed */
 static uint8_t wtab[MAXCH][32];
 static uint32_t wkey[MAXCH];
-static void wave_make(const inst_t *in, uint8_t *out)
+static void wave_make_n(const inst_t *in, uint8_t *out, int32_t top)       /* top 15: 4 bit; 63: the Virtual Boy's 6 bit */
 {
-    int32_t i, lv = 16 - (int32_t)(in->wc & 15u), sh = (int32_t)(in->wave & 15u), a = sh / 5, fr = (sh % 5) * 256 / 5;
+    int32_t i, lv = (top + 1) - (int32_t)(in->wc & 15u) * ((top + 1) / 16), sh = (int32_t)(in->wave & 15u), a = sh / 5, fr = (sh % 5) * 256 / 5;
     if (a > 2) { a = 2; fr = 256; }
     if (lv < 2) lv = 2;
     for (i = 0; i < 32; i++) {
@@ -171,9 +174,10 @@ static void wave_make(const inst_t *in, uint8_t *out)
         x = x * g >> 8;
         while (x > 127 || x < -127) x = x > 127 ? 254 - x : -254 - x;
         x = ((x + 127) * (lv - 1) + 127) / 254;             /* 0 .. lv - 1 */
-        out[i] = (uint8_t)(x * 15 / (lv - 1));
+        out[i] = (uint8_t)(x * top / (lv - 1));
     }
 }
+static void wave_make(const inst_t *in, uint8_t *out) { wave_make_n(in, out, 15); }
 static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
 {
     const inst_t *in = &vc[c].in;
@@ -196,6 +200,14 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         {   const inst_t *wi = &chan[c].in;
             uint32_t key = (1u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
             if (wkey[c] != key) { wave_make(wi, wtab[c]); wkey[c] = key; }
+            osc[c].wav = wtab[c];
+        }
+        break;
+    case KD_VB_WAV:                                     /* the VSU: 32 samples of 6 bits, stereo volume; the wave is read live */
+        osc[c].inc = interp32(NOTE_INC, pq); osc[c].pan = in->pan; osc[c].vol = (uint8_t)vol;
+        {   const inst_t *wi = &chan[c].in;
+            uint32_t key = (2u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
+            if (wkey[c] != key) { wave_make_n(wi, wtab[c], 63); wkey[c] = key; }
             osc[c].wav = wtab[c];
         }
         break;
@@ -362,6 +374,23 @@ static void r_md(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         out[2u * i] += l + (l >> 1); out[2u * i + 1u] += r + (r >> 1);
     }
 }
+static void r_vb(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t v;
+                osc[c].ph += osc[c].inc;
+                v = ((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 63) * (int32_t)osc[c].vol;       /* 6 bit wave, 4 bit volume, centred */
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l + (l >> 1); out[2u * i + 1u] += r + (r >> 1);
+    }
+}
 static void r_sms(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
 {
     uint32_t i, s, k;
@@ -405,7 +434,7 @@ static const uint8_t DR_LANE_TYPE[11] = {0, 2, 4, 5, 7, 11, 3, 6, 8, 10, 12};   
 static uint32_t dv_dm(uint32_t ms) { uint32_t t = ms * 44u; return t < 2u ? 0u : 65536u - 65536u / t; }        /* decay multiplier per sample, Q16 */
 static void dv_hit(uint32_t c, uint32_t note, uint32_t vel)
 {
-    static const uint8_t WAVE[8] = {1, 2, 0, 3, 2, 3, 2, 0}, BITS[8] = {4, 4, 8, 5, 5, 5, 5, 12};        /* by console: NES GB SMS PCE TIA VRC6 AY MD */
+    static const uint8_t WAVE[9] = {1, 2, 0, 3, 2, 3, 2, 0, 0}, BITS[9] = {4, 4, 8, 5, 5, 5, 5, 12, 6};        /* by console: NES GB SMS PCE TIA VRC6 AY MD VB */
     static const uint16_t MET[6] = {205, 304, 370, 523, 540, 800};
     uint32_t type = note < 13u ? note : note % 12u, kit = chan[c].kind - KD_DRUM0, k, j = 0;
     const drum_t *d = &DRUM[type];
@@ -490,6 +519,7 @@ static void chip_clear(uint32_t chip)
     case CHIP_GB: memset(hp_gb, 0, sizeof hp_gb); break;
     case CHIP_VRC6: memset(&hp_x[0], 0, sizeof hp_x[0]); break;
     case CHIP_AY: memset(&hp_x[1], 0, sizeof hp_x[1]); break;
+    case CHIP_VB: memset(hp_vb, 0, sizeof hp_vb); break;
     default: break;
     }
 }
@@ -644,6 +674,7 @@ static void chip_render(int32_t *out, uint32_t n)
             case CHIP_VRC6: r_vrc6(mix, run, act, na); break;
             case CHIP_AY: r_ay(mix, run, act, na); break;
             case CHIP_MD: r_md(mix, run, act, na); break;
+            case CHIP_VB: r_vb(mix, run, act, na); break;
             default: r_sms(mix, run, act, na); break;
             }
             post(chip, mix, run);

@@ -11,22 +11,15 @@ Chiptune 'grovebox' thing with NES, GB, and SMS stuff
 A simple (to me) workflow for making music. Theres 3 main views you'll spend all your time in:
 
 RACK - this is the current page (16 steps). Use this to add channels
+
 CHIPs - this is where you can config each channel. You pick a channel from the hardware first (NES, GB, SMS), and then what channel (like PU1, WAV, etc). If you want appregio, make a channel and change the shape to an appregio shape.
+
 SONG - this is where you stitch together the pages into a song
 
-### Example workflow
+## Terminology
 
-- Start on the RACK view. Hit the plus to add a channel.
-- Hit HOME to go to the CHIPs, rotate presets knob to get to the channel you added.
-- Rotate Algorithm to flip between the configs. Go to the last config page and change the shape.
-- Hit HOME, and then add some notes. Use select to go to the exact note, and enter it with the keyboard. Hit play to hear how it sounds as you build it up.
-- Hit HOME until SONG is visible. Hit OCT+ to add another page. Select the page, and hit EDIT to open it in the rack, and config it again.
-
-Kind of repeat that a few times until you have something that sounds rad!
-
-wanna make a new song? hold HOME, select an empty project, and hit OCT+. Wanna go back to the other project? hold HOME, and select the previous, then hit OCT+.
-
-want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno whatever hahaha.
+- Channel: Can add up to 16, but they wont ever be able to play all at once. You define a Patch which sits on a channel.
+- Patch: This is how you specify how the sound...sounds. In lieu of _adding accents to notes in other channels_, you define exactly how the sound should sound and reuse. Eg. you might want to spice up a melody by adding an ARP effect. You'd duplicate the patch, change the shape to ARP, and configure whatever else you want. That'd sit in its own channel.
 
 ## Play online
 
@@ -39,10 +32,6 @@ want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno w
 ## Tutorial
 
 [ihavenocluewhatimdoing.com/chipbox/manual](https://ihavenocluewhatimdoing.com/chipbox/manual/)
-
-## Playing nice with others
-
-- Doesnt read other projects or samples. Sorry, couldnt figure out a good way to do this, or a good reason to.
 
 ## Tested?
 

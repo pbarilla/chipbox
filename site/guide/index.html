@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual · Chipbox</title>
+<style>
+  :root { --bg:#0e0e12; --panel:#181820; --ink:#e8e8ee; --dim:#8a8a9a; --red:#eb4034; --green:#a8cd1c; --blue:#46aaff; --line:#23232e; color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  main { max-width:820px; margin:0 auto; padding:40px 16px 80px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px 20px; margin:0 0 28px; }
+  a { color:var(--blue); }
+  h1 { font-size:44px; line-height:1.1; margin:0 0 8px; letter-spacing:.02em; }
+  h1 a { color:inherit; text-decoration:none; }
+  .tag { display:inline-block; padding:2px 10px; background:var(--red); color:#fff; font-size:13px; letter-spacing:.12em; vertical-align:middle; margin-left:10px; }
+  .intro { color:var(--dim); margin:0 0 40px; }
+  .step { padding:36px 0 22px; border-top:1px solid var(--line); }
+  .step h2 { margin:0 0 14px; display:flex; align-items:center; gap:14px; font-size:20px; font-weight:700; }
+  .step h2 b { display:inline-grid; place-items:center; min-width:34px; height:34px; padding:0 8px; background:var(--ink); color:var(--bg); font-size:18px; }
+  .item { padding:8px 0 12px; }
+  .t { display:flex; gap:12px; min-width:0; }
+  .t::before { content:"•"; color:var(--dim); flex:none; }
+  .t > div { min-width:0; }
+  .pic { margin:10px 0 4px 24px; max-width:620px; }
+  img { display:block; width:100%; height:auto; background:var(--panel); border-radius:12px; }
+  .block { margin:6px 0 6px 24px; }
+  .block p { margin:0 0 10px; }
+  pre { font:inherit; font-size:13px; background:var(--panel); padding:12px 14px; overflow-x:auto; margin:6px 0; line-height:1.75; border-radius:8px; }
+  code { font:inherit; background:#fff; color:var(--bg); padding:1px 6px; border-radius:4px; }
+  .slow { display:inline-block; padding:0 8px; border-radius:4px; background:var(--green); color:var(--bg); animation:sloow 2.8s cubic-bezier(.4,0,.2,1) infinite alternate; }
+  @keyframes sloow { from { letter-spacing:0; } to { letter-spacing:.28em; } }
+  @media (prefers-reduced-motion:reduce) { .slow { animation:none; } }
+  @media (max-width:760px) { h1 { font-size:34px; } .pic, .block { margin-left:0; } }
+  h3 { font-size:16px; margin:22px 0 6px 24px; color:var(--green); letter-spacing:.04em; }
+  .t table, .block table { border-collapse:collapse; width:100%; font-size:14px; margin:6px 0; }
+  table th, table td { text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table th { color:var(--dim); font-weight:400; white-space:nowrap; }
+  .toc { display:flex; flex-wrap:wrap; gap:6px 18px; margin:0 0 30px; }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="../">Home</a><a href="../manual/">Tutorials</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
+  <h1><a href="../">Chipbox</a><span class="tag">MANUAL</span></h1>
+  <div class="toc"><a href="#views">Views</a><a href="#channels">Channels</a><a href="#rack">Rack</a><a href="#notes">Writing notes</a><a href="#patch">Chip screen</a><a href="#consoles">Consoles</a><a href="#drums">Drums</a><a href="#song">Song</a><a href="#projects">Projects</a><a href="#undo">Undo</a><a href="#fx">Effects</a><a href="#limits">Numbers</a><a href="#rescue">Rescue</a></div>
+
+  <section class="step" id="views">
+    <h2><b>1</b>The main views</h2>
+    <div class="item"><div class="t"><div><code>HOME</code> flips between the main views.</div></div><div class="pic"><img src="../manual/img/pn-q-home.png" alt="q-home"></div></div>
+    <div class="item"><div class="t"><div><code>RACK</code> shows the channels of the current page.</div></div></div>
+    <div class="item"><div class="t"><div><code>CHIP</code> allows you to edit the patch of the chip being used in the selected channel.</div></div></div>
+    <div class="item"><div class="t"><div><code>SONG</code> is the order your pages play in.</div></div></div>
+    <div class="item"><div class="t"><div>The top bar shows the console of the current channel, the page you're on, the note under the cursor and the tempo.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>HOME</code> to open the project view.</div></div></div>
+    <div class="item"><div class="t"><div><code>GLO</code> shows the help for whatever view you're on.</div></div></div>
+    <div class="item"><div class="t"><div><code>GLO</code> + <code>HOME</code> opens the menu.</div></div></div>
+    <div class="item"><div class="t"><div><code>SEQ</code> opens step entry for a channel (or the drum lanes).</div></div></div>
+    <div class="item"><div class="t"><div><code>FX</code> is used for punch-in effects.</div></div></div>
+    <div class="item"><div class="t"><div><code>HOME</code> will always 'go back' when you're in a submenu.</div></div></div>
+  </section>
+
+  <section class="step" id="channels">
+    <h2><b>2</b>Channels</h2>
+    <div class="item"><div class="t"><div>A channel is one voice of one chip.</div></div></div>
+    <div class="item"><div class="t"><div>You can have up to 16 channels, in any mix.</div></div></div>
+    <div class="item"><div class="t"><div>Select the + row at the bottom of the rack with <code>PRESETS</code>, then press <code>OCT+</code> to add a channel.</div></div><div class="pic"><img src="../manual/img/pn-s2-octplus.png" alt="s2-octplus"></div></div>
+    <div class="item"><div class="t"><div>Choose a console, then a channel. <code>OCT-</code> goes back a step.</div></div></div>
+    <div class="item"><div class="t"><div><code>PRESETS</code> selects the channel in the <code>RACK</code>, <code>CHIP</code> and <code>STEP</code> views.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>EDIT</code> on a channel to remove it.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>SEL</code> on a channel to copy it. You can copy the patch only, or the patch and the notes.</div></div></div>
+    <div class="block"><table><tr><th>Console</th><th>Channels</th><th>Documentation</th></tr><tr><td>NES</td><td>Pulse, Triangle, Drums</td><td><a href="https://www.nesdev.org/wiki/APU">APU</a>, <a href="https://www.nesdev.org/wiki/APU_Mixer">APU mixer</a> (NESdev wiki)</td></tr><tr><td>Game Boy</td><td>Pulse, Wave, Drums</td><td><a href="https://gbdev.io/pandocs/Audio.html">Audio</a> (Pan Docs)</td></tr><tr><td>Master System</td><td>Tone, Drums</td><td><a href="https://www.smspower.org/Development/SN76489">SN76489</a> (SMS Power!)</td></tr><tr><td>PC Engine</td><td>Wave, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/pce.html">PC Engine</a> (Furnace manual)</td></tr><tr><td>Atari 2600</td><td>Sound, Drums</td><td><a href="https://www.atarihq.com/danb/files/TIA_HW_Notes.txt">TIA hardware notes</a> (Andrew Towers)</td></tr><tr><td>Konami VRC6</td><td>Pulse, Saw, Drums</td><td><a href="https://www.nesdev.org/wiki/VRC6_audio">VRC6 audio</a> (NESdev wiki)</td></tr><tr><td>AY-3-8910</td><td>Tone, Drums</td><td><a href="https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910">AY-3-8910</a> (Wikipedia)</td></tr><tr><td>Mega Drive</td><td>FM, Drums</td><td><a href="https://info.sonicretro.org/SCHG:Mega_Drive_Audio">Mega Drive audio</a> (Sonic Retro), <a href="https://en.wikipedia.org/wiki/Yamaha_YM2612">YM2612</a> (Wikipedia)</td></tr><tr><td>Virtual Boy</td><td>Wave, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/virtual-boy.html">Virtual Boy</a> (Furnace manual)</td></tr></table></div>
+    <div class="block"><p>The drum kits also borrow from the <a href="https://gbdev.gg8.se/wiki/articles/Gameboy_sound_hardware">Game Boy sound hardware</a> page (its noise modes) and the <a href="https://tildearrow.org/furnace/doc/latest/7-systems/opll.html">YM2413 notes</a> in the Furnace manual (the Master System kit's cymbals).</p></div>
+  </section>
+
+  <section class="step" id="rack">
+    <h2><b>3</b>The rack</h2>
+    <div class="item"><div class="t"><div>Each row is a channel.</div></div></div>
+    <div class="item"><div class="t"><div>A page is 16 steps, which is one bar.</div></div></div>
+    <div class="item"><div class="t"><div><code>KNOB 1</code> sets the tempo, from 40 to 240 bpm.</div></div><div class="pic"><img src="../manual/img/pn-s3-tempo.png" alt="s3-tempo"></div></div>
+    <div class="item"><div class="t"><div><code>ALGORITHM</code> flips through the pages.</div></div></div>
+    <div class="item"><div class="t"><div><code>PLAY</code> plays the song from the current page.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>PLAY</code> to loop just the current page.</div></div></div>
+    <div class="item"><div class="t"><div><code>SELECT</code> is the tape dial. Turn it right to play (half speed, normal speed or double speed) or left to play backwards. The middle position pauses.</div></div></div>
+    <div class="item"><div class="t"><div>While the tape is stopped, <code>SELECT</code> moves the cursor.</div></div></div>
+    <div class="item"><div class="t"><div>While the tape is stopped, a key writes its note on the cursor's step. Press the same key again to remove it.</div></div></div>
+    <div class="item"><div class="t"><div><code>OCT-</code> and <code>OCT+</code> move the keys down or up an octave, by up to two octaves.</div></div></div>
+    <div class="item"><div class="t"><div><code>ARP</code> shows or hides note tails, the line under a long note.</div></div></div>
+  </section>
+
+  <section class="step" id="notes">
+    <h2><b>4</b>Writing notes</h2>
+    <div class="block"><p>There are three ways to write notes. You can mix them.</p></div>
+    <h3>Step entry</h3>
+    <div class="item"><div class="t"><div><code>SEQ</code> opens the current page as 16 blocks.</div></div><div class="pic"><img src="../manual/img/pn-q-seq.png" alt="q-seq"></div></div>
+    <div class="item"><div class="t"><div>A key sets the block under the cursor and moves to the next one.</div></div><div class="pic"><img src="../manual/img/pn-q-notes.png" alt="q-notes"></div></div>
+    <div class="item"><div class="t"><div><code>SELECT</code> moves the cursor, so you can leave rests.</div></div></div>
+    <div class="item"><div class="t"><div><code>EDIT</code> clears the block.</div></div></div>
+    <div class="item"><div class="t"><div><code>KNOB 2</code> sets the length of a note, in steps. Turn it while you hold a key, or while the cursor is on a note.</div></div><div class="pic"><img src="../manual/img/pn-q-len.png" alt="q-len"></div></div>
+    <div class="item"><div class="t"><div><code>PLAY</code> loops the page while you work.</div></div></div>
+    <h3>Recording</h3>
+    <div class="item"><div class="t"><div><code>REC</code> loops the page and starts recording.</div></div><div class="pic"><img src="../manual/img/pn-r-rec.png" alt="r-rec"></div></div>
+    <div class="item"><div class="t"><div>A key lands on the step nearest the playhead.</div></div></div>
+    <div class="item"><div class="t"><div>Hold a key to set the length of the note.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>EDIT</code> to erase notes as the playhead passes them.</div></div></div>
+    <div class="item"><div class="t"><div>Turn <code>SELECT</code> left once to record at half speed.</div></div></div>
+    <div class="item"><div class="t"><div>Drums can't be recorded live. Use the drum lanes.</div></div></div>
+  </section>
+
+  <section class="step" id="patch">
+    <h2><b>5</b>The chip screen</h2>
+    <div class="item"><div class="t"><div><code>CHIP</code> shows the patch of the selected channel.</div></div><div class="pic"><img src="../manual/img/pn-t-chip.png" alt="t-chip"></div></div>
+    <div class="item"><div class="t"><div><code>KNOB 1</code> to <code>KNOB 4</code> change the four cards on screen.</div></div></div>
+    <div class="item"><div class="t"><div><code>ALGORITHM</code> flips between the pages of cards.</div></div><div class="pic"><img src="../manual/img/pn-c-algo.png" alt="c-algo"></div></div>
+    <h3>Page 1: the tone</h3>
+    <div class="block"><table><tr><th>Card</th><th>What it does</th></tr><tr><td><code>DUTY</code>, <code>WAVE</code>, <code>BUZZ</code>, <code>NOISE</code> or <code>ALGO</code></td><td>The first knob. It depends on the chip. See the consoles below.</td></tr><tr><td><code>VOL</code></td><td>Sets the level of the channel.</td></tr><tr><td><code>VIB</code></td><td>Sets the depth of the vibrato.</td></tr><tr><td><code>SWEEP</code></td><td>Slides the pitch up or down while a note is held, by up to 15 semitones a second.</td></tr><tr><td><code>PAN</code></td><td>Sets left, centre or right. Chips with stereo have <code>PAN</code> instead of <code>SWEEP</code>.</td></tr></table></div>
+    <h3>Page 2: the envelope</h3>
+    <div class="item"><div class="t"><div><code>ATK</code> is how long the sound takes to rise.</div></div></div>
+    <div class="item"><div class="t"><div><code>DEC</code> is how long it takes to fall to <code>SUS</code>.</div></div></div>
+    <div class="item"><div class="t"><div><code>SUS</code> is the level it holds while the key is down.</div></div></div>
+    <div class="item"><div class="t"><div><code>REL</code> is how long it takes to fade out after you let go.</div></div></div>
+    <h3>Page 3: the arp</h3>
+    <div class="item"><div class="t"><div><code>SHAPE</code> picks the chord.</div></div></div>
+    <div class="item"><div class="t"><div>The chords are octave, major, minor, major 7th, minor 7th, sus4, power and diminished.</div></div></div>
+    <div class="item"><div class="t"><div><code>RATE</code> sets the speed.</div></div></div>
+    <div class="item"><div class="t"><div><code>DIR</code> is up, down, or up and down.</div></div></div>
+    <h3>Page 4: waves and FM</h3>
+    <div class="item"><div class="t"><div>Channels with a wave have a fourth page: <code>SHAPE</code>, <code>FOLD</code>, <code>STEP</code> and <code>TWIST</code>.</div></div></div>
+    <div class="item"><div class="t"><div><code>SHAPE</code> morphs between pulse, saw, triangle and sine.</div></div></div>
+    <div class="item"><div class="t"><div><code>FOLD</code> folds the wave back on itself, which makes it brighter.</div></div></div>
+    <div class="item"><div class="t"><div><code>STEP</code> reduces the number of levels, which crushes the wave.</div></div></div>
+    <div class="item"><div class="t"><div><code>TWIST</code> bends the wave sideways.</div></div></div>
+    <div class="item"><div class="t"><div>The Mega Drive's fourth page is explained below.</div></div></div>
+  </section>
+
+  <section class="step" id="consoles">
+    <h2><b>6</b>The consoles</h2>
+    <div class="block"><table><tr><th>Console</th><th>Notes</th></tr><tr><td>NES</td><td>Pulse has four duties: 12.5, 25, 50 and 75 percent. Triangle has no volume knob. The output goes through the NES's own filters.</td></tr><tr><td>Game Boy</td><td>Pulse has four duties. Wave has four volume steps and stereo. The output goes through the Game Boy's high-pass filter.</td></tr><tr><td>Master System</td><td>Tone is a square wave with 16 volume levels.</td></tr><tr><td>PC Engine</td><td>Wave has 16 volume levels and stereo.</td></tr><tr><td>Atari 2600</td><td><code>BUZZ</code> picks one of ten sound types, from clean tones to buzzes to white noise.</td></tr><tr><td>Konami VRC6</td><td>Pulse has eight duties. Saw is a stepped saw wave.</td></tr><tr><td>AY-3-8910</td><td>Tone is a square wave with 16 volume levels. <code>NOISE</code> mixes in noise. At 15 it is only noise, which is useful for hats and snares. The pitch of the note sets the brightness of the noise.</td></tr><tr><td>Mega Drive</td><td>FM has three operators, <code>A</code>, <code>B</code> and <code>C</code>. <code>ALGO</code> sets how they connect. See below.</td></tr><tr><td>Virtual Boy</td><td>Wave has 32 steps of 6 bits, which is finer than the Game Boy. It has stereo.</td></tr></table></div>
+    <h3>Mega Drive FM</h3>
+    <div class="item"><div class="t"><div><code>ALGO</code> picks how three operators, <code>A</code>, <code>B</code> and <code>C</code>, connect.</div></div></div>
+    <div class="item"><div class="t"><div>A box is an operator. A wire from one box to another means the first modulates the second.</div></div></div>
+    <div class="item"><div class="t"><div>Only the boxes wired to <code>OUT</code> are heard.</div></div></div>
+    <div class="item"><div class="t"><div>The loop over <code>A</code> is its feedback, set by <code>FB</code>.</div></div></div>
+    <div class="item"><div class="t"><div><code>ALGO</code> 1: <code>A</code> modulates <code>C</code>. <code>B</code> is off.</div></div><div class="pic"><img src="../manual/img/pn-md-algo1.png" alt="md-algo1"></div></div>
+    <div class="item"><div class="t"><div><code>ALGO</code> 2: <code>A</code> modulates <code>B</code>, and <code>B</code> modulates <code>C</code>.</div></div><div class="pic"><img src="../manual/img/pn-md-algo2.png" alt="md-algo2"></div></div>
+    <div class="item"><div class="t"><div><code>ALGO</code> 3: <code>A</code> modulates <code>C</code>. <code>B</code> plays on its own, an octave above.</div></div><div class="pic"><img src="../manual/img/pn-md-algo3.png" alt="md-algo3"></div></div>
+    <div class="item"><div class="t"><div><code>ALGO</code> 4: <code>A</code>, <code>B</code> and <code>C</code> all play on their own. <code>B</code> is an octave above.</div></div><div class="pic"><img src="../manual/img/pn-md-algo4.png" alt="md-algo4"></div></div>
+    <div class="item"><div class="t"><div><code>RATIO</code> sets how high <code>A</code> sits above the note, from half to 14 times.</div></div></div>
+    <div class="item"><div class="t"><div><code>INDEX</code> sets how hard <code>A</code> pushes the sound.</div></div></div>
+    <div class="item"><div class="t"><div><code>FB</code> feeds <code>A</code> back into itself. High values sound like noise.</div></div></div>
+    <div class="item"><div class="t"><div><code>DECAY</code> sets how fast <code>INDEX</code> dies away. Higher values sound plucked.</div></div></div>
+  </section>
+
+  <section class="step" id="drums">
+    <h2><b>7</b>Drums</h2>
+    <div class="item"><div class="t"><div>Every console has its own drum kit.</div></div><div class="pic"><img src="../manual/img/pn-a-cons.png" alt="a-cons"></div></div>
+    <div class="item"><div class="t"><div>The drums are <code>BD</code> (kick), <code>SD</code> (snare), <code>LT</code>, <code>MT</code> and <code>HT</code> (toms), <code>RS</code> (rimshot), <code>CP</code> (clap), <code>CH</code> (closed hat), <code>OH</code> (open hat), <code>CR</code> (crash) and <code>RD</code> (ride).</div></div></div>
+    <div class="item"><div class="t"><div><code>SEQ</code> opens the drum lanes, with one row per drum and 16 steps across.</div></div><div class="pic"><img src="../manual/img/pn-a-lanes0.png" alt="a-lanes0"></div></div>
+    <div class="item"><div class="t"><div>Use the black keys to change the drum in the kit.</div></div></div>
+    <div class="item"><div class="t"><div>The 16 white keys align to the 16 steps in the page.</div></div><div class="pic"><img src="../manual/img/pn-a-hats.png" alt="a-hats"></div></div>
+    <div class="item"><div class="t"><div>Hold <code>ENV</code> while you press a white key to place an accent, a louder hit. On a hit that is already there, <code>ENV</code> switches the accent on or off.</div></div></div>
+    <div class="item"><div class="t"><div><code>EDIT</code> clears the picked drum on the current page.</div></div></div>
+  </section>
+
+  <section class="step" id="song">
+    <h2><b>8</b>The song</h2>
+    <div class="item"><div class="t"><div><code>SONG</code> shows a row of slots. Each slot holds a page.</div></div><div class="pic"><img src="../manual/img/pn-s4-song.png" alt="s4-song"></div></div>
+    <div class="item"><div class="t"><div>A page can be used in more than one slot.</div></div></div>
+    <div class="item"><div class="t"><div><code>SELECT</code> moves the cursor.</div></div></div>
+    <div class="item"><div class="t"><div>Use the <code>PRESETS</code> knob to change the page used in the selected slot.</div></div></div>
+    <div class="item"><div class="t"><div><code>OCT+</code> adds a slot after the current one, with a new empty page.</div></div></div>
+    <div class="item"><div class="t"><div><code>OCT-</code> removes the slot.</div></div></div>
+    <div class="item"><div class="t"><div>Tap <code>EDIT</code> to open the slot's page in the <code>RACK</code>.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>EDIT</code> to copy the page. The copy replaces the page in this slot only.</div></div></div>
+    <div class="item"><div class="t"><div><code>PLAY</code> plays the song from the current slot.</div></div></div>
+  </section>
+
+  <section class="step" id="projects">
+    <h2><b>9</b>Projects</h2>
+    <div class="item"><div class="t"><div>Hold <code>HOME</code> to open the project view. It has eight tiles, each with a small picture of the first page.</div></div><div class="pic"><img src="../manual/img/pn-s1-hold-home.png" alt="s1-hold-home"></div></div>
+    <div class="item"><div class="t"><div><code>SELECT</code> or <code>PRESETS</code> moves between tiles. <code>OCT+</code> opens a tile. <code>OCT-</code> goes back.</div></div></div>
+    <div class="item"><div class="t"><div>Open an empty tile to start a new project.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>SEL</code> on a tile to copy that project into the first empty tile.</div></div></div>
+    <div class="item"><div class="t"><div>Hold <code>EDIT</code> on a tile to delete that project.</div></div></div>
+    <div class="item"><div class="t"><div>Projects save automatically when nothing is playing. Hit <code>SAVE</code> to force a save just in case.</div></div></div>
+    <div class="item"><div class="t"><div>The <code>SAVE</code> light glows while there are unsaved changes.</div></div></div>
+    <div class="item"><div class="t"><div>Factory Reset in the menu (<code>GLO</code> + <code>HOME</code>) deletes all your projects.</div></div></div>
+  </section>
+
+  <section class="step" id="undo">
+    <h2><b>10</b>Undo</h2>
+    <div class="item"><div class="t"><div>At any time, you can undo changes with the <code>LFO</code> key.</div></div><div class="pic"><img src="../manual/img/pn-u-lfo.png" alt="u-lfo"></div></div>
+    <div class="item"><div class="t"><div>NOTE: you can't redo an undone change, so be careful!</div></div></div>
+  </section>
+
+  <section class="step" id="fx">
+    <h2><b>11</b>Effects</h2>
+    <div class="item"><div class="t"><div><code>FX</code> turns the 16 white keys into effects pads.</div></div><div class="pic"><img src="../manual/img/pn-x-fx.png" alt="x-fx"></div></div>
+    <div class="block"><table><tr><th>Pad</th><th>What it does</th></tr><tr><td><code>TAPE</code></td><td>Controls the tape with <code>SELECT</code>.</td></tr><tr><td><code>RPT</code> (three pads)</td><td>Repeats the current step every eighth, sixteenth or thirty-second note.</td></tr><tr><td><code>LPF</code></td><td>Low-pass filter.</td></tr><tr><td><code>HPF</code></td><td>High-pass filter.</td></tr><tr><td><code>ECHO</code></td><td>Tape echo.</td></tr><tr><td><code>VERB</code></td><td>Reverb.</td></tr><tr><td><code>CRSH</code></td><td>Reduces the number of levels.</td></tr><tr><td><code>DECI</code></td><td>Reduces the sample rate.</td></tr><tr><td><code>GATE</code></td><td>Chops the sound every sixteenth note.</td></tr><tr><td><code>DIVE</code></td><td>Drops the pitch an octave.</td></tr><tr><td><code>WOB</code></td><td>Wobbles the pitch.</td></tr><tr><td><code>SOLO</code></td><td>Plays only the selected channel.</td></tr><tr><td><code>KILL</code></td><td>Silences everything.</td></tr><tr><td><code>HOLD</code></td><td>Keeps pads on after you let go.</td></tr></table></div>
+  </section>
+
+  <section class="step" id="limits">
+    <h2><b>12</b>The numbers</h2>
+    <div class="block"><table><tr><th></th><th></th></tr><tr><td>Channels</td><td>16</td></tr><tr><td>Steps in a page</td><td>16</td></tr><tr><td>Pages</td><td>64</td></tr><tr><td>Slots in a song</td><td>128</td></tr><tr><td>Projects</td><td>7, and the demo</td></tr><tr><td>Undo</td><td>6 changes</td></tr><tr><td>Notes in a project</td><td>About 2000</td></tr><tr><td>Tempo</td><td>40 to 240 bpm</td></tr></table></div>
+  </section>
+
+  <section class="step" id="rescue">
+    <h2><b>13</b>Updates and rescue</h2>
+    <div class="item"><div class="t"><div>Install and update firmware with the <a href="../install.html">install page</a>.</div></div></div>
+    <div class="item"><div class="t"><div>If your FM-1 gets bricked or stuck in a weird place, hold <code>OCT-</code> while plugging it in. The <a href="../install.html">install page</a> will fix it from there.</div></div></div>
+  </section>
+
+</main>
+</body>
+</html>
