@@ -60,7 +60,7 @@ static void ico_chip(int32_t x, int32_t y, uint16_t body, uint16_t pin, uint16_t
 /* the chips' logos, made up: the chip's own number in the console's colours. Returns the width; rack_label is the little 3 x 5 font from rack.c */
 static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
 {
-    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612", "VSU"};
+    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612", "VSU", "POKEY", "8253", "YM3812", "WSG", "N163", "5B"};
     const char *s = NUM[chip < CHIPS ? chip : 0];
     int32_t n = 0, w;
     while (s[n]) n++;
@@ -94,6 +94,26 @@ static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x, y, w, 14, RGB(255, 36, 30)); cv_rect(x + 1, y + 1, w - 2, 12, RGB(10, 0, 0));
         cv_rect(x + 1, y + 6, w - 2, 1, RGB(90, 10, 8));
         rack_label(x + 5, y + 2, s, RGB(255, 36, 30));
+    } else if (chip == CHIP_POKEY) {            /* plum with a pink rim, the Atari stripes under the letters */
+        cv_rect(x, y, w, 14, RGB(236, 88, 140)); cv_rect(x + 1, y + 1, w - 2, 12, RGB(30, 14, 26));
+        cv_rect(x + 1, y + 10, w - 2, 1, RGB(236, 130, 40)); cv_rect(x + 1, y + 11, w - 2, 1, RGB(236, 88, 140)); cv_rect(x + 1, y + 12, w - 2, 1, RGB(150, 70, 170));
+        rack_label(x + 5, y + 1, s, RGB(244, 226, 236));
+    } else if (chip == CHIP_SPK) {              /* a BIOS: blue, white letters, a grey shadow */
+        cv_rect(x + 2, y + 2, w, 14, RGB(70, 70, 80)); cv_rect(x, y, w, 14, RGB(0, 0, 168));
+        rack_label(x + 5, y + 2, s, R_WHITE);
+    } else if (chip == CHIP_OPL) {              /* a card: dark green with gold contacts along the bottom */
+        cv_rect(x, y, w, 14, RGB(10, 44, 36)); cv_rect(x, y, w, 1, RGB(236, 184, 60));
+        { int32_t k; for (k = 2; k < w - 2; k += 3) cv_rect(x + k, y + 12, 2, 2, RGB(236, 184, 60)); }
+        rack_label(x + 5, y + 2, s, RGB(236, 184, 60));
+    } else if (chip == CHIP_WSG) {              /* the arcade: black in a blue maze wall, yellow letters */
+        cv_rect(x, y, w, 14, RGB(40, 40, 222)); cv_rect(x + 2, y + 2, w - 4, 10, RGB(4, 4, 18));
+        rack_label(x + 5, y + 2, s, RGB(255, 226, 0));
+    } else if (chip == CHIP_N163) {             /* coral, corners cut */
+        cv_rect(x + 2, y, w - 4, 14, RGB(255, 112, 96)); cv_rect(x, y + 2, w, 10, RGB(255, 112, 96));
+        rack_label(x + 5, y + 2, s, RGB(22, 26, 40));
+    } else if (chip == CHIP_S5B) {              /* night blue with an amber sun on the left */
+        cv_rect(x, y, w, 14, RGB(255, 196, 36)); cv_rect(x + 1, y + 1, w - 2, 12, RGB(10, 14, 34));
+        rack_label(x + 5, y + 2, s, RGB(255, 196, 36));
     } else {                                    /* Sega black, a blue edge */
         cv_rect(x, y, w, 14, RGB(10, 10, 14)); cv_rect(x, y, w, 1, R_WHITE); cv_rect(x, y + 13, w, 1, R_WHITE);
         cv_rect(x, y + 1, 3, 12, RGB(0, 98, 210));
@@ -155,6 +175,38 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x + 6, y + 4, 12, 1, RGB(170, 170, 178));
         cv_rect(x + 24, y + 4, 10, 2, RGB(160, 160, 168)); cv_rect(x + 24, y + 9, 6, 1, RGB(0, 98, 210)); cv_rect(x + 24, y + 12, 10, 3, RGB(52, 52, 58)); cv_rect(x + 25, y + 13, 4, 1, RGB(210, 40, 44));
         cv_rect(x, y + 19, 38, 1, RGB(70, 70, 78));
+    } else if (chip == CHIP_POKEY) {            /* an Atari 800XL: a dark wedge, rows of keys, the three stripes */
+        cv_rect(x + 2, y, 34, 1, RGB(96, 94, 104)); cv_rect(x, y + 1, 38, 6, RGB(44, 42, 50));
+        cv_rect(x + 22, y + 3, 4, 2, RGB(236, 130, 40)); cv_rect(x + 26, y + 3, 4, 2, RGB(214, 64, 44)); cv_rect(x + 30, y + 3, 4, 2, RGB(150, 70, 170));
+        cv_rect(x, y + 7, 38, 13, RGB(30, 28, 36));
+        { int32_t r, k; for (r = 0; r < 3; r++) for (k = 0; k < 11; k++) cv_rect(x + 2 + k * 3 + r, y + 9 + r * 3, 2, 2, RGB(176, 174, 184)); }
+        cv_rect(x + 10, y + 18, 18, 1, RGB(176, 174, 184));
+    } else if (chip == CHIP_SPK) {              /* an IBM PC: a beige monitor on a beige box with a floppy slot */
+        cv_rect(x + 7, y, 24, 15, RGB(214, 206, 184)); cv_rect(x + 9, y + 2, 20, 10, RGB(8, 8, 10));
+        cv_rect(x + 11, y + 4, 8, 1, RGB(170, 170, 176)); cv_rect(x + 11, y + 7, 12, 1, RGB(170, 170, 176)); cv_rect(x + 11, y + 9, 3, 1, RGB(170, 170, 176));
+        cv_rect(x + 16, y + 15, 6, 1, RGB(170, 162, 142));
+        cv_rect(x, y + 16, 38, 6, RGB(224, 216, 194)); cv_rect(x, y + 21, 38, 1, RGB(150, 144, 126));
+        cv_rect(x + 3, y + 18, 12, 2, RGB(40, 40, 46)); cv_rect(x + 18, y + 18, 12, 2, RGB(40, 40, 46)); cv_rect(x + 33, y + 18, 2, 2, RGB(70, 190, 90));
+    } else if (chip == CHIP_OPL) {              /* a sound card: a dark green board, two black chips, a gold edge and a grey bracket */
+        cv_rect(x + 4, y + 2, 34, 15, RGB(14, 70, 54)); cv_rect(x + 4, y + 2, 34, 1, RGB(30, 110, 84));
+        cv_rect(x + 8, y + 5, 12, 6, RGB(16, 16, 20)); cv_rect(x + 24, y + 6, 8, 5, RGB(16, 16, 20));
+        cv_rect(x + 9, y + 6, 10, 1, RGB(70, 70, 80)); cv_rect(x + 25, y + 7, 6, 1, RGB(70, 70, 80));
+        cv_rect(x + 10, y + 13, 6, 2, RGB(236, 184, 60));
+        { int32_t k; for (k = 6; k < 38; k += 2) cv_rect(x + k, y + 17, 1, 3, RGB(236, 184, 60)); }
+        cv_rect(x, y, 4, 22, RGB(176, 176, 184)); cv_rect(x + 1, y + 3, 2, 3, RGB(70, 70, 80));
+    } else if (chip == CHIP_WSG) {              /* an arcade cabinet: a yellow marquee, a black screen with Pac-Man, a red control panel */
+        cv_rect(x + 9, y, 20, 3, RGB(255, 226, 0)); cv_rect(x + 7, y + 3, 24, 19, RGB(28, 36, 140));
+        cv_rect(x + 10, y + 4, 18, 9, RGB(2, 2, 8)); cv_rect(x + 13, y + 7, 4, 4, RGB(255, 226, 0)); cv_rect(x + 16, y + 8, 2, 2, RGB(2, 2, 8));
+        cv_rect(x + 20, y + 8, 2, 2, RGB(255, 255, 255)); cv_rect(x + 24, y + 8, 2, 2, RGB(255, 255, 255));
+        cv_rect(x + 5, y + 14, 28, 3, RGB(208, 48, 48)); cv_rect(x + 14, y + 14, 3, 1, RGB(255, 226, 0)); cv_rect(x + 21, y + 14, 2, 1, RGB(255, 255, 255));
+        cv_rect(x + 12, y + 18, 14, 3, RGB(14, 20, 90));
+    } else if (chip == CHIP_N163 || chip == CHIP_S5B) {     /* a cartridge: grey for Namco, black for Sunsoft, a label and the ribbed grip */
+        uint16_t body = chip == CHIP_N163 ? RGB(160, 160, 170) : RGB(40, 40, 46), lab = chip == CHIP_N163 ? RGB(22, 26, 40) : RGB(255, 196, 36);
+        cv_rect(x + 7, y, 24, 22, body); cv_rect(x + 9, y, 20, 1, RGB(210, 210, 218)); cv_rect(x + 7, y + 20, 24, 2, RGB(30, 30, 34));
+        cv_rect(x + 10, y + 3, 18, 10, lab);
+        if (chip == CHIP_N163) { cv_rect(x + 10, y + 3, 18, 2, RGB(255, 112, 96)); cv_rect(x + 12, y + 7, 10, 1, RGB(236, 238, 246)); cv_rect(x + 12, y + 9, 6, 1, RGB(236, 238, 246)); }
+        else { cv_rect(x + 15, y + 5, 8, 6, RGB(10, 14, 34)); cv_rect(x + 17, y + 6, 4, 4, RGB(255, 196, 36)); }
+        { int32_t k; for (k = 0; k < 4; k++) cv_rect(x + 10, y + 15 + k, 18, 1, chip == CHIP_N163 ? RGB(120, 120, 130) : RGB(70, 70, 78)); }
     } else {                                    /* Master System: black, a slanted top with the red panel and the cartridge slot, a red pinstripe, POWER, ports, the card slot */
         cv_rect(x + 5, y, 33, 1, RGB(48, 48, 54)); cv_rect(x + 4, y + 1, 34, 1, RGB(44, 44, 50)); cv_rect(x + 3, y + 2, 35, 1, RGB(40, 40, 46)); cv_rect(x + 2, y + 3, 36, 6, RGB(36, 36, 42));
         cv_rect(x + 17, y + 1, 14, 8, RGB(196, 40, 44)); cv_rect(x + 18, y, 12, 2, RGB(86, 86, 94)); cv_rect(x + 19, y + 5, 4, 2, RGB(20, 20, 24)); cv_rect(x + 25, y + 5, 4, 2, RGB(240, 240, 244));
@@ -181,7 +233,13 @@ static void hdr_rule(uint32_t chip, const theme_t *t)
     else if (chip == CHIP_TIA) { cv_rect(0, 38, 240, 1, RGB(236, 130, 40)); cv_rect(0, 39, 240, 1, RGB(214, 64, 44)); cv_rect(0, 40, 240, 1, RGB(150, 70, 170)); cv_rect(0, 41, 240, 1, RGB(0, 98, 210)); }
     else if (chip == CHIP_AY) { cv_rect(0, 38, 240, 1, RGB(224, 40, 40)); cv_rect(0, 39, 240, 1, RGB(236, 210, 40)); cv_rect(0, 40, 240, 1, RGB(40, 200, 60)); cv_rect(0, 41, 240, 1, RGB(40, 200, 220)); }
     else if (chip == CHIP_MD) { cv_rect(0, 38, 240, 3, t->acc); cv_rect(0, 41, 240, 1, t->fg); }
-    else if (chip == CHIP_VB) { cv_rect(0, 38, 240, 1, t->acc); cv_rect(0, 40, 240, 1, t->dim); cv_rect(0, 41, 240, 1, t->acc); }                  /* thin red lines */
+    else if (chip == CHIP_VB) { cv_rect(0, 38, 240, 1, t->acc); cv_rect(0, 40, 240, 1, t->dim); cv_rect(0, 41, 240, 1, t->acc); }
+    else if (chip == CHIP_POKEY) { cv_rect(0, 38, 240, 1, RGB(236, 130, 40)); cv_rect(0, 39, 240, 1, RGB(236, 88, 140)); cv_rect(0, 40, 240, 1, RGB(150, 70, 170)); }
+    else if (chip == CHIP_SPK) { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 40, 240, 1, t->fg); }
+    else if (chip == CHIP_OPL) { for (x = 0; x < 240; x += 4) cv_rect(x, 38, 2, 3, t->acc); }                      /* gold contacts */
+    else if (chip == CHIP_WSG) { for (x = 4; x < 240; x += 12) cv_rect(x, 39, 4, 3, t->acc); cv_rect(0, 38, 240, 1, RGB(40, 40, 222)); }       /* a maze wall, dots */
+    else if (chip == CHIP_N163) { cv_rect(0, 38, 240, 2, t->acc); cv_rect(0, 41, 240, 1, t->dim); }
+    else if (chip == CHIP_S5B) { cv_rect(0, 38, 240, 1, t->acc); cv_rect(0, 41, 240, 1, t->acc); }                  /* thin red lines */
     else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
 }
 /* a console, lifted dy (the animations drop it in from above) */

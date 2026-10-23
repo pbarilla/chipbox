@@ -1,0 +1,32 @@
+[
+ {
+  "name": "Atari 8-bit",
+  "file": "samples/atari-8-bit.chipbox",
+  "text": "A bumbly POKEY bass, a buzzy lead, power-chord arps and the kit. 126 bpm"
+ },
+ {
+  "name": "PC Speaker",
+  "file": "samples/pc-speaker-ode.chipbox",
+  "text": "Ode to Joy, with the chords played as fast arps, the way PC games did it. 112 bpm"
+ },
+ {
+  "name": "AdLib",
+  "file": "samples/adlib-dungeon.chipbox",
+  "text": "A dungeon in D minor: half-sine bass, a bell pad, an FM lead. 108 bpm"
+ },
+ {
+  "name": "Namco WSG",
+  "file": "samples/namco-wsg-chase.chipbox",
+  "text": "A bouncy arcade chase in C. 138 bpm"
+ },
+ {
+  "name": "Namco 163",
+  "file": "samples/namco-163-wall.chipbox",
+  "text": "Six wavetable voices at once, so the grit shows. 100 bpm"
+ },
+ {
+  "name": "Sunsoft 5B",
+  "file": "samples/sunsoft-5b-buzz.chipbox",
+  "text": "A buzzing bass and two leads in E minor. 138 bpm"
+ }
+]

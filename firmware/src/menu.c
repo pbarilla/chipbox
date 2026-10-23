@@ -29,7 +29,7 @@ static const mline_t HELP_SONG[] = {
     MH("Buttons"), ML("OCT+ - New Page"), ML("OCT- - Remove Page"), ML("EDIT - Open Page"), ML("EDIT Hold - Copy Page"), ML("HOME - Next View"), ML("FX - Punch In"), ML("PLAY - Play Song"), ML("SAVE - Save"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
 };
 static const mline_t ADD_MENU[] = {                      /* the consoles, in the order of the chips in chips.c; a second list holds each one's channels */
-    MH("Add Channel"), ML("NES"), ML("Game Boy"), ML("Master System"), ML("PC Engine"), ML("Atari 2600"), ML("Konami VRC6"), ML("AY-3-8910"), ML("Mega Drive"), ML("Virtual Boy"),
+    MH("Add Channel"), ML("NES"), ML("Game Boy"), ML("Master System"), ML("PC Engine"), ML("Atari 2600"), ML("Konami VRC6"), ML("AY-3-8910"), ML("Mega Drive"), ML("Virtual Boy"), ML("Atari 8-bit"), ML("PC Speaker"), ML("AdLib"), ML("Namco WSG"), ML("Namco 163"), ML("Sunsoft 5B"),
 };
 static const mline_t ADD_NES[] = {MH("NES"), ML("Pulse"), ML("Triangle"), ML("Drums")};
 static const mline_t ADD_GB[] = {MH("Game Boy"), ML("Pulse"), ML("Wave"), ML("Drums")};
@@ -40,10 +40,18 @@ static const mline_t ADD_VRC6[] = {MH("Konami VRC6"), ML("Pulse"), ML("Saw"), ML
 static const mline_t ADD_AY[] = {MH("AY-3-8910"), ML("Tone"), ML("Drums")};
 static const mline_t ADD_MD[] = {MH("Mega Drive"), ML("FM"), ML("Drums")};
 static const mline_t ADD_VB[] = {MH("Virtual Boy"), ML("Wave"), ML("Drums")};
+static const mline_t ADD_POKEY[] = {MH("Atari 8-bit"), ML("Sound"), ML("Drums")};
+static const mline_t ADD_SPK[] = {MH("PC Speaker"), ML("Beeper"), ML("Drums")};
+static const mline_t ADD_OPL[] = {MH("AdLib"), ML("FM"), ML("Drums")};
+static const mline_t ADD_WSG[] = {MH("Namco WSG"), ML("Wave"), ML("Drums")};
+static const mline_t ADD_N163[] = {MH("Namco 163"), ML("Wave"), ML("Drums")};
+static const mline_t ADD_S5B[] = {MH("Sunsoft 5B"), ML("Tone"), ML("Drums")};
 static const struct { const mline_t *l; uint8_t n, kind[3]; } ADD_SUB[CHIPS] = {
     {ADD_NES, 4, {KD_NES_PU, KD_NES_TRI, KD_DRUM0}}, {ADD_GB, 4, {KD_GB_PU, KD_GB_WAV, KD_DRUM0 + 1}}, {ADD_SMS, 3, {KD_SMS, KD_DRUM0 + 2, 0}},
     {ADD_PCE, 3, {KD_PCE, KD_DRUM0 + 3, 0}}, {ADD_TIA, 3, {KD_TIA, KD_DRUM0 + 4, 0}}, {ADD_VRC6, 4, {KD_VRC6_PU, KD_VRC6_SAW, KD_DRUM0 + 5}},
     {ADD_AY, 3, {KD_AY, KD_DRUM0 + 6, 0}}, {ADD_MD, 3, {KD_MD, KD_DRUM0 + 7, 0}}, {ADD_VB, 3, {KD_VB_WAV, KD_DRUM0 + 8, 0}},
+    {ADD_POKEY, 3, {KD_POKEY, KD_DRUMB, 0}}, {ADD_SPK, 3, {KD_SPK, KD_DRUMB + 1, 0}}, {ADD_OPL, 3, {KD_OPL, KD_DRUMB + 2, 0}},
+    {ADD_WSG, 3, {KD_WSG, KD_DRUMB + 3, 0}}, {ADD_N163, 3, {KD_N163, KD_DRUMB + 4, 0}}, {ADD_S5B, 3, {KD_S5B, KD_DRUMB + 5, 0}},
 };
 static uint32_t add_console;
 static const mline_t SYSM[] = {MH("Menu"), ML("Factory Reset")};       /* GLO + HOME */
@@ -82,7 +90,7 @@ static void menu_draw(uint16_t accent)
             if (menu_pick && i == menu_sel) cv_rect(0, (int32_t)r * 20, 240, 20, R_SEL);
             cv_text(8, (int32_t)r * 20 + 2, &FONT_S, menu_lines[i].text, menu_lines[i].head ? accent : RGB(230, 230, 235));
             if (menu_kind == MK_ADD && i >= 1u && i <= CHIPS) {      /* the consoles: each chip's logo at the right */
-                static const uint8_t LN[CHIPS] = {4, 3, 7, 7, 3, 4, 6, 6, 3};
+                static const uint8_t LN[CHIPS] = {4, 3, 7, 7, 3, 4, 6, 6, 3, 5, 4, 6, 3, 4, 2};
                 uint32_t ch = i - 1u;
                 ico_logo(ch, 240 - 14 - ((int32_t)LN[ch] * 8 + 8), (int32_t)r * 20 + 3);
             }

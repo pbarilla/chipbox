@@ -1,0 +1,26 @@
+# AdLib FM: the two operators for each pair
+100 enc 6 -1
+200 btn 1
+300 enc 0 1
+360 enc 0 1
+420 enc 0 1
+480 enc 0 1
+540 enc 0 1
+600 enc 0 1
+660 enc 0 1
+720 enc 0 1
+780 enc 0 1
+840 enc 0 1
+900 enc 0 1
+1260 btn 1
+1560 btn 1
+2460 held 0x100
+2520 held 0
+4460 shot
+4860 enc 2 1
+5360 shot
+5760 enc 2 1
+6260 shot
+6660 enc 2 1
+7160 shot
+7860 end

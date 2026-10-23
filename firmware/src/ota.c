@@ -39,6 +39,9 @@ static int ota_prog(uint32_t off, const void *p, uint32_t n);
 static int ota_fread(uint32_t off, void *p, uint32_t n);
 static void ota_show(uint32_t step, int32_t code);
 static void ota_commit(const uint8_t *parm);
+#ifdef OTA_PROJ_IO
+static void proj_io(uint32_t cmd, const uint8_t *body, uint32_t n);     /* the app's (projio.c): projects over SysEx */
+#endif
 
 static uint32_t ota_rd16(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8; }
 static uint32_t ota_rd24(const uint8_t *p) { return ota_rd16(p) | (uint32_t)p[2] << 16; }
@@ -167,6 +170,10 @@ static void ota_service(void)
     uint32_t d = ota_take();
     if (d == 7u && ota_dec[2] == 0x11)
         ota_reply_identity();
+#ifdef OTA_PROJ_IO
+    else if (d >= 7u && ota_dec[2] >= 0x50u && ota_dec[2] <= 0x5Fu)
+        proj_io(ota_dec[2], ota_dec + 6, d - 7u);
+#endif
 }
 
 /* one read request (3 tries x 5 s); data -> dst */

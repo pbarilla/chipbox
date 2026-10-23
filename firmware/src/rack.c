@@ -48,6 +48,7 @@ static uint16_t glyph35(uint32_t ch)
     case 'S': return G35(7, 4, 7, 1, 7);
     case '0': return G35(7, 5, 5, 5, 7);
     case '4': return G35(5, 5, 7, 1, 1);
+    case '5': return G35(7, 4, 7, 1, 7);
     case '6': return G35(7, 4, 7, 5, 7);
     case '7': return G35(7, 1, 2, 2, 2);
     case '8': return G35(7, 5, 7, 5, 7);
@@ -55,6 +56,7 @@ static uint16_t glyph35(uint32_t ch)
     case 'A': return G35(2, 5, 7, 5, 5);
     case 'V': return G35(5, 5, 5, 5, 2);
     case 'B': return G35(6, 5, 6, 5, 6);
+    case 'K': return G35(5, 5, 6, 5, 5);
     case 'L': return G35(4, 4, 4, 4, 7);
     case 'O': return G35(7, 5, 5, 5, 7);
     case 'Y': return G35(5, 5, 2, 2, 2);
@@ -75,6 +77,14 @@ static void rack_label(int32_t x, int32_t y, const char *s, uint16_t col)
                 if (g >> (3 * (4 - r)) >> (2 - c) & 1u) rk_rect(x + c * 2, y + r * 2, 2, 2, col);
     }
 }
+static void rack_digit(int32_t x, int32_t y, uint32_t d, int32_t sc, uint16_t col)     /* a number after the name: 2x when there is room, 1x after a long name */
+{
+    uint16_t g = glyph35((uint32_t)'0' + d);
+    int32_t r, c;
+    for (r = 0; r < 5; r++)
+        for (c = 0; c < 3; c++)
+            if (g >> (3 * (4 - r)) >> (2 - c) & 1u) rk_rect(x + c * sc, y + r * sc, sc, sc, col);
+}
 static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t lit)     /* a step, in each chip's style */
 {
     if (chip == CHIP_GB) { rk_rect(x + 1, y, 8, 15, c); rk_rect(x, y + 1, 10, 13, c); }                      /* rounded */
@@ -84,6 +94,11 @@ static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t
     else if (chip == CHIP_VB) { rk_rect(x, y, 10, 15, c); rk_rect(x, y + 7, 10, 1, R_BG); }                   /* two halves */
     else if (chip == CHIP_TIA) { uint32_t r; rk_rect(x, y, 10, 15, c); for (r = 0; r < 3u; r++) rk_rect(x, y + 3 + (int32_t)r * 4, 10, 1, R_BG); }     /* scan lines */
     else if (chip == CHIP_AY) { rk_rect(x, y, 10, 15, c); rk_rect(x, y, 10, 2, lit ? R_WHITE : c); }         /* a bright top */
+    else if (chip == CHIP_POKEY) { rk_rect(x, y + 4, 10, 11, c); rk_rect(x, y, 7, 4, c); rk_rect(x + 7, y + 2, 3, 2, c); }                         /* a slanted top */
+    else if (chip == CHIP_SPK) rk_rect(x, y, 5, 15, c);                                                       /* half a block: one bit */
+    else if (chip == CHIP_OPL) { rk_rect(x + 3, y, 4, 15, c); rk_rect(x + 1, y + 2, 8, 11, c); rk_rect(x, y + 4, 10, 7, c); }      /* a capsule */
+    else if (chip == CHIP_WSG) { rk_rect(x, y, 10, 15, c); if (lit) rk_rect(x + 6, y + 5, 4, 5, R_BG); }      /* Pac-Man's mouth */
+    else if (chip == CHIP_S5B) { rk_rect(x + 3, y, 4, 15, c); rk_rect(x, y + 5, 10, 5, c); }                 /* a cross */
     else {
         rk_rect(x, y, 10, 15, c);
         if (lit && chip == CHIP_NES) { uint16_t hi = mix16(c, R_WHITE, 110); rk_rect(x, y, 10, 1, hi); rk_rect(x, y, 1, 15, hi); }     /* bevelled */
@@ -106,9 +121,20 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
         if (row < chan_n) {
             uint32_t chip = KIND_CHIP[chan[row].kind];
             const theme_t *t = &THEME[chip];
-            uint16_t on = rec_on && !on_row ? mix16(R_BG, t->acc, 110) : t->acc, off = mix16(R_BG, on, 56);     /* recording: the others dim */
+            uint32_t nth = 0, tot = 0, q;
+            uint16_t on = rec_on && !on_row ? mix16(R_BG, t->acc, 110) : t->acc, off;     /* recording: the others dim */
+            for (q = 0; q < chan_n; q++)
+                if (chan[q].kind == chan[row].kind) { tot++; if (q < row) nth++; }
+            if (nth) on = mix16(R_BG, on, 255u - (nth > 3u ? 3u : nth) * 40u);          /* the same kind again: a little darker each time */
+            off = mix16(R_BG, on, 56);
             if (on_row) rk_rect(0, y, 240, R_ROW, rack_rm ? RGB(90, 24, 20) : R_SEL);
             rack_label(3, y + 5, KIND_NAME[chan[row].kind], on_row ? on : mix16(R_BG, on, 150));
+            if (tot > 1u) {
+                uint32_t len = 0;
+                while (KIND_NAME[chan[row].kind][len]) len++;
+                if (len < 3u) rack_digit(3 + (int32_t)len * 8, y + 5, nth + 1u > 9u ? 9u : nth + 1u, 2, on_row ? on : mix16(R_BG, on, 150));
+                else rack_digit(26, y + 10, nth + 1u > 9u ? 9u : nth + 1u, 1, on_row ? on : mix16(R_BG, on, 150));
+            }
             for (i = 0; i < SEQ_LEN; i++) {
                 const step_t *s = &pat[seq_view][row][i];
                 int32_t x = rack_x(i);

@@ -1,0 +1,17 @@
+100 enc 6 -1
+200 btn 1
+300 btn 1
+400 btn 1
+500 enc 6 1
+600 btn 1
+700 btn 1
+800 btn 1
+1500 held 0x100
+1560 held 0
+2300 held 0x100
+2360 held 0
+3100 shot
+3200 btn 1
+3800 btn 1
+4800 shot
+5000 end

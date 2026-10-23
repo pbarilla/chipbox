@@ -24,7 +24,15 @@ static void sg_band(uint32_t b)                  /* two rows of cells */
                 char n[8];
                 fmt_u(n, (uint32_t)song[i] + 1u);
                 cv_rect(x, y, 27, 28, play ? c : mix16(R_BG, c, 90));
-                cv_text(x + (27 - text_w(&FONT_S, n)) / 2, y + 6, &FONT_S, n, play ? R_BG : R_WHITE);
+                cv_text(x + (27 - text_w(&FONT_S, n)) / 2, y + 1, &FONT_S, n, play ? R_BG : R_WHITE);
+                {   uint32_t ch;                                              /* a dot a channel, in its console's colour: bright when the page has notes there */
+                    for (ch = 0; ch < chan_n; ch++) {
+                        uint32_t k, any = 0, dr = IS_DRUM(chan[ch].kind);
+                        const theme_t *th = &THEME[KIND_CHIP[chan[ch].kind]];
+                        for (k = 0; k < SEQ_LEN; k++) any |= dr ? dstep_hits(&pat[song[i]][ch][k]) : pat[song[i]][ch][k].note;
+                        cv_rect(x + 2 + (int32_t)(ch & 7u) * 3, y + (chan_n > 8u ? 19 : 21) + (int32_t)(ch >> 3) * 4, 2, 3, any ? th->acc : mix16(play ? c : mix16(R_BG, c, 90), th->acc, 70));
+                    }
+                }
                 if (play) sg_frame(x - 2, y - 2, 31, 32, 2, RGB(80, 220, 120));
             } else if (i == song_len && song_len < SONG_MAX) {            /* the next slot: a plus */
                 uint16_t c = cur ? R_WHITE : RGB(90, 90, 105);

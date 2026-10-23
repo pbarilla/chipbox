@@ -55,7 +55,7 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
     for (s = 0; s < song_len; s++) p[n++] = song[s];
     return n;
 }
-static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else nothing was changed */
+static int proj_check(const uint8_t *p, uint32_t len)       /* 0: these bytes are a project this firmware can load */
 {
     uint32_t n, i, c, ev, pages, chans, isz;
     if (len < 7u || (p[0] != 2u && p[0] != 3u)) return -1;
@@ -72,6 +72,17 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
         const uint8_t *e = p + n + i * PROJ_EV;
         if (e[0] >= pages || e[1] >= chans || e[2] >= SEQ_LEN) return -1;
     }
+    return 0;
+}
+static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else nothing was changed */
+{
+    uint32_t n, i, c, ev, pages, chans, isz;
+    if (proj_check(p, len)) return -1;
+    isz = p[0] == 2u ? 14u : PROJ_INST;
+    pages = p[3]; chans = p[4];
+    n = 5u + chans * (1u + isz);
+    ev = (uint32_t)p[n] | (uint32_t)p[n + 1u] << 8;
+    n += 2u;
     seq_stop();
     seq_clear();                                /* (the voices are silent while this runs; a sound is read when a note starts) */
     seq_bpm = (uint32_t)p[1] | (uint32_t)p[2] << 8;

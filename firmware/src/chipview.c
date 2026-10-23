@@ -52,6 +52,25 @@ static void skin_box(uint32_t chip, const theme_t *t, int32_t x, int32_t y, int3
         ring(x, y, w, h, 2, t->fg);
         cv_rect(x + 2, y + 2, 3, h - 4, RGB(0, 98, 210));
         cv_rect(x + w - 4, y, 4, 4, t->bg); cv_rect(x, y + h - 4, 4, 4, t->bg);
+    } else if (chip == CHIP_POKEY) {                            /* a pink frame, the three Atari stripes along the bottom */
+        ring(x, y, w, h, 2, t->acc);
+        cv_rect(x + 3, y + h - 6, w - 6, 1, RGB(236, 130, 40)); cv_rect(x + 3, y + h - 5, w - 6, 1, RGB(236, 88, 140)); cv_rect(x + 3, y + h - 4, w - 6, 1, RGB(150, 70, 170));
+    } else if (chip == CHIP_SPK) {                              /* a DOS window: a double line, a dark shadow to the right and below */
+        cv_rect(x + 3, y + h, w, 3, RGB(0, 0, 24)); cv_rect(x + w, y + 3, 3, h, RGB(0, 0, 24));
+        ring(x, y, w, h, 1, t->fg); ring(x + 2, y + 2, w - 4, h - 4, 1, t->fg);
+    } else if (chip == CHIP_OPL) {                              /* a gold edge with the contacts along the bottom */
+        ring(x, y, w, h, 2, t->acc);
+        { int32_t k; for (k = 6; k < w - 6; k += 4) cv_rect(x + k, y + h - 6, 2, 4, t->acc); }
+    } else if (chip == CHIP_WSG) {                              /* a maze wall in two blue lines, the corners rounded */
+        ring(x, y, w, h, 2, RGB(40, 40, 222)); ring(x + 4, y + 4, w - 8, h - 8, 1, RGB(40, 40, 222));
+        cv_rect(x, y, 3, 3, t->bg); cv_rect(x + w - 3, y, 3, 3, t->bg); cv_rect(x, y + h - 3, 3, 3, t->bg); cv_rect(x + w - 3, y + h - 3, 3, 3, t->bg);
+    } else if (chip == CHIP_N163) {                             /* a coral line, corners cut on the slant */
+        ring(x, y, w, h, 1, t->acc);
+        cv_rect(x, y, 3, 1, t->bg); cv_rect(x, y, 1, 3, t->bg); cv_rect(x + w - 3, y + h - 1, 3, 1, t->bg); cv_rect(x + w - 1, y + h - 3, 1, 3, t->bg);
+        cv_rect(x + 3, y + 1, 1, 1, t->acc); cv_rect(x + 1, y + 3, 1, 1, t->acc); cv_rect(x + w - 4, y + h - 2, 1, 1, t->acc); cv_rect(x + w - 2, y + h - 4, 1, 1, t->acc);
+    } else if (chip == CHIP_S5B) {                              /* an amber line, a little sun in each top corner */
+        ring(x, y, w, h, 1, t->acc);
+        cv_rect(x + 3, y + 3, 3, 3, t->acc); cv_rect(x + w - 6, y + 3, 3, 3, t->acc);
     } else {                                                    /* a double line, corners cut: Phantasy Star's windows */
         ring(x, y, w, h, 1, t->fg); ring(x + 2, y + 2, w - 4, h - 4, 1, t->fg);
         cv_rect(x, y, 3, 1, t->bg); cv_rect(x, y + 1, 1, 2, t->bg); cv_rect(x + w - 3, y, 3, 1, t->bg); cv_rect(x + w - 1, y + 1, 1, 2, t->bg);
@@ -113,6 +132,28 @@ static void fm_diagram(const theme_t *t, uint32_t alg)
     cv_rect(bx[0] + 5, by[0] - 5, 2, 5, t->fg); cv_rect(bx[0] + 5, by[0] - 5, 20, 2, t->fg); cv_rect(bx[0] + 23, by[0] - 5, 2, 5, t->fg);        /* feedback */
 }
 
+/* the OPL2's two operators: A modulates C (or both play, in the last pair); C's wave is drawn above it: sine, half sine, absolute sine */
+static void opl_diagram(const theme_t *t, uint32_t alg)
+{
+    int32_t ax = alg == 3u ? 158 : 92, ay = alg == 3u ? 10 : 30, cx = 158, cy = alg == 3u ? 46 : 30, i, mid = alg == 3u ? 38 : 39;
+    cv_rect(ax, ay, 30, 16, t->acc); cv_text(ax + 12, ay + 2, &FONT_S, "A", t->bg);
+    cv_rect(cx, cy, 30, 16, t->acc); cv_text(cx + 12, cy + 2, &FONT_S, "C", t->bg);
+    if (alg != 3u) {
+        cv_rect(ax + 30, ay + 7, cx - ax - 34, 2, t->fg);
+        cv_rect(cx - 4, cy + 5, 1, 6, t->fg); cv_rect(cx - 3, cy + 6, 1, 4, t->fg); cv_rect(cx - 2, cy + 7, 1, 2, t->fg);
+        cv_rect(cx + 30, cy + 7, 14, 2, t->fg); cv_rect(cx + 44, cy + 7, 4, 2, t->fg); cv_text(210, cy + 1, &FONT_S, "OUT", t->fg);
+        for (i = 0; i < 30; i++) {                               /* C's wave */
+            static const uint8_t H[15] = {0, 1, 2, 3, 4, 5, 5, 5, 5, 4, 3, 2, 1, 0, 0};
+            int32_t hump = H[i % 15], v = alg == 0u && i >= 15 ? -hump : alg == 1u && i >= 15 ? 0 : hump;
+            cv_rect(cx + i, cy - 9 - v, 1, 2, t->dim);
+        }
+    } else {
+        cv_rect(ax + 30, ay + 7, 14, 2, t->fg); cv_rect(cx + 30, cy + 7, 14, 2, t->fg);
+        cv_rect(202, ay + 7, 2, cy - ay + 2, t->fg); cv_rect(204, mid, 4, 2, t->fg); cv_text(210, mid - 6, &FONT_S, "OUT", t->fg);
+    }
+    cv_rect(ax + 5, ay - 5, 2, 5, t->fg); cv_rect(ax + 5, ay - 5, 20, 2, t->fg); cv_rect(ax + 23, ay - 5, 2, 5, t->fg);        /* feedback on A */
+}
+
 /* the envelope as it plays: rise, fall to the held level, hold, fade; the time axis is squeezed to fit */
 static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np, uint32_t fm, uint32_t drum)
 {
@@ -133,7 +174,7 @@ static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
     { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
     if (page == 0u && fm) {                                     /* the FM: the operators and how they connect */
-        fm_diagram(t, in->duty);
+        if (chip == CHIP_OPL) opl_diagram(t, in->duty); else fm_diagram(t, in->duty);
         cv_blit(0, CV_ENV_Y);
         return;
     }
@@ -200,6 +241,23 @@ static void card_bar(const theme_t *t, uint32_t chip, int32_t x, int32_t v, int3
     } else if (chip == CHIP_MD) {                               /* six slanted blocks */
         int32_t lit = (v * 6 + max - 1) / max;
         for (i = 0; i < 6; i++) { int32_t bx = x + 8 + i * 7; uint16_t c = i < lit ? t->acc : t->dim; cv_rect(bx, 34, 5, 4, c); cv_rect(bx + 1, 38, 5, 4, c); cv_rect(bx + 2, 42, 4, 4, c); }
+    } else if (chip == CHIP_POKEY) {                            /* eight dots, two rows */
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 10 + (i & 3) * 10, 34 + (i >> 2) * 8, 7, 6, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_SPK) {                              /* a DOS bar: solid, then shaded */
+        int32_t w = 40 * v / max, px, py;
+        cv_rect(x + 8, 36, w, 10, t->fg);
+        for (py = 0; py < 10; py++) for (px = w; px < 40; px++) if (((px + py) & 1) == 0) cv_rect(x + 8 + px, 36 + py, 1, 1, t->dim);
+    } else if (chip == CHIP_OPL) {                              /* a strip of ten little lights */
+        int32_t lit = (v * 10 + max - 1) / max;
+        for (i = 0; i < 10; i++) cv_rect(x + 8 + i * 4, 38, 3, 6, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_WSG) {                              /* a row of dots, Pac-Man at the start */
+        int32_t lit = (v * 6 + max - 1) / max;
+        cv_rect(x + 8, 34, 8, 8, t->acc); cv_rect(x + 12, 36, 4, 4, t->bg);
+        for (i = 0; i < 6; i++) cv_rect(x + 19 + i * 5, 37, 3, 3, i < lit ? t->fg : t->dim);
+    } else if (chip == CHIP_S5B) {                              /* seven rays, short and long */
+        int32_t lit = (v * 7 + max - 1) / max;
+        for (i = 0; i < 7; i++) cv_rect(x + 8 + i * 6, i & 1 ? 36 : 32, 3, i & 1 ? 12 : 16, i < lit ? t->acc : t->dim);
     } else if (chip == CHIP_GB) {                               /* five chunky cells */
         int32_t lit = (v * 5 + max - 1) / max;
         for (i = 0; i < 5; i++) cv_rect(x + 8 + i * 8, 34, 7, 14, i < lit ? t->acc : t->dim);
@@ -227,7 +285,7 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
     cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
         int32_t x = CV_CARD_X(k), i;
-        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_AY ? "NOISE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : "SWEEP";
+        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_POKEY ? "DIST" : chan[c].kind == KD_AY || chan[c].kind == KD_S5B ? "NOISE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : chan[c].kind == KD_S5B ? "BUZZ" : "SWEEP";
         uint16_t lc = page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c))) ? t->dim : t->fg;
         skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
         if (!*lab) continue;
@@ -256,12 +314,14 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
         } else if (page == 1u) card_bar(t, chip, x, k == 0u ? in->atk : k == 1u ? in->dec : k == 2u ? in->sus : in->rel, 15);
         else if (k == 0u) {
             if (chan[c].kind == KD_TIA) card_bar(t, chip, x, in->wave, 9);
-            else if (chan[c].kind == KD_AY) card_bar(t, chip, x, in->wave, 15);
+            else if (chan[c].kind == KD_POKEY) card_bar(t, chip, x, in->wave, 7);
+            else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B) card_bar(t, chip, x, in->wave, 15);
             else if (fm) { for (i = 0; i < 4; i++) cv_rect(x + 6 + i * 12, 34, 10, 12, i == (int32_t)in->duty ? t->acc : t->dim); }       /* which of four */
             else if (k1) channel_glyph(c, x + 8, 26, 40, 26, t->acc);
         }
         else if (k == 1u) { if (has_vol(c)) card_bar(t, chip, x, in->vol, 15); }
         else if (k == 2u) card_bar(t, chip, x, in->vib_dep, 15);
+        else if (chan[c].kind == KD_S5B) { for (i = 0; i < 4; i++) cv_rect(x + 6 + i * 12, 34, 10, 12, i == (int32_t)in->pan ? t->acc : t->dim); }       /* the buzz: off, down, up, triangle */
         else if (has_pan(c)) {                                      /* left, centre, right */
             int32_t p;
             for (p = 0; p < 3; p++) cv_rect(x + 7 + p * 15, 36, 12, 10, p == (int32_t)in->pan ? t->acc : t->dim);

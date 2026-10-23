@@ -43,6 +43,9 @@ def lp_a(fc): w = 2 * math.pi * fc / FS; return round(16384 * w / (1 + w))
 for name, fc in (("NES_HP90", 90), ("NES_HP440", 440), ("FAM_HP37", 37), ("GB_HPDMG", -(-math.log(0.999958) * 4194304 / (2 * math.pi))), ("DC_HP14", 14)):
     out.append(f"#define B_{name} {hp_b(abs(fc))}u      /* high-pass {abs(fc):.1f} Hz, Q16 */")
 out.append(f"#define A_NES_LP14K {lp_a(14000)}      /* low-pass 14 kHz, Q14 */")
+out.append(f"#define B_SPK_HP {hp_b(220)}u      /* the PC speaker's little cone: high-pass 220 Hz, Q16 */")
+out.append(f"#define A_SPK_LP {lp_a(6500)}      /* ... low-pass 6.5 kHz, Q14 */")
+out.append(f"#define A_WSG_LP {lp_a(5500)}      /* Namco WSG: the DAC's RC filter, low-pass 5.5 kHz, Q14 */")
 
 # NES 2A03: pulse f = clk / (16 (t + 1)), triangle f = clk / (32 (t + 1)), 11 bits
 arr("NES_PT", "uint16_t", [clamp(round(NES_CLK / (16 * f(n))) - 1, 8, 2047) for n in N])
@@ -118,6 +121,44 @@ out.append("static const uint8_t TIA_BITS[%d][64] = {" % len(TIA))
 for r in rows: out.append("    {" + ", ".join(map(str, r)) + "},")
 out.append("};")
 arr("TIA_AMP", "uint8_t", [round(100 * v / 15) for v in range(16)])
+
+# PC speaker: the timer divides 1193182 Hz by a whole number, so high notes are a little off
+PIT = 1193182
+arr("SPK_INC", "uint32_t", [inc_k(PIT / max(1, round(PIT / f(n)))) for n in N], 8)
+
+# POKEY: eight distortions as one cycle of bits each (a step is one divider period). Poly counters 4, 5 and 9 bit; "toggle" flips the output only while a poly bit is high
+def toggled(p):
+    st, seq = 0, []
+    for _ in range(2):
+        for v in p:
+            st ^= v
+            seq.append(st)
+    return seq
+def held():                                     # 4 bit poly sampled only while the 5 bit poly is high
+    a, b, sa, sb, seq, o = poly(4, (0, 1)), poly(5, (0, 2)), 0, 0, [], 0
+    for _ in range(15 * 31):
+        if b[sb % 31]: o = a[sa % 15]; sa += 1
+        sb += 1
+        seq.append(o)
+    return seq
+POKEY = [
+    [0, 1],                                     # pure
+    toggled(poly(5, (0, 2))),                   # 5 bit gated: the bumbly bass
+    toggled(poly(4, (0, 1))),                   # 4 bit gated
+    poly(4, (0, 1)),                            # 4 bit buzz
+    poly(5, (0, 2)),                            # 5 bit buzz
+    held(),                                     # 4 bit held by the 5 bit
+    poly(9, (0, 4)),                            # 9 bit noise
+    poly(5, (0, 2), 6),                         # 5 bit, slowed
+]
+out.append(f"#define POKEY_N {len(POKEY)}u")
+arr("POKEY_LEN", "uint16_t", [len(b) for b in POKEY], 10)
+out.append("static const uint8_t POKEY_BITS[%d][64] = {" % len(POKEY))
+for b in POKEY:
+    by = [0] * 64
+    for i, v in enumerate(b): by[i >> 3] |= v << (i & 7)
+    out.append("    {" + ", ".join(map(str, by)) + "},")
+out.append("};")
 
 # VRC6: pulse volume 0..15 as is; the saw steps 7 times, 5 bit out of a 6 bit rate (3 x volume)
 # AY-3-8910 / YM2149: 16 levels, about 3 dB apart

@@ -15,6 +15,9 @@
  *                    (worst block since boot) and CC 101 = open project | 16 if unsaved | 32 if loaded from flash
  *
  * Integers only: no float, no 64-bit division. tests/host.c runs this file on a computer. */
+#ifndef CHIPBOX_HOST
+#define OTA_PROJ_IO
+#endif
 #include "platform.c"
 #ifdef CHIPBOX_HOST
 #define FM1_TICKS_PER_US 24u
@@ -22,6 +25,7 @@ static uint32_t fm1_ticks(void) { return 0; }
 #endif
 #include "chips.c"
 #include "proj.c"
+#include "projio.c"
 
 /* ---- one look per chip */
 typedef struct {
@@ -47,6 +51,18 @@ static const theme_t THEME[CHIPS] = {
      RGB(10, 10, 16), RGB(3, 3, 8), RGB(240, 240, 246), RGB(150, 112, 250), RGB(80, 74, 120), RGB(240, 240, 246), RGB(150, 112, 250)},
     {"VIRTUAL BOY", {"VB1", "VB2", "VB3"},                                        /* red on black, the only colour its screens had */
      RGB(6, 0, 0), RGB(0, 0, 0), RGB(255, 70, 60), RGB(255, 36, 30), RGB(120, 24, 22), RGB(255, 70, 60), RGB(255, 36, 30)},
+    {"ATARI 8-BIT", {"PK1", "PK2", "PK3"},                                        /* the 800's plum-black, pink for the notes */
+     RGB(30, 14, 26), RGB(18, 8, 16), RGB(240, 226, 232), RGB(236, 88, 140), RGB(124, 76, 100), RGB(240, 226, 232), RGB(236, 88, 140)},
+    {"PC SPEAKER", {"SP1", "SP2", "SP3"},                                         /* the BIOS: DOS blue, white text */
+     RGB(0, 0, 112), RGB(0, 0, 70), RGB(228, 228, 232), RGB(255, 255, 255), RGB(86, 86, 170), RGB(228, 228, 232), RGB(255, 255, 255)},
+    {"ADLIB", {"OP1", "OP2", "OP3"},                                              /* a sound card: a dark green board, gold contacts */
+     RGB(6, 26, 22), RGB(3, 16, 14), RGB(230, 236, 224), RGB(236, 184, 60), RGB(70, 110, 90), RGB(230, 236, 224), RGB(236, 184, 60)},
+    {"NAMCO WSG", {"WS1", "WS2", "WS3"},                                          /* the arcade: black, the maze's blue bars, Pac-Man yellow */
+     RGB(4, 4, 18), RGB(8, 8, 56), RGB(236, 236, 255), RGB(255, 226, 0), RGB(60, 70, 160), RGB(236, 236, 255), RGB(255, 226, 0)},
+    {"NAMCO 163", {"N1", "N2", "N3"},                                             /* a cartridge: slate with coral */
+     RGB(22, 26, 40), RGB(12, 15, 26), RGB(236, 238, 246), RGB(255, 112, 96), RGB(96, 104, 134), RGB(236, 238, 246), RGB(255, 112, 96)},
+    {"SUNSOFT 5B", {"5B1", "5B2", "5B3"},                                         /* a cartridge: night blue, a sun */
+     RGB(10, 14, 34), RGB(5, 8, 22), RGB(244, 240, 226), RGB(255, 196, 36), RGB(100, 96, 80), RGB(244, 240, 226), RGB(255, 196, 36)},
 };
 
 static void text_on(uint32_t x, uint32_t y, uint32_t w, const felucca_font_t *f, const char *s, uint16_t c, uint16_t bg, int align)
@@ -75,14 +91,14 @@ static int quiet(void)
 }
 
 /* ---- parameters under the knobs */
-static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV; }
-static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD; }                              /* page 4 is its operators */
-static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI; }                       /* the NES triangle has no level control */
+static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV || chan[c].kind == KD_WSG || chan[c].kind == KD_N163; }
+static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kind == KD_OPL; }                              /* page 4 is its operators */
+static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI && chan[c].kind != KD_SPK; }                       /* the NES triangle has no level control */
 static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU; }
 static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : has_wave(c) || has_fm(c) ? 4u : 3u; }                  /* pages of knobs */
 static uint32_t has_k1(uint32_t c)                                                               /* knob 1 does something on the tone page */
 {
-    return has_wave(c) || has_duty(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_MD;
+    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B;
 }
 static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return (ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD || ch == CHIP_VB) && !IS_DRUM(chan[c].kind); }
 static int8_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return (int8_t)(v < lo ? lo : v > hi ? hi : v); }
@@ -103,13 +119,15 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         int32_t v;
         if (has_wave(c)) { v = ((int32_t)in->wave + 2) / 5 + (d < 0 ? -1 : 1); in->wave = (uint8_t)((v < 0 ? 0 : v > 3 ? 3 : v) * 5); }       /* pulse, saw, triangle, sine */
         else if (chan[c].kind == KD_TIA) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 9);          /* the sound type */
-        else if (chan[c].kind == KD_AY) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 15);         /* the noise mix */
-        else if (chan[c].kind == KD_MD) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 3);          /* the algorithm */
+        else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 15);         /* the noise mix */
+        else if (chan[c].kind == KD_POKEY) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);        /* the distortion */
+        else if (has_fm(c)) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 3);          /* the algorithm */
         else if (has_duty(c)) { v = (int32_t)in->duty + d; in->duty = (uint8_t)(v < 0 ? 0 : v > (chan[c].kind == KD_VRC6_PU ? 7 : 3) ? (chan[c].kind == KD_VRC6_PU ? 7 : 3) : v); }
     }
     else if (k == 1u) in->vol = (uint8_t)clamp_i((int32_t)in->vol + d, 0, 15);
     else if (k == 2u) in->vib_dep = (uint8_t)clamp_i((int32_t)in->vib_dep + d, 0, 15);
     else if (has_pan(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, 2);
+    else if (chan[c].kind == KD_S5B) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, 3);          /* the buzz */
     else in->sweep = clamp_i((int32_t)in->sweep + d, -16, 16);
 }
 
@@ -148,14 +166,23 @@ static void channel_glyph(uint32_t c, int32_t x, int32_t y, int32_t w, int32_t h
 {
     static const uint8_t D8[4] = {1, 2, 4, 6};
     const inst_t *in = &chan[c].in;
-    if (chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV) {
+    if (has_wave(c)) {
         uint8_t wv[32];
         int32_t i;
         wave_make(in, wv);                                      /* the wave itself, as it is now */
         for (i = 0; i < 32; i++) cv_rect(x + i * w / 32, y + h - 2 - wv[i] * (h - 2) / 15, w / 32 + 1, 2, col);
     } else if (chan[c].kind == KD_NES_TRI) wave_glyph(G_TRI, 0, x, y, w, h, col);
     else if (chan[c].kind == KD_VRC6_SAW) wave_glyph(G_SAW, 0, x, y, w, h, col);
-    else if (chan[c].kind == KD_MD) wave_glyph(G_SINE, 0, x, y, w, h, col);
+    else if (has_fm(c)) wave_glyph(G_SINE, 0, x, y, w, h, col);
+    else if (chan[c].kind == KD_SPK) wave_glyph(G_PULSE, 4, x, y, w, h, col);
+    else if (chan[c].kind == KD_POKEY) {                        /* the distortion's bits, as they run */
+        uint32_t w7 = in->wave > 7u ? 7u : in->wave;
+        int32_t i, n = POKEY_LEN[w7] < 24u ? (int32_t)POKEY_LEN[w7] : 24;
+        for (i = 0; i < 24; i++) {
+            uint32_t j = (uint32_t)i % (uint32_t)n;
+            cv_rect(x + i * w / 24, POKEY_BITS[w7][j >> 3] >> (j & 7u) & 1u ? y : y + h - 2, w / 24 + 1, 2, col);
+        }
+    }
     else if (chan[c].kind == KD_TIA) {                          /* the sound type's bits, as they run */
         uint32_t w9 = in->wave > 9u ? 9u : in->wave;
         int32_t i, n = TIA_LEN[w9] < 24u ? (int32_t)TIA_LEN[w9] : 24;
@@ -245,6 +272,15 @@ static void app_main(void)
         uint8_t st, d1, d2;
         int32_t e;
         platform_poll();
+#ifndef CHIPBOX_HOST
+        if (px_open_req) {                              /* a project came in over USB: open it */
+            uint32_t sl = px_open_req - 1u;
+            px_open_req = 0;
+            if (sl == proj_cur) proj_dirty = 0;         /* (the open one was just replaced: its unsaved copy is the old one) */
+            proj_open(sl); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; view = 1;
+            pick_on = 0; menu_on = 0;
+        }
+#endif
         if (!chan_n && !view) { view = 1; rack_force = 1; chip_drawn = ~0u; }       /* no channels: only the rack makes sense */
         if (rec_on && (view == 2u || view == 3u || !seq_run || sel >= chan_n || pick_on)) { rec_on = 0; duck_ch = 255; }     /* recording stops with the playing, the song screen, the + row */
         if (view == 3u) rack_cur = ed_cur;

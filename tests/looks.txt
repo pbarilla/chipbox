@@ -1,0 +1,23 @@
+# rack rows with repeats, song dots, the menu with output settings
+100 enc 6 -1
+200 btn 1
+300 btn 1
+400 btn 1
+500 enc 6 1
+600 btn 1
+700 btn 1
+800 btn 1
+1500 shot
+1600 btn 8
+1700 btn 8
+2400 shot
+2500 btn 8
+2600 held 0x180
+2700 held 0
+3400 shot
+3500 enc 6 1
+3600 btn 1
+3700 enc 6 -1
+3800 enc 0 1
+4500 shot
+5000 end

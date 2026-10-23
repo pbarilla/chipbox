@@ -13,79 +13,78 @@
 3700 shot
 4000 btn 1
 4400 shot
-4600 enc 6 1
-4900 shot
-5100 enc 6 -1
-5400 btn 1
-6900 shot
-7100 btn 11
-7350 shot
-8050 shot
-8250 keys 0x800000
-8370 keys 0
-8550 shot
-8650 keys 0x40000
+4600 btn 1
+5000 shot
+5200 btn 1
+6700 shot
+6900 btn 11
+7150 shot
+7850 shot
+8050 keys 0x800000
+8170 keys 0
+8350 shot
+8450 keys 0x40000
+8570 keys 0
+8650 keys 0x80000
 8770 keys 0
-8850 keys 0x80000
+8850 keys 0x200000
 8970 keys 0
-9050 keys 0x200000
-9170 keys 0
-9350 shot
-9550 enc 0 1
-9670 enc 0 1
-9970 shot
-10170 btn 6
-10470 shot
-10670 btn 12
-12470 shot
-12670 btn 12
-12970 btn 0
-13270 shot
-14470 btn 11
-15770 shot
-16070 btn 5
-16270 shot
-17170 btn 13
-17320 shot
-18120 enc 0 -1
-19020 shot
-19120 keys 0x10000
-19420 keys 0
-19720 shot
-19820 btn 13
-20720 held 0x100
-20780 held 0
-22020 shot
-22120 enc 1 1
-22520 shot
-22620 enc 1 1
-23020 shot
-23120 held 0x100
-23180 held 0
-24420 shot
-24520 btn 1
-25320 shot
-25420 held 0x100
-25480 held 0
-26120 btn 2
-27420 shot
-27520 keys 0x1
-28120 shot
-28220 keys 0
-28520 btn 2
-29120 held 0x180
-29200 held 0
-29720 shot
-29820 enc 0 1
-29970 enc 0 1
-30120 btn 1
-30620 shot
-30720 btn 0
-31220 btn 7
-31820 shot
-31920 btn 7
-32320 held 0x100
-33220 held 0x140
-34120 shot
-34220 held 0
-34620 end
+9150 shot
+9350 enc 0 1
+9470 enc 0 1
+9770 shot
+9970 btn 6
+10270 shot
+10470 btn 12
+12270 shot
+12470 btn 12
+12770 btn 0
+13070 shot
+14270 btn 11
+15570 shot
+15870 btn 5
+16070 shot
+16970 btn 13
+17120 shot
+17920 enc 0 -1
+18820 shot
+18920 keys 0x10000
+19220 keys 0
+19520 shot
+19620 btn 13
+20520 held 0x100
+20580 held 0
+21820 shot
+21920 enc 1 1
+22320 shot
+22420 enc 1 1
+22820 shot
+22920 held 0x100
+22980 held 0
+24220 shot
+24320 btn 1
+25120 shot
+25220 held 0x100
+25280 held 0
+25920 btn 2
+27220 shot
+27320 keys 0x1
+27920 shot
+28020 keys 0
+28320 btn 2
+28920 held 0x180
+29000 held 0
+29520 shot
+29620 enc 0 1
+29770 enc 0 1
+29920 btn 1
+30420 shot
+30520 btn 0
+31020 btn 7
+31620 shot
+31720 btn 7
+32120 held 0x100
+33020 held 0x140
+33920 shot
+34020 held 0
+34420 end
