@@ -32,6 +32,10 @@
   code { padding:1px 6px; }
   pre { padding:14px 16px; overflow-x:auto; margin:8px 0 14px; }
   .note { color:var(--dim); }
+  .cons { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th, td { text-align:left; padding:6px 10px; border-bottom:1px solid #2a2a34; vertical-align:top; }
+  th { color:var(--dim); font-weight:400; white-space:nowrap; }
   footer { margin-top:56px; color:var(--dim); font-size:14px; }
   @media (max-width:560px) { h1 { font-size:34px; } .shots { grid-template-columns:1fr; } }
 </style>
@@ -65,6 +69,12 @@
     <figure><img src="img/wave.png" alt="The wave page: shape, fold, step and twist"><figcaption>WAVE</figcaption></figure>
   </div>
 
+  <h2>Consoles</h2>
+  <div class="cons">
+<!-- consoles -->
+<table><tr><th>Console</th><th>Channels</th><th>Documentation</th></tr><tr><td>NES</td><td>Pulse, Triangle, Drums</td><td><a href="https://www.nesdev.org/wiki/APU">APU</a>, <a href="https://www.nesdev.org/wiki/APU_Mixer">APU mixer</a> (NESdev wiki)</td></tr><tr><td>Game Boy</td><td>Pulse, Wave, Drums</td><td><a href="https://gbdev.io/pandocs/Audio.html">Audio</a> (Pan Docs)</td></tr><tr><td>Master System</td><td>Tone, Drums</td><td><a href="https://www.smspower.org/Development/SN76489">SN76489</a> (SMS Power!)</td></tr><tr><td>PC Engine</td><td>Wave, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/pce.html">PC Engine</a> (Furnace manual)</td></tr><tr><td>Atari 2600</td><td>Sound, Drums</td><td><a href="https://www.atarihq.com/danb/files/TIA_HW_Notes.txt">TIA hardware notes</a> (Andrew Towers)</td></tr><tr><td>Konami VRC6</td><td>Pulse, Saw, Drums</td><td><a href="https://www.nesdev.org/wiki/VRC6_audio">VRC6 audio</a> (NESdev wiki)</td></tr><tr><td>AY-3-8910</td><td>Tone, Drums</td><td><a href="https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910">AY-3-8910</a> (Wikipedia)</td></tr><tr><td>Mega Drive</td><td>FM, Drums</td><td><a href="https://info.sonicretro.org/SCHG:Mega_Drive_Audio">Mega Drive audio</a> (Sonic Retro), <a href="https://en.wikipedia.org/wiki/Yamaha_YM2612">YM2612</a> (Wikipedia)</td></tr><tr><td>Virtual Boy</td><td>Wave, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/virtual-boy.html">Virtual Boy</a> (Furnace manual)</td></tr><tr><td>Atari 8-bit</td><td>Sound, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/pokey.html">POKEY</a> (Furnace manual), <a href="https://en.wikipedia.org/wiki/POKEY">POKEY</a> (Wikipedia)</td></tr><tr><td>PC Speaker</td><td>Beeper, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/pcspkr.html">PC speaker</a> (Furnace manual), <a href="https://en.wikipedia.org/wiki/PC_speaker">PC speaker</a> (Wikipedia)</td></tr><tr><td>AdLib</td><td>FM, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/opl.html">OPL</a> (Furnace manual)</td></tr><tr><td>Namco WSG</td><td>Wave, Drums</td><td><a href="https://tildearrow.org/furnace/doc/latest/7-systems/namco.html">Namco WSG</a> (Furnace manual)</td></tr><tr><td>Namco 163</td><td>Wave, Drums</td><td><a href="https://www.nesdev.org/wiki/Namco_163_audio">Namco 163 audio</a> (NESdev wiki)</td></tr><tr><td>Sunsoft 5B</td><td>Tone, Drums</td><td><a href="https://www.nesdev.org/wiki/Sunsoft_5B_audio">Sunsoft 5B audio</a> (NESdev wiki)</td></tr></table>
+<!-- /consoles -->
+  </div>
   <h2>What is it</h2>
   <p>A simple (to me) workflow for making music. Theres 3 main views you'll spend all your time in:</p>
   <ul>

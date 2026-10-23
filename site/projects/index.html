@@ -32,21 +32,21 @@
   #bar { width:100%; height:6px; display:none; }
   .small { color:var(--dim); font-size:14px; }
   input[type=file] { display:none; }
+  body.busy button, body.busy .btn, body.busy select { opacity:.4; pointer-events:none; }
 </style>
 </head>
 <body>
 <main>
   <nav><a href="../">Home</a><a href="../manual/">Tutorials</a><a href="../guide/">Manual</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
   <h1><a href="../">Chipbox</a><span class="tag">PROJECTS</span></h1>
-  <p>Save your projects, load someone else's, or try our samples.</p>
   <p><button id="connect">Connect the FM-1</button></p>
   <progress id="bar" max="100" value="0"></progress>
   <p id="status"></p>
 
   <div id="mine" hidden>
-    <h2>On your FM-1</h2>
     <div id="slots"></div>
-    <p class="btns" style="margin-top:14px"><button id="backup" class="alt">Back up all</button> <button id="restore" class="alt">Restore a backup</button></p>
+    <p class="btns" style="margin-top:14px"><button id="backup" class="alt">Create backup</button> <button id="restore" class="alt">Restore backup</button></p>
+    <p id="confirm" hidden></p>
   </div>
 
   <h2>Samples</h2>

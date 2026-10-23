@@ -26,6 +26,12 @@ const fail = (e) => {
   else say(e && e.message ? e.message : String(e));
 };
 
+let busy = false;
+const op = async (fn) => {                      // one thing at a time: the FM-1 takes one transfer at once
+  if (busy) return;
+  busy = true; document.body.classList.add("busy");
+  try { await fn(); } catch (e) { fail(e); } finally { busy = false; document.body.classList.remove("busy"); }
+};
 let dev = null, info = null, samples = [], pending = null;     // pending: { slot, restore } for the file chooser
 
 const save = (name, text) => {
@@ -59,15 +65,12 @@ async function refresh() {
   renderSamples();
 }
 
-async function download(i) {
-  try {
-    say("Reading…");
-    const bytes = await dev.read(i, prog);
-    prog(null);
-    save(i === 0 ? "demo.chipbox" : `project-${i}.chipbox`, toFile([{ name: i === 0 ? "Demo" : "Project " + i, bytes }]));
-    say("Saved.");
-  } catch (e) { fail(e); }
-}
+const download = (i) => op(async () => {
+  say("");
+  const bytes = await dev.read(i, prog);
+  prog(null);
+  save(i === 0 ? "demo.chipbox" : `project-${i}.chipbox`, toFile([{ name: i === 0 ? "Demo" : "Project " + i, bytes }]));
+});
 
 function chooseFor(slot, b) {
   const open = () => { pending = { slot }; $("pick").value = ""; $("pick").click(); };
@@ -84,16 +87,11 @@ $("pick").addEventListener("change", async (ev) => {
   pending = null;
   let list;
   try { list = fromFile(await f.text()); } catch (_) { fail({ code: "badfile" }); return; }
-  try {
-    if (restore) { await putAll(list); return; }
-    await put(slot, list[0].bytes);
-    say(`Slot ${slot} has it now, and it's open on the FM-1.`);
-    await refresh();
-  } catch (e) { fail(e); }
+  if (restore) { askRestore(list); return; }
+  op(async () => { await put(slot, list[0].bytes); await refresh(); });
 });
 
 async function put(slot, bytes) {
-  say(`Writing slot ${slot}…`);
   await dev.write(slot, bytes, prog);
   prog(null);
 }
@@ -101,37 +99,34 @@ async function put(slot, bytes) {
 async function putAll(list) {
   const n = Math.min(list.length, info.slots.length - 1);
   for (let i = 0; i < n; i++) await put(i + 1, list[i].bytes);
-  say(`Restored ${n} project${n === 1 ? "" : "s"} into slots 1 to ${n}.`);
   await refresh();
 }
 
-$("backup").addEventListener("click", async () => {
-  try {
-    const out = [];
-    for (let i = 1; i < info.slots.length; i++) {
-      if (!info.slots[i].used) continue;
-      say(`Reading slot ${i}…`);
-      out.push({ name: "Project " + i, bytes: await dev.read(i, prog) });
-    }
-    prog(null);
-    if (!out.length) { say("Nothing to back up."); return; }
-    save(`chipbox-backup-${new Date().toISOString().slice(0, 10)}.chipbox`, toFile(out));
-    say(`Saved ${out.length} project${out.length === 1 ? "" : "s"}.`);
-  } catch (e) { fail(e); }
-});
+function askRestore(list) {                     // the picker came first; the warning only when something would really be replaced
+  const n = Math.min(list.length, info.slots.length - 1);
+  let used = 0;
+  for (let i = 1; i <= n; i++) if (info.slots[i].used) used++;
+  const go = () => { $("confirm").hidden = true; op(() => putAll(list)); };
+  if (!used) { go(); return; }
+  const c = $("confirm");
+  c.textContent = `This replaces ${n === 1 ? "slot 1" : `slots 1 to ${n}`}. `;
+  c.append(btn("Replace", "warn", go), " ", btn("Cancel", "alt", () => { c.hidden = true; }));
+  c.hidden = false;
+}
 
-let restoreArmed = false;
-$("restore").addEventListener("click", () => {
-  const b = $("restore");
-  if (!restoreArmed) {
-    restoreArmed = true;
-    b.textContent = "This replaces your projects. Pick a file";
-    b.className = "warn";
-    return;
+$("backup").addEventListener("click", () => op(async () => {
+  const out = [];
+  for (let i = 1; i < info.slots.length; i++) {
+    if (!info.slots[i].used) continue;
+    out.push({ name: "Project " + i, bytes: await dev.read(i, prog) });
   }
-  restoreArmed = false;
-  b.textContent = "Restore a backup";
-  b.className = "alt";
+  prog(null);
+  if (!out.length) { say("Nothing to back up."); return; }
+  save(`chipbox-backup-${new Date().toISOString().slice(0, 10)}.chipbox`, toFile(out));
+}));
+
+$("restore").addEventListener("click", () => {
+  $("confirm").hidden = true;
   pending = { slot: 0, restore: true };
   $("pick").value = "";
   $("pick").click();
@@ -143,7 +138,6 @@ function renderSamples() {
   for (const s of samples) {
     const row = mk("div", "row");
     const what = mk("div", "what", s.name);
-    what.append(mk("small", "", s.text));
     const b = mk("div", "btns");
     const a = mk("a", "btn alt", "Download");
     a.href = s.file;
@@ -162,27 +156,27 @@ function renderSamples() {
   }
 }
 
-async function sendSample(s, sel, send) {
+function sendSample(s, sel, send) {
   const slot = Number(sel.value);
   if (info.slots[slot].used && !send.armed) { send.armed = true; send.textContent = `Replace slot ${slot}?`; send.className = "warn"; return; }
-  try {
+  op(async () => {
     const r = await fetch(s.file);
     const list = fromFile(await r.text());
     await put(slot, list[0].bytes);
-    say(`${s.name} is in slot ${slot} and open on the FM-1.`);
     await refresh();
-  } catch (e) { fail(e); }
+  });
 }
 
-$("connect").addEventListener("click", async () => {
+$("connect").addEventListener("click", () => {
   if (!navigator.requestMIDIAccess) { say(TEXT.nomidi); return; }
-  try {
-    say("Looking…");
-    dev = await Device.connect();
-    await refresh();
-    say("Connected.");
-    $("connect").textContent = "Refresh";
-  } catch (e) { dev = null; fail(e); }
+  op(async () => {
+    say("");
+    try {
+      dev = await Device.connect();
+      await refresh();
+      $("connect").textContent = "Refresh";
+    } catch (e) { dev = null; throw e; }
+  });
 });
 
 (async () => {
