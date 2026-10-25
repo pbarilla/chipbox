@@ -110,7 +110,7 @@ static void fx_master(int32_t *out, uint32_t n)
         if (hold > 1u || (m & FXB(FX_CRUSH))) {
             if (++fx_hold_n >= hold) { fx_hold_n = 0; fx_held_l = x[0]; fx_held_r = x[1]; }
             x[0] = fx_held_l; x[1] = fx_held_r;
-            if (m & FXB(FX_CRUSH)) { x[0] = (x[0] >> 9) << 9; x[1] = (x[1] >> 9) << 9; }
+            if (m & FXB(FX_CRUSH)) { x[0] = (x[0] >> 9) * 512; x[1] = (x[1] >> 9) * 512; }
         }
         for (c = 0; c < 2; c++) {
             int32_t v = x[c];

@@ -62,7 +62,7 @@ static void sid_env(uint32_t c, uint32_t cyc)   /* the envelope, a number of SID
     }
 }
 #define SID_NW(r) (((r >> 20 & 1u) << 11) | ((r >> 18 & 1u) << 10) | ((r >> 14 & 1u) << 9) | ((r >> 11 & 1u) << 8) | ((r >> 9 & 1u) << 7) | ((r >> 5 & 1u) << 6) | ((r >> 2 & 1u) << 5) | ((r & 1u) << 4))       /* eight register bits make the top eight bits of the wave */
-static uint32_t sid_busy(uint32_t c) { return !(sid[c].hold && sid[c].st == SE_REL); }
+static uint32_t sid_busy(uint32_t c) { return sid[c].run && !(sid[c].hold && sid[c].st == SE_REL); }       /* run: the voice has been keyed since it was last cleared (a fresh voice is not busy: the chip may sleep) */
 
 static void sid_set(uint32_t c, uint32_t pq, uint32_t vol)       /* at each tick: pitch, pulse width, filter */
 {

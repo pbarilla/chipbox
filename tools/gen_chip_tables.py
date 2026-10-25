@@ -187,11 +187,30 @@ out.append("};")
 # VRC6: pulse volume 0..15 as is; the saw steps 7 times, 5 bit out of a 6 bit rate (3 x volume)
 # AY-3-8910 / YM2149: 16 levels, about 3 dB apart
 AY = [0, 0.0137, 0.0205, 0.0291, 0.0423, 0.0618, 0.0847, 0.1369, 0.1691, 0.2647, 0.3527, 0.4499, 0.5704, 0.6873, 0.8482, 1.0]
-arr("AY_AMP", "uint8_t", [round(100 * v) for v in AY])
+arr("AY_AMP", "uint16_t", [round(1600 * v) for v in AY])      # x16 finer than a byte: the quietest step (1.4 %) rounded to 1 / 100 was 2 dB low
 arr("YM_AMP", "uint16_t", [0] + [round(1600 * 10 ** (-3 * (15 - i) / 20)) for i in range(1, 16)])      # the YM2149 / 5B: 3 dB a step, 16 x finer so the quiet steps stay apart
 
 # Mega Drive FM (YM2612 style, three operators): a sine, modulation depth, feedback, ratios (in halves)
-arr("SIN_T", "int16_t", [round(16384 * math.sin(2 * math.pi * i / 1024)) for i in range(1024)], 16)
+SINT = [round(16384 * math.sin(2 * math.pi * i / 1024)) for i in range(1024)]
+arr("SIN_T", "int16_t", SINT, 16)
+
+
+def opz_wave(m, i):                             # the OPZ's waves 1..7 at phase i / 1024: squared, half, half squared, alternating, ..., camel squared (0 is the sine)
+    s = SINT[i]
+    if m & 2 and s < 0:
+        s = 0
+    if m >= 4:
+        if i >> 9:
+            return 0
+        s = SINT[(2 * i) & 1023]
+        if m >= 6 and s < 0:
+            s = -s
+    if m & 1:
+        s = s * abs(s) >> 14
+    return s
+
+
+arr("OPZ_T", "int16_t", [opz_wave(m, i) for m in range(1, 8) for i in range(1024)], 16)       # a lookup a sample, like the sine: the waves cost no more than the OPM's
 # modulation depth: 3 dB a step, 4 cycles (the chips' 8 pi) at the top; feedback: the chips' doubling steps from pi / 16 to 4 pi (2 cycles); the operator multiples in halves
 arr("FM_IDX", "uint32_t", [0] + [round(262144 * 10 ** (-3 * (15 - i) / 20)) for i in range(1, 16)], 8)
 arr("FM_FB", "uint32_t", [0] + [round(131072 * 2 ** (-6 * (15 - i) / 14)) for i in range(1, 16)], 8)
@@ -200,6 +219,8 @@ arr("FM_RAT", "uint8_t", [1] + [2 * m for m in range(1, 16)], 16)            # O
 arr("OPL_RAT", "uint8_t", [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30], 16)       # the OPL family: 0.5, 1 to 10, 12, 12, 15, 15
 # attenuation in 0.75 dB steps (the chips' TL step), Q16; and the INDEX decay: dB a second for the DECAY knob, in 0.75 dB steps
 arr("DB_ATT", "uint32_t", [round(65536 * 10 ** (-0.0375 * i)) for i in range(128)], 8)
+arr("OPL3_SAW", "uint16_t", [round(16384 * 2 ** (-i / 32)) for i in range(32)], 8)       # the OPL3 wave 7: its level halves every 32 of 512 steps, exponentially
+arr("ATK_K", "uint16_t", [4096] + [round(4096 * (1 - math.exp(-3.47 * 4 / q))) for q in range(1, 64)], 8)       # the OPL attack: the share of the missing level gained a tick, by the attack in quarter ticks (the attenuation falls as e^(-3.47 t / T))
 arr("FM_DEC", "uint16_t", [0] + [round(30 * 2 ** ((n - 1) * 0.5) / 0.75) for n in range(1, 16)], 8)
 
 # punch-in filters: a one-pole low-pass / high-pass coefficient (Q14) for 16 cutoffs; 0 = open (bypassed)
@@ -235,14 +256,14 @@ VRC7_ROM = [
 ML = [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30]
 def rate_ms(r): return 9820.0 * 2 ** (1 - r) if r else 1e9              # time for a full fall at a rate 0..15, about
 def to_ticks(ms): return max(0, min(15, round((ms / (1000 / 60) - 1) / 2)))
-def dbps(r): return 0.0 if r == 0 else 2.95 * 2 ** (r - 1)               # a rate 1..15 as dB a second (measured on the chip, no key scaling)
+def dbps(r): return 0.0 if r == 0 else 2.2 * 2 ** (r - 1)                # a rate 1..15 as dB a second at the lowest pitch (no key scaling: chips.c adds it per note, opll_kf)
 def knob_for(db):                                                           # the ENV knob (0 fast .. 15 slow) whose dB a second is nearest: 543 / 2^(n / 2)
     return 15 if db <= 0 else max(0, min(15, round(2 * math.log2(543.0 / db))))
 rows = []
 for d in OPLL_ROM + VRC7_ROM:
     car_ar, car_dr, car_sl, car_rr, car_eg = d[5] >> 4, d[5] & 15, d[7] >> 4, d[7] & 15, d[1] >> 5 & 1
     mod_dr, mod_eg, mod_rr, mod_sl = d[4] & 15, d[0] >> 5 & 1, d[6] & 15, d[6] >> 4
-    atk = 0 if car_ar >= 13 else min(15, round(0.31 * 2 ** (13 - car_ar) / (1000 / 60)))
+    atk = 0 if car_ar >= 13 else min(15, round(0.41 * 2 ** (13 - car_ar) / (1000 / 60)))
     dec = 15 if car_dr == 0 else knob_for(dbps(car_dr))
     sus = 0 if car_sl == 15 else 15 - car_sl                                  # 3 dB a step, like the engine's level
     if car_dr == 0: sus = 15
@@ -251,7 +272,7 @@ for d in OPLL_ROM + VRC7_ROM:
     rows.append((ML[d[1] & 15], ML[d[0] & 15], d[3] & 7, ws, atk, dec, sus, rel, round(262144 * 10 ** (-0.0375 * (d[2] & 63))),
                  round(dbps(mod_dr) / 0.75), mod_sl * 4, round(dbps(mod_rr) / 0.75), mod_eg, d[2] >> 6, d[3] >> 6, car_eg,
                  0 if d[4] >> 4 >= 13 else min(255, round(0.31 * 2 ** (13 - (d[4] >> 4)) / (1000 / 60))),             # ... the carrier's EG flag and the modulator's attack in ticks
-                 (d[0] >> 7 & 1) | (d[0] >> 6 & 1) << 1 | (d[1] >> 7 & 1) << 2 | (d[1] >> 6 & 1) << 3))          # tremolo (AM) and vibrato flags: modulator bits 0, 1, carrier bits 2, 3
+                 (d[0] >> 7 & 1) | (d[0] >> 6 & 1) << 1 | (d[1] >> 7 & 1) << 2 | (d[1] >> 6 & 1) << 3 | (d[0] >> 4 & 1) << 4 | (d[1] >> 4 & 1) << 5))          # tremolo (AM) and vibrato flags: modulator bits 0, 1, carrier bits 2, 3; key scale of the rates (KSR): modulator bit 4, carrier bit 5
 out.append("static const struct { uint8_t cm, mm, fb, ws, atk, dec, sus, rel; uint32_t idx; uint16_t dru; uint8_t slu; uint16_t rru; uint8_t eg, kslm, kslc, ceg, mta, fl; } OPLL_P[30] = {")
 out.append("    /* violin guitar piano flute clarinet oboe trumpet organ horn synth harpsichord vibraphone synth-bass bass electric-guitar; then the VRC7's 15 */")
 for r in rows: out.append("    {" + ", ".join(str(v) for v in r) + "},")
@@ -263,7 +284,7 @@ def ksl_tmp(n):
     blk = 0
     while blk < 7 and fr * 2 ** (19 - blk) / 49716.0 >= 512: blk += 1          # the smallest block whose 9 bit fnum fits
     fnum = min(511, round(fr * 2 ** (19 - blk) / 49716.0))
-    return max(0, int(KL[fnum >> 5] - 6.0 * (7 - blk)))
+    return max(0, round((KL[fnum >> 5] - 6.0 * (7 - blk)) / 0.375))                  # in the chip's 0.375 dB steps, at KSL 3
 arr("ENV_EXP", "uint16_t", [max(1, round(543.0 / 2 ** (n / 2) * 256 / 180)) for n in range(16)], 8)            # the ROM-instrument envelopes: the ENV knob as a fall of 543 / 2^(n/2) dB a second, in engine level steps a tick (3 dB = 256)
 arr("KSL_TMP", "uint8_t", [ksl_tmp(n) for n in N], 16)
 
@@ -277,6 +298,8 @@ arr("VRC6P_INC", "uint32_t", quant(1789773 / 16, 1, 4096), 8)           # VRC6 p
 arr("VRC6S_INC", "uint32_t", quant(1789773 / 14, 1, 4096), 8)           # VRC6 saw: 1.79 MHz / (14 (P + 1))
 arr("S5B_INC", "uint32_t", quant(1789773 / 32, 1, 4095), 8)             # the 5B: 1.79 MHz / (32 P)
 arr("AY_INC", "uint32_t", quant(1773447 / 16, 1, 4095), 8)              # the AY on a Spectrum: 1.773 MHz / (16 P)
+arr("SSG_INC", "uint32_t", quant(1996800 / 16, 1, 4095), 8)            # the YM2203 / YM2608 SSG (PC-88, PC-98): clock / 2 or / 4 = 1.9968 MHz / (16 P)
+arr("SSGN_INC", "uint32_t", quant(2000000 / 16, 1, 4095), 8)           # the YM2610 SSG (Neo Geo): 8 MHz / 4 = 2 MHz / (16 P)
 arr("FDS_INC", "uint32_t", [inc_k(min(4095, round(f(n) / (1789773 / 4194304 * 1.0)))*(1789773 / 4194304)) for n in N], 8)      # the FDS: f = p * clk / 2^22, p 12 bit
 
 # Philips SAA1099 (Sam Coupe): a 3 bit octave and an 8 bit step, f = 15625 * 2^octave / (511 - step), so a note lands on the nearest step
@@ -327,6 +350,19 @@ for want in (3, 7, 15, 31, 63, 127, 4095):
     LYNX.append((cyc[c], c))
 arr("LYNX_MASK", "uint16_t", [0] + [m for m, c in LYNX], 8)
 arr("LYNX_LEN", "uint16_t", [2] + [c for m, c in LYNX], 8)
+# the long cycles (63, 126, 4095) are played tuned: the register's bit sequence as a running count of ones (so a frame's box average is two lookups)
+LYX = []
+for m, c in LYNX[4:]:
+    st = 0xFFF
+    for _ in range(4100): st = ((st << 1) | (bin(st & m).count("1") & 1)) & 0xFFF
+    run = [0]
+    for _ in range(c):
+        st = ((st << 1) | (bin(st & m).count("1") & 1)) & 0xFFF
+        run.append(run[-1] + (st & 1))
+    LYX += run
+arr("LYNX_CUM", "uint16_t", LYX, 16)
+# the fastest the chip can step a cycle is its timer's 1 MHz: the largest note phase step per oscillator step (176.4 kHz) for the three tuned cycles
+arr("LYNX_CAP", "uint32_t", [round(2 ** 32 * 1e6 / c / FSO) for m, c in LYNX[4:]], 3)
 
 dst = Path(__file__).resolve().parent.parent / "firmware" / "gen" / "chip_tables.h"
 dst.write_text("\n".join(out) + "\n")
