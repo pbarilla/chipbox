@@ -24,6 +24,7 @@
 static uint32_t fm1_ticks(void) { return 0; }
 #endif
 #include "chips.c"
+static int add_aud_c = -1;                      /* the Add Channel audition's channel on loan (addmenu.c); -1 none */
 #include "proj.c"
 #include "projio.c"
 
@@ -270,6 +271,7 @@ static void draw_note(const theme_t *t, uint32_t note)
 #include "flair.c"
 #include "chipview.c"
 #include "menu.c"
+#include "addmenu.c"
 #include "picker.c"
 
 static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms = fm1_ms; return v; }       /* knobs count as being touched */
@@ -364,7 +366,8 @@ static void app_main(void)
             down = up = 0;
         }
         for (k = 0; k < 27u; k++) {
-            if (down >> k & 1u) {
+            if ((down >> k & 1u) && menu_on && (menu_kind == MK_ADD || menu_kind == MK_ADD2)) { held[k] = (uint8_t)(base + k); held_ch[k] = 255u; add_key_on(held[k]); }       /* the Add Channel list: the keys play the console on the bar */
+            else if (down >> k & 1u) {
                 held[k] = (uint8_t)(base + k); held_ch[k] = (uint8_t)sel;
                 if (sel < chan_n) {
                     uint32_t dr = IS_DRUM(chan[sel].kind), bk = BLK_IDX[k] < 0 ? 99u : (uint32_t)BLK_IDX[k];      /* a drum channel: the black keys are the kit (BD SD CP TM CH OH CY CB) */
@@ -396,7 +399,8 @@ static void app_main(void)
                     }
                 }
             }
-            if (up >> k & 1u) {
+            if ((up >> k & 1u) && held_ch[k] == 255u) { add_key_off(held[k]); held_ch[k] = 0; }
+            else if (up >> k & 1u) {
                 if ((int32_t)k == ed_hold_k) ed_hold_k = -1;
                 if (held_ch[k] < chan_n && last_note == held[k]) chip_off(held_ch[k]);
                 midi_send(0x80 | (held_ch[k] & 15u), held[k], 0);
@@ -531,15 +535,22 @@ static void app_main(void)
             } else anim_start(AN_UNDO, 0);
         }
         undo_tick();
-        if ((b & (1u << BTN_SAVE)) && proj_cur >= PROJ_DEMOS) { if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
+        if ((b & (1u << BTN_SAVE)) && proj_cur >= PROJ_DEMOS) { add_aud_stop(); if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
         if (in_menu) {                                  /* in a menu only SELECT does anything (and, in a pick list, OCT+ yes, OCT- no) */
+            if (b & ((1u << BTN_OCT_UP) | (1u << BTN_OCT_DOWN))) add_aud_stop();          /* the audition's channel goes before anything is added */
+            if (menu_on && menu_kind == MK_ADD) {           /* the Add Channel list: KNOB1 groups, SEL opens the card, OCT- closes it first */
+                e = fm1_enc_take(ENC_KNOB1);
+                if (e) add_mode_step(e);
+                if (b & (1u << BTN_SEL)) { add_card ^= 1u; menu_dirty = 1; }
+                if (add_card && (b & (1u << BTN_OCT_DOWN))) { add_card = 0; menu_dirty = 1; b &= ~(1u << BTN_OCT_DOWN); }
+            }
             e = fm1_enc_take(ENC_SELECT);
-            if (e) menu_scroll(e);
+            if (e) { if (menu_kind == MK_ADD) add_scroll(e); else menu_scroll(e); }
             e = fm1_enc_take(ENC_PRESETS);
-            if (e) menu_scroll(e);
+            if (e) { if (menu_kind == MK_ADD) add_scroll(e); else menu_scroll(e); }
             if (menu_on && (b & (1u << BTN_OCT_UP))) {
                 if (menu_kind == MK_ADD) {                      /* a console: its channels */
-                    add_console = menu_sel - 1u;
+                    add_console = add_chip(); add_card = 0;
                     menu_open_pick(ADD_SUB[add_console].l, ADD_SUB[add_console].n); menu_kind = MK_ADD2;
                 } else if (menu_kind == MK_COPY) {
                     int c;
@@ -566,7 +577,7 @@ static void app_main(void)
                     sel = 0; rack_rm = 0; last_note = 255u; view = 1;
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u; anim_start(AN_OPEN, 0);
                 }
-            } else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind == MK_ADD2) { menu_open_pick(ADD_MENU, sizeof ADD_MENU / sizeof ADD_MENU[0]); menu_kind = MK_ADD; menu_sel = add_console + 1u; }       /* back to the consoles */
+            } else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind == MK_ADD2) { add_open(add_console); }       /* back to the consoles */
             else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind != MK_HELP) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
             fm1_enc_take(ENC_ALGORITHM);
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
@@ -637,7 +648,7 @@ static void app_main(void)
             if ((uint32_t)(set.oct + 2) != oct_was) anim_cont(AN_OCT, oct_was << 4 | (uint32_t)(set.oct + 2), 900u);
         } else {
         if (view == 1u && sel == chan_n && chan_n < MAXCH && (b & (1u << BTN_OCT_UP))) {                 /* OCT+ (yes) on the "+" row: add a channel */
-            menu_open_pick(ADD_MENU, sizeof ADD_MENU / sizeof ADD_MENU[0]); menu_kind = MK_ADD; add_console = 0;
+            add_open(CHIPS); add_console = 0;
         } else if (rack_rm) {                           /* removing a channel: OCT+ yes, OCT- no */
             if (b & (1u << BTN_OCT_UP)) { uint32_t gone = KIND_CHIP[chan[sel].kind]; seq_stop(); chan_remove(sel); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_REMOVE, gone | (uint32_t)sel << 8); }
             else if (b & (1u << BTN_OCT_DOWN)) { rack_rm = 0; rack_inval = 1; }
@@ -738,6 +749,7 @@ static void app_main(void)
         if (!anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
             anim_start(AN_CRIT, crit_n++ % 6u); crit_next = fm1_ms + 15000u;
         }
+        add_aud_tick();
         if (pick_on) { if (pick_dirty) { pick_draw(); pick_dirty = 0; } }
         else if (menu_on) { if (menu_dirty) { menu_draw(t->acc); menu_dirty = 0; }      /* (the three bands cover the whole screen: no clear first, that was the flash) */ }
         else if (fx_layer) {
@@ -756,7 +768,7 @@ static void app_main(void)
             hdr_update(0, sel, t, ch_chip, last_note);
         }
 
-        if (proj_dirty && proj_cur >= PROJ_DEMOS && !seq_run && !pick_on && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
+        if (proj_dirty && proj_cur >= PROJ_DEMOS && !seq_run && !pick_on && add_aud_c < 0 && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
             if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } else proj_t_fail = fm1_ms;
         }
         if (dirty && quiet() && fm1_ms - t_change > 2000u) {

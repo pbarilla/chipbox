@@ -20,6 +20,7 @@ typedef struct {               /* proportional, see tools/gen_font.py */
 static uint16_t cv_px[CV_MAX] __attribute__((section(".pool")));
 static uint32_t cv_w, cv_h;
 static int32_t cv_oy;            /* y offset for graph drawing */
+static int32_t cv_sc = 1, cv_sx, cv_sy;       /* rectangles drawn bigger: a picture made for 1x at cv_sc x, from (cv_sx, cv_sy) */
 
 #define RGB(r, g, b) ((uint16_t)((((r) >> 3) << 11) | (((g) >> 2) << 5) | ((b) >> 3)))
 #define C_BLACK 0x0000u
@@ -86,8 +87,10 @@ static inline void cv_pset(int32_t x, int32_t y, uint16_t c)
 
 static void cv_rect(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c)
 {
-    int32_t x1 = x + w, y1 = y + h + cv_oy, i;
+    int32_t x1, y1, i;
     uint16_t sc = swap16(c);
+    if (cv_sc != 1) { x = cv_sx + x * cv_sc; y = cv_sy + y * cv_sc; w *= cv_sc; h *= cv_sc; }
+    x1 = x + w; y1 = y + h + cv_oy;
     y += cv_oy;                             /* clipped once, then filled row by row */
     if (x < 0)
         x = 0;

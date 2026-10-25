@@ -1,0 +1,19 @@
+# the new Add Channel list: open it, scroll, change the grouping (KNOB1), the card (SEL), the audition
+300 enc 6 1
+350 enc 6 1
+400 enc 6 1
+450 enc 6 1
+600 btn 1
+900 shot
+1700 shot
+1800 enc 0 1
+1850 enc 0 1
+1900 enc 0 1
+2000 shot
+2800 shot
+2900 enc 2 1
+3200 shot
+3300 enc 2 1
+3600 shot
+3700 btn 3
+4100 shot

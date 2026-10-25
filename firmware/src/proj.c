@@ -126,6 +126,7 @@ static void undo_push(void)                     /* a new group of edits begins: 
 }
 static void undo_tick(void)                     /* main loop: a quiet moment closes the group; the project as it is then is the base */
 {
+    if (add_aud_c >= 0) return;                 /* the Add Channel audition has a channel on loan: not part of the project */
     if (!undo_base_ok || (undo_open && fm1_ms - undo_t > 600u)) { undo_base_len = proj_pack(undo_base); undo_base_ok = undo_base_len != 0u; undo_open = 0; }
 }
 static void undo_reset(void) { undo_cnt = 0; undo_base_ok = 0; undo_open = 0; }

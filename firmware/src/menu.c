@@ -107,9 +107,11 @@ static void menu_scroll(int32_t d)
     if (d < 0 && top > 0u) top--;
     if (top != menu_top) { menu_top = top; menu_dirty = 1; }
 }
+static void add_draw(uint16_t accent);
 static void menu_draw(uint16_t accent)
 {
     uint32_t b, r;
+    if (menu_kind == MK_ADD) { add_draw(accent); return; }          /* the Add Channel list is drawn by addmenu.c */
     for (b = 0; b < 3u; b++) {
         cv_begin(240, 80, R_BG);
         for (r = 0; r < 4u; r++) {
