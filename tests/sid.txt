@@ -1,0 +1,29 @@
+# the SID: the chip screen's five pages, a filter set (CUT, MODE) on the last
+100 midi 0xB0 106 80
+500 held 0x100
+550 held 0
+950 enc 6 1
+1030 enc 6 1
+1110 enc 6 1
+1190 enc 6 1
+1970 shot
+2000 enc 1 1
+2400 shot
+2500 enc 1 1
+2900 shot
+3000 enc 1 1
+3400 shot
+3500 enc 1 1
+3900 shot
+4000 enc 5 2
+4100 enc 4 1
+4200 enc 3 2
+4300 enc 2 3
+4700 shot
+4800 enc 1 1
+5200 shot
+5300 enc 2 4
+5350 enc 4 3
+5400 enc 3 4
+5450 enc 5 1
+5900 shot

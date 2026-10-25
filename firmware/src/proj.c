@@ -96,7 +96,7 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
         x->in.vib_spd = q[7]; x->in.vib_dep = q[8]; x->in.sweep = (int8_t)q[9]; x->in.pan = q[10]; x->in.vol = q[11];
         x->in.arp = q[12]; x->in.arp_rate = q[13]; x->in.arp_dir = q[14];
         if (isz == 14u) { static const uint8_t OLD[4] = {0, 5, 10, 15}; x->in.wave = OLD[q[1] & 3u]; }       /* version 2: wave was one of four presets */
-        else { x->in.wf = q[15] & 15u; x->in.wc = q[16] & 15u; x->in.wt = q[17] & 15u; }
+        else { const uint32_t m = q[0] == KD_SID ? 255u : 15u; x->in.wf = q[15] & m; x->in.wc = q[16] & m; x->in.wt = q[17] & m; }       /* the SID packs two settings in a byte */
     }
     for (i = 0; i < ev; i++) {
         const uint8_t *e = p + n + i * PROJ_EV;

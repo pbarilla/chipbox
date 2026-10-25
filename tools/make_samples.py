@@ -20,6 +20,7 @@ K.update(PC98_FM=57, PC98_SSG=58, NEO_FM=59, NEO_SSG=60, NGP=61, OPL1=62, OPZ=63
 for i, n in enumerate("PC98 NEO NGP OPL1 OPZ SN77 C30".split()): K["DRUMS_" + n] = 66 + i
 K.update(MSM=73, ZX=74)
 for i, n in enumerate("MSM ZX".split()): K["DRUMS_" + n] = 75 + i
+K.update(OPN_FM=77, OPN_SSG=78, DRUMS_OPN=79, SID=80, DRUMS_SID=81)
 # wave, duty, atk, dec, sus, rel, vib_spd, vib_dep, sweep, pan  (the firmware's INST_DEF, chips.c)
 D = {"NES_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1), "NES_TRI": (0, 0, 0, 0, 15, 2, 5, 0, 0, 1), "GB_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1),
      "GB_WAV": (15, 0, 0, 0, 15, 2, 5, 0, 0, 1), "SMS": (0, 0, 0, 6, 14, 4, 5, 4, 0, 1), "PCE": (5, 0, 0, 0, 12, 2, 5, 0, 0, 1),

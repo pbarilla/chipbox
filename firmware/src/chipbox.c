@@ -106,6 +106,10 @@ static const theme_t THEME[CHIPS] = {
      RGB(24, 18, 26), RGB(14, 10, 16), RGB(246, 234, 240), RGB(255, 60, 120), RGB(122, 80, 98), RGB(246, 234, 240), RGB(255, 60, 120)},
     {"ZX SPECTRUM", {"ZX1", "ZX2", "ZX3"},                                        /* black, a Spectrum red, the rainbow in the rule */
      RGB(8, 8, 10), RGB(2, 2, 4), RGB(240, 240, 240), RGB(236, 60, 56), RGB(100, 100, 106), RGB(240, 240, 240), RGB(236, 60, 56)},
+    {"YM2203", {"FM1", "FM2", "FM3"},                                             /* a PC-88's blue-grey case, a bright steel blue */
+     RGB(26, 34, 46), RGB(16, 22, 32), RGB(226, 232, 240), RGB(96, 176, 255), RGB(96, 112, 134), RGB(226, 232, 240), RGB(96, 176, 255)},
+    {"SID", {"SD1", "SD2", "SD3"},                                                /* the C64's blue and its light blue */
+     RGB(53, 40, 121), RGB(40, 30, 96), RGB(214, 208, 255), RGB(120, 208, 222), RGB(112, 98, 176), RGB(214, 208, 255), RGB(120, 208, 222)},
 };
 
 static void text_on(uint32_t x, uint32_t y, uint32_t w, const felucca_font_t *f, const char *s, uint16_t c, uint16_t bg, int align)
@@ -135,20 +139,27 @@ static int quiet(void)
 
 /* ---- parameters under the knobs */
 static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV || chan[c].kind == KD_WSG || chan[c].kind == KD_N163 || chan[c].kind == KD_FDS || chan[c].kind == KD_SCC || chan[c].kind == KD_WS || chan[c].kind == KD_C30; }
-static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kind == KD_OPL || chan[c].kind == KD_OPM || chan[c].kind == KD_OPL3 || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPL1 || chan[c].kind == KD_OPZ; }                              /* page 4 is its operators */
+static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kind == KD_OPL || chan[c].kind == KD_OPM || chan[c].kind == KD_OPL3 || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPL1 || chan[c].kind == KD_OPZ || chan[c].kind == KD_OPN_FM; }                              /* page 4 is its operators */
 static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI && chan[c].kind != KD_SPK && chan[c].kind != KD_ZX; }                       /* the NES triangle has no level control */
 static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_MMC5 || chan[c].kind == KD_ZX; }
 static uint32_t has_buzz(uint32_t c) { return chan[c].kind == KD_S5B || chan[c].kind == KD_FDS || chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM; }                        /* knob 4 on the tone page picks one of four (the 5B's buzz, the Disk System's modulator) */
-static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : has_wave(c) || has_fm(c) ? 4u : 3u; }                  /* pages of knobs */
+static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : chan[c].kind == KD_SID ? 5u : has_wave(c) || has_fm(c) ? 4u : 3u; }       /* the SID has two more: pulse and sync, filter */                  /* pages of knobs */
 static uint32_t has_k1(uint32_t c)                                                               /* knob 1 does something on the tone page */
 {
-    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B || IS_OPLL(chan[c].kind) || chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC || chan[c].kind == KD_LYNX || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM;
+    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_SID || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B || IS_OPLL(chan[c].kind) || chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC || chan[c].kind == KD_LYNX || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM;
 }
 static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return (ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD || ch == CHIP_VB || ch == CHIP_OPM || ch == CHIP_WS || ch == CHIP_SAA || ch == CHIP_LYNX || ch == CHIP_PC98 || ch == CHIP_NEO || ch == CHIP_NGP || ch == CHIP_C30) && chan[c].kind != KD_PC98_SSG && chan[c].kind != KD_NEO_SSG && !IS_DRUM(chan[c].kind); }
 static int8_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return (int8_t)(v < lo ? lo : v > hi ? hi : v); }
 static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* knob k of a page of cards, on channel c */
 {
     inst_t *in = &chan[c].in;
+    if (chan[c].kind == KD_SID && (page >= 3u || (page == 0u && (k == 0u || k == 3u)))) {       /* the SID: waveform and chip on the tone page, pulse and sync, filter */
+        static const uint8_t SPN[3][4] = {{SP_WAVE, 0, 0, SP_MODEL}, {SP_PW, SP_PWM, SP_SYNC, SP_RING}, {SP_CUT, SP_RES, SP_MODE, SP_FENV}};
+        static const uint8_t SMX[3][4] = {{7, 0, 0, 1}, {15, 15, 15, 15}, {15, 15, 7, 15}};
+        const uint32_t n = SPN[page == 0u ? 0u : page - 2u][k];
+        sid_put(in, n, (uint32_t)clamp_i((int32_t)sid_get(in, n) + d, 0, SMX[page == 0u ? 0u : page - 2u][k]));
+        return;
+    }
     if (page == 3u) {                                           /* the wave: shape, fold, crush, twist (the FM: ratio, index, feedback, decay) */
         uint8_t *p = k == 0u ? &in->wave : k == 1u ? &in->wf : k == 2u ? &in->wc : &in->wt;
         *p = (uint8_t)clamp_i((int32_t)*p + d, 0, 15);
@@ -163,14 +174,14 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         int32_t v;
         if (has_wave(c)) { v = ((int32_t)in->wave + 2) / 5 + (d < 0 ? -1 : 1); in->wave = (uint8_t)((v < 0 ? 0 : v > 3 ? 3 : v) * 5); }       /* pulse, saw, triangle, sine */
         else if (chan[c].kind == KD_TIA) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 10);          /* the sound type */
-        else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B || chan[c].kind == KD_SAA || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 15);         /* the noise mix */
+        else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B || chan[c].kind == KD_SAA || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 15);         /* the noise mix */
         else if (chan[c].kind == KD_TED || chan[c].kind == KD_VIC) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 1);
         else if (chan[c].kind == KD_MSM) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 1, 15);          /* the footages, one bit each */
         else if (chan[c].kind == KD_SN77) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 3);          /* the mixer */          /* tone or noise */
         else if (chan[c].kind == KD_LYNX) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);         /* the sound */
         else if (chan[c].kind == KD_POKEY) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);        /* the distortion */
         else if (IS_OPLL(chan[c].kind)) opll_set(in, chan[c].kind, (uint32_t)clamp_i((int32_t)in->wave + d, 0, 14));       /* the instrument, with its envelope */
-        else if (has_fm(c)) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, chan[c].kind == KD_OPL1 ? 1 : chan[c].kind == KD_OPM || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPZ || chan[c].kind == KD_MD ? 7 : 3);          /* the algorithm */
+        else if (has_fm(c)) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, chan[c].kind == KD_OPL1 ? 1 : chan[c].kind == KD_OPM || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPN_FM || chan[c].kind == KD_OPZ || chan[c].kind == KD_MD ? 7 : 3);          /* the algorithm */
         else if (has_duty(c)) { v = (int32_t)in->duty + d; in->duty = (uint8_t)(v < 0 ? 0 : v > (chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_ZX ? 7 : 3) ? (chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_ZX ? 7 : 3) : v); }
     }
     else if (k == 1u) in->vol = (uint8_t)clamp_i((int32_t)in->vol + d, 0, 15);
