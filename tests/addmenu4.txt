@@ -1,0 +1,8 @@
+50 enc 6 1
+80 enc 6 1
+110 enc 6 1
+140 enc 6 1
+200 btn 1
+5450 shot
+5800 shot
+5950 shot

@@ -605,7 +605,7 @@ static void r_wave4(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, u
                 osc[c].ph += osc[c].inc;
                 v += ((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 15) * (int32_t)osc[c].vol * 7;
             }
-            if (n163) { cnt += rate; if (cnt >= FS * OS) { cnt -= FS * OS; hold = v / (int32_t)(na > 8u ? 8u : na ? na : 1u) / 8; } acc += hold; }       /* the one DAC takes the voices in turn: each is 1/N of the output, and the chip sits well below the 2A03 */
+            if (n163) { cnt += rate; if (cnt >= FS * OS) { cnt -= FS * OS; hold = v / (int32_t)(na > 8u ? 8u : na ? na : 1u) / 2; } acc += hold; }       /* the one DAC takes the voices in turn: each is 1/N of the output */
             else acc += v;
         }
         out[2u * i] += acc; out[2u * i + 1u] += acc;

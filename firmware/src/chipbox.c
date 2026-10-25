@@ -541,7 +541,7 @@ static void app_main(void)
             if (menu_on && menu_kind == MK_ADD) {           /* the Add Channel list: KNOB1 groups, SEL opens the card, OCT- closes it first */
                 e = fm1_enc_take(ENC_KNOB1);
                 if (e) add_mode_step(e);
-                if (b & (1u << BTN_SEL)) { add_card ^= 1u; menu_dirty = 1; }
+                if (b & (1u << BTN_SEL)) { add_card ^= 1u; add_touch(); menu_dirty = 1; }
                 if (add_card && (b & (1u << BTN_OCT_DOWN))) { add_card = 0; menu_dirty = 1; b &= ~(1u << BTN_OCT_DOWN); }
             }
             e = fm1_enc_take(ENC_SELECT);
@@ -749,7 +749,7 @@ static void app_main(void)
         if (!anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
             anim_start(AN_CRIT, crit_n++ % 6u); crit_next = fm1_ms + 15000u;
         }
-        add_aud_tick();
+        add_aud_tick(); add_info_tick();
         if (pick_on) { if (pick_dirty) { pick_draw(); pick_dirty = 0; } }
         else if (menu_on) { if (menu_dirty) { menu_draw(t->acc); menu_dirty = 0; }      /* (the three bands cover the whole screen: no clear first, that was the flash) */ }
         else if (fx_layer) {
