@@ -11,6 +11,13 @@ K = dict(NES_PU=0, NES_TRI=1, GB_PU=2, GB_WAV=3, SMS=4, PCE=5, TIA=6, VRC6_PU=7,
          POKEY=21, SPK=22, OPL=23, WSG=24, N163=25, S5B=26)
 for i, n in enumerate("NES GB SMS PCE TIA VRC6 AY MD VB".split()): K["DRUMS_" + n] = 12 + i
 for i, n in enumerate("POKEY SPK OPL WSG N163 S5B".split()): K["DRUMS_" + n] = 27 + i
+K.update(MMC5=33, FDS=34, SCC=35, OPLL=36, VRC7=41, OPM=42, OPL3=43, WS=44)
+for i, n in enumerate("MMC5 FDS SCC OPLL".split()): K["DRUMS_" + n] = 37 + i
+for i, n in enumerate("VRC7 OPM OPL3 WS".split()): K["DRUMS_" + n] = 45 + i
+K.update(SAA=49, VIC=50, TED=51, LYNX=52)
+for i, n in enumerate("SAA VIC TED LYNX".split()): K["DRUMS_" + n] = 53 + i
+K.update(PC98_FM=57, PC98_SSG=58, NEO_FM=59, NEO_SSG=60, NGP=61, OPL1=62, OPZ=63, SN77=64, C30=65)
+for i, n in enumerate("PC98 NEO NGP OPL1 OPZ SN77 C30".split()): K["DRUMS_" + n] = 66 + i
 # wave, duty, atk, dec, sus, rel, vib_spd, vib_dep, sweep, pan  (the firmware's INST_DEF, chips.c)
 D = {"NES_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1), "NES_TRI": (0, 0, 0, 0, 15, 2, 5, 0, 0, 1), "GB_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1),
      "GB_WAV": (15, 0, 0, 0, 15, 2, 5, 0, 0, 1), "SMS": (0, 0, 0, 6, 14, 4, 5, 4, 0, 1), "PCE": (5, 0, 0, 0, 12, 2, 5, 0, 0, 1),

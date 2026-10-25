@@ -71,6 +71,64 @@ static void skin_box(uint32_t chip, const theme_t *t, int32_t x, int32_t y, int3
     } else if (chip == CHIP_S5B) {                              /* an amber line, a little sun in each top corner */
         ring(x, y, w, h, 1, t->acc);
         cv_rect(x + 3, y + 3, 3, 3, t->acc); cv_rect(x + w - 6, y + 3, 3, 3, t->acc);
+    } else if (chip == CHIP_MMC5) {                             /* a mint line, corners cut like the NES's boxes, a dim line inside */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x, y, 2, 2, t->bg); cv_rect(x + w - 2, y, 2, 2, t->bg); cv_rect(x, y + h - 2, 2, 2, t->bg); cv_rect(x + w - 2, y + h - 2, 2, 2, t->bg);
+    } else if (chip == CHIP_FDS) {                              /* an orange frame, the top right corner cut like a disk's */
+        ring(x, y, w, h, 2, t->acc);
+        cv_rect(x + w - 7, y, 7, 7, t->bg); cv_rect(x + w - 7, y + 5, 7, 2, t->acc); cv_rect(x + w - 7, y + 5, 2, 2, t->bg);
+    } else if (chip == CHIP_SCC) {                              /* a lime line, three little steps in the bottom right corner */
+        ring(x, y, w, h, 1, t->acc);
+        cv_rect(x + w - 10, y + h - 4, 7, 1, t->acc); cv_rect(x + w - 7, y + h - 6, 4, 1, t->acc); cv_rect(x + w - 4, y + h - 8, 1, 1, t->acc);
+    } else if (chip == CHIP_OPLL) {                             /* a cyan line, rounded, a dim line inside */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x, y, 3, 3, t->bg); cv_rect(x + w - 3, y, 3, 3, t->bg); cv_rect(x, y + h - 3, 3, 3, t->bg); cv_rect(x + w - 3, y + h - 3, 3, 3, t->bg);
+        cv_rect(x + 2, y + 1, 1, 1, t->acc); cv_rect(x + 1, y + 2, 1, 1, t->acc);
+    } else if (chip == CHIP_VRC7) {                             /* a vermilion line, the top right corner cut deep, a dim line inside */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x + w - 6, y, 6, 6, t->bg); cv_rect(x + w - 6, y + 5, 6, 1, t->acc); cv_rect(x + w - 6, y + 5, 1, 1, t->bg);
+    } else if (chip == CHIP_OPM) {                              /* a magenta double line, a notch in the middle of the top and bottom */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x + w / 2 - 4, y, 8, 3, t->bg); cv_rect(x + w / 2 - 4, y + h - 3, 8, 3, t->bg);
+    } else if (chip == CHIP_OPL3) {                             /* a silver line, little pins along the bottom edge */
+        ring(x, y, w, h, 1, t->acc);
+        { int32_t k; for (k = 4; k < w - 4; k += 4) cv_rect(x + k, y + h - 3, 2, 3, t->acc); }
+    } else if (chip == CHIP_WS) {                               /* a lavender line, rounded corners like a handheld's screen */
+        ring(x, y, w, h, 2, t->acc);
+        cv_rect(x, y, 3, 3, t->bg); cv_rect(x + w - 3, y, 3, 3, t->bg); cv_rect(x, y + h - 3, 3, 3, t->bg); cv_rect(x + w - 3, y + h - 3, 3, 3, t->bg);
+    } else if (chip == CHIP_SAA) {                              /* a yellow line over a four colour stripe along the bottom */
+        ring(x, y, w, h, 1, t->acc);
+        cv_rect(x + 2, y + h - 3, w / 4, 2, RGB(230, 50, 50)); cv_rect(x + 2 + w / 4, y + h - 3, w / 4, 2, RGB(255, 190, 40)); cv_rect(x + 2 + w / 2, y + h - 3, w / 4, 2, RGB(60, 200, 80)); cv_rect(x + 2 + w * 3 / 4, y + h - 3, w / 4 - 4, 2, RGB(60, 140, 240));
+    } else if (chip == CHIP_VIC) {                              /* a pale cyan line inside a blue border, like the screen */
+        ring(x, y, w, h, 3, t->dim); ring(x + 3, y + 3, w - 6, h - 6, 1, t->acc);
+    } else if (chip == CHIP_TED) {                              /* a green line, a grey line inside it, square corners */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+    } else if (chip == CHIP_LYNX) {                             /* an orange line, corners cut like a handheld's bezel */
+        ring(x, y, w, h, 2, t->acc);
+        cv_rect(x, y, 4, 2, t->bg); cv_rect(x, y, 2, 4, t->bg); cv_rect(x + w - 4, y, 4, 2, t->bg); cv_rect(x + w - 2, y, 2, 4, t->bg);
+        cv_rect(x, y + h - 2, 4, 2, t->bg); cv_rect(x, y + h - 4, 2, 4, t->bg); cv_rect(x + w - 4, y + h - 2, 4, 2, t->bg); cv_rect(x + w - 2, y + h - 4, 2, 4, t->bg);
+    } else if (chip == CHIP_PC98) {                             /* a peach line, a dim line inside, a little tab at the top left like a floppy label */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x + 4, y, 10, 3, t->acc);
+    } else if (chip == CHIP_NEO) {                              /* a crimson double line, a gold line at the bottom */
+        ring(x, y, w, h, 2, t->acc);
+        cv_rect(x + 2, y + h - 4, w - 4, 1, RGB(255, 200, 40));
+    } else if (chip == CHIP_NGP) {                              /* a pink line, the corners rounded, a dim line inside */
+        ring(x, y, w, h, 1, t->acc); ring(x + 2, y + 2, w - 4, h - 4, 1, t->dim);
+        cv_rect(x, y, 4, 4, t->bg); cv_rect(x + w - 4, y, 4, 4, t->bg); cv_rect(x, y + h - 4, 4, 4, t->bg); cv_rect(x + w - 4, y + h - 4, 4, 4, t->bg);
+        cv_rect(x + 3, y + 1, 1, 2, t->acc); cv_rect(x + 1, y + 3, 2, 1, t->acc);
+    } else if (chip == CHIP_OPL1) {                             /* a green line, contacts along the bottom edge, like the AdLib's */
+        ring(x, y, w, h, 1, t->acc);
+        { int32_t k; for (k = 3; k < w - 3; k += 3) cv_rect(x + k, y + h - 3, 2, 3, t->acc); }
+    } else if (chip == CHIP_OPZ) {                              /* a cream line like an LCD's bezel, a darker line inside */
+        ring(x, y, w, h, 2, t->dim); ring(x + 2, y + 2, w - 4, h - 4, 1, t->acc);
+    } else if (chip == CHIP_SN77) {                             /* a cyan line, a short bright stroke in each corner like a vector screen */
+        ring(x, y, w, h, 1, t->dim);
+        cv_rect(x, y, 8, 1, t->acc); cv_rect(x, y, 1, 8, t->acc); cv_rect(x + w - 8, y, 8, 1, t->acc); cv_rect(x + w - 1, y, 1, 8, t->acc);
+        cv_rect(x, y + h - 1, 8, 1, t->acc); cv_rect(x, y + h - 8, 1, 8, t->acc); cv_rect(x + w - 8, y + h - 1, 8, 1, t->acc); cv_rect(x + w - 1, y + h - 8, 1, 8, t->acc);
+    } else if (chip == CHIP_C30) {                              /* a gold frame, two little lights in the top corners like a marquee's bulbs */
+        ring(x, y, w, h, 2, t->acc);
+        cv_rect(x + 4, y + 4, 3, 3, t->acc); cv_rect(x + w - 7, y + 4, 3, 3, t->acc);
     } else {                                                    /* a double line, corners cut: Phantasy Star's windows */
         ring(x, y, w, h, 1, t->fg); ring(x + 2, y + 2, w - 4, h - 4, 1, t->fg);
         cv_rect(x, y, 3, 1, t->bg); cv_rect(x, y + 1, 1, 2, t->bg); cv_rect(x + w - 3, y, 3, 1, t->bg); cv_rect(x + w - 1, y + 1, 1, 2, t->bg);
@@ -132,6 +190,48 @@ static void fm_diagram(const theme_t *t, uint32_t alg)
     cv_rect(bx[0] + 5, by[0] - 5, 2, 5, t->fg); cv_rect(bx[0] + 5, by[0] - 5, 20, 2, t->fg); cv_rect(bx[0] + 23, by[0] - 5, 2, 5, t->fg);        /* feedback */
 }
 
+/* the YM2151's eight algorithms (0..7) and the OPL3's four connections (8..11): four operators, who modulates whom, who reaches the output */
+static void fm4_diagram(const theme_t *t, uint32_t alg)
+{
+    static const int8_t POS[12][4][2] = {
+        {{0, 1}, {1, 1}, {2, 1}, {3, 1}}, {{0, 0}, {0, 2}, {1, 1}, {2, 1}}, {{0, 0}, {0, 2}, {1, 2}, {2, 1}}, {{0, 0}, {1, 0}, {1, 2}, {2, 1}},
+        {{0, 0}, {1, 0}, {0, 2}, {1, 2}}, {{0, 1}, {1, 0}, {1, 1}, {1, 2}}, {{0, 0}, {1, 0}, {1, 1}, {1, 2}}, {{1, 0}, {1, 1}, {1, 2}, {1, 3}},
+        {{0, 1}, {1, 1}, {2, 1}, {3, 1}}, {{0, 0}, {0, 2}, {1, 2}, {2, 2}}, {{0, 0}, {1, 0}, {2, 0}, {2, 2}}, {{1, 0}, {0, 2}, {1, 2}, {1, 3}}};
+    static const int8_t WIRE[12][3][2] = {                       /* from, to; the operator numbers count from 0; -1 none */
+        {{0, 1}, {1, 2}, {2, 3}}, {{0, 2}, {1, 2}, {2, 3}}, {{1, 2}, {0, 3}, {2, 3}}, {{0, 1}, {1, 3}, {2, 3}},
+        {{0, 1}, {2, 3}, {-1, 0}}, {{0, 1}, {0, 2}, {0, 3}}, {{0, 1}, {-1, 0}, {-1, 0}}, {{-1, 0}, {-1, 0}, {-1, 0}},
+        {{0, 1}, {1, 2}, {2, 3}}, {{1, 2}, {2, 3}, {-1, 0}}, {{0, 1}, {1, 2}, {-1, 0}}, {{1, 2}, {-1, 0}, {-1, 0}}};
+    static const uint8_t CARRY[12] = {8, 8, 8, 8, 10, 14, 14, 15, 8, 9, 12, 13};     /* a bit an operator */
+    int32_t bx[4], by[4], i, lo = 99, hi = 0, mid;
+    if (alg > 11u) alg = 0;
+    for (i = 0; i < 4; i++) { bx[i] = 10 + POS[alg][i][0] * 48; by[i] = 4 + POS[alg][i][1] * 15; }
+    for (i = 0; i < 3; i++) {
+        int32_t f = WIRE[alg][i][0], g = WIRE[alg][i][1];
+        if (f < 0) continue;
+        {   int32_t xm = bx[g] - 8, y0 = by[f] + 5, y1 = by[g] + 5;                 /* out of f, across, up or down, into g */
+            cv_rect(bx[f] + 26, y0, xm - bx[f] - 26 + 2, 2, t->fg);
+            cv_rect(xm, y0 < y1 ? y0 : y1, 2, (y0 < y1 ? y1 - y0 : y0 - y1) + 2, t->fg);
+            cv_rect(xm, y1, bx[g] - xm - 3, 2, t->fg);
+            cv_rect(bx[g] - 4, y1 - 2, 1, 6, t->fg); cv_rect(bx[g] - 3, y1 - 1, 1, 4, t->fg); cv_rect(bx[g] - 2, y1, 1, 2, t->fg);
+        }
+    }
+    for (i = 0; i < 4; i++) {
+        char l[2];
+        l[0] = (char)('1' + i); l[1] = 0;
+        cv_rect(bx[i], by[i], 26, 12, t->acc);
+        cv_text(bx[i] + 9, by[i] - 1, &FONT_S, l, t->bg);
+        if (CARRY[alg] >> i & 1u) {
+            cv_rect(bx[i] + 26, by[i] + 5, 202 - bx[i] - 26, 2, t->fg);
+            if (by[i] < lo) lo = by[i];
+            if (by[i] > hi) hi = by[i];
+        }
+    }
+    mid = (lo + hi) / 2 + 6;
+    cv_rect(202, lo + 5, 2, hi - lo + 2, t->fg);
+    cv_rect(204, mid - 1, 4, 2, t->fg);
+    cv_text(210, mid - 6, &FONT_S, "OUT", t->fg);
+}
+
 /* the OPL2's two operators: A modulates C (or both play, in the last pair); C's wave is drawn above it: sine, half sine, absolute sine */
 static void opl_diagram(const theme_t *t, uint32_t alg)
 {
@@ -174,7 +274,7 @@ static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
     { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
     if (page == 0u && fm) {                                     /* the FM: the operators and how they connect */
-        if (chip == CHIP_OPL) opl_diagram(t, in->duty); else fm_diagram(t, in->duty);
+        if (chip == CHIP_OPL) opl_diagram(t, in->duty); else if (chip == CHIP_OPL1) opl_diagram(t, in->duty ? 3u : 0u); else if (chip == CHIP_OPM || chip == CHIP_OPL3 || chip == CHIP_PC98 || chip == CHIP_NEO || chip == CHIP_OPZ) fm4_diagram(t, in->duty + (chip == CHIP_OPL3 ? 8u : 0u)); else fm_diagram(t, in->duty);
         cv_blit(0, CV_ENV_Y);
         return;
     }
@@ -258,6 +358,67 @@ static void card_bar(const theme_t *t, uint32_t chip, int32_t x, int32_t v, int3
     } else if (chip == CHIP_S5B) {                              /* seven rays, short and long */
         int32_t lit = (v * 7 + max - 1) / max;
         for (i = 0; i < 7; i++) cv_rect(x + 8 + i * 6, i & 1 ? 36 : 32, 3, i & 1 ? 12 : 16, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_MMC5) {                             /* six blocks, two rows */
+        int32_t lit = (v * 6 + max - 1) / max;
+        for (i = 0; i < 6; i++) cv_rect(x + 8 + (i % 3) * 13, 32 + (i / 3) * 10, 11, 8, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_FDS) {                              /* eight bars along a sine */
+        static const uint8_t SH[8] = {10, 15, 17, 15, 10, 5, 3, 5};
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 50 - SH[i], 4, SH[i], i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_SCC) {                              /* a staircase of eight */
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 46 - i * 2 - 2, 4, 4 + i * 2, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_OPLL) {                             /* twelve thin ticks, every third one tall */
+        int32_t lit = (v * 12 + max - 1) / max;
+        for (i = 0; i < 12; i++) cv_rect(x + 8 + i * 3, i % 3 ? 38 : 32, 2, i % 3 ? 8 : 14, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_VRC7) {                             /* eight bars, rising */
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 48 - i * 2 - 4, 4, 4 + i * 2, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_OPM) {                              /* a zigzag of ten */
+        int32_t lit = (v * 10 + max - 1) / max;
+        for (i = 0; i < 10; i++) cv_rect(x + 8 + i * 4, i & 1 ? 32 : 40, 3, 10, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_OPL3) {                             /* eight pins, a chip's legs */
+        int32_t lit = (v * 8 + max - 1) / max;
+        cv_rect(x + 8, 34, 40, 4, t->dim);
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 38, 3, 10, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_WS) {                               /* a row of seven dots, the middle high */
+        int32_t lit = (v * 7 + max - 1) / max;
+        for (i = 0; i < 7; i++) cv_rect(x + 8 + i * 6, 40 - (i < 4 ? i : 6 - i) * 3, 4, 4, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_SAA) {                              /* six bars, the pairs of the chip's three groups */
+        int32_t lit = (v * 6 + max - 1) / max;
+        for (i = 0; i < 6; i++) cv_rect(x + 8 + i * 7 - (i & 1 ? 0 : 0), 34 + (i & 1) * 4, 5, 12 - (i & 1) * 4, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_VIC) {                              /* seven square steps, left to right */
+        int32_t lit = (v * 7 + max - 1) / max;
+        for (i = 0; i < 7; i++) cv_rect(x + 8 + i * 6, 34, 4, 12, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_TED) {                              /* nine thin bars */
+        int32_t lit = (v * 9 + max - 1) / max;
+        for (i = 0; i < 9; i++) cv_rect(x + 8 + i * 5, 36, 3, 10, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_LYNX) {                             /* eight cells in a row, a bar of noise-ish heights */
+        static const uint8_t HH[8] = {6, 12, 8, 14, 5, 11, 9, 13};
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) cv_rect(x + 8 + i * 5, 48 - HH[i], 4, HH[i], i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_PC98) {                             /* eight floppy-shaped cells */
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) { cv_rect(x + 8 + i * 5, 36, 4, 10, i < lit ? t->acc : t->dim); cv_rect(x + 8 + i * 5, 36, 1, 1, t->bg); }
+    } else if (chip == CHIP_NEO) {                              /* six wide blocks, crimson */
+        int32_t lit = (v * 6 + max - 1) / max;
+        for (i = 0; i < 6; i++) cv_rect(x + 8 + i * 7, 34, 6, 14, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_NGP) {                              /* ten tiny dots in two rows */
+        int32_t lit = (v * 10 + max - 1) / max;
+        for (i = 0; i < 10; i++) cv_rect(x + 8 + (i % 5) * 8, 34 + (i / 5) * 8, 6, 6, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_OPL1) {                             /* a strip of nine little lights */
+        int32_t lit = (v * 9 + max - 1) / max;
+        for (i = 0; i < 9; i++) cv_rect(x + 8 + i * 4, 40, 3, 5, i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_OPZ) {                              /* a row of LCD segments */
+        int32_t lit = (v * 8 + max - 1) / max;
+        for (i = 0; i < 8; i++) { cv_rect(x + 8 + i * 5, 34, 4, 3, i < lit ? t->acc : t->dim); cv_rect(x + 8 + i * 5, 40, 4, 3, i < lit ? t->acc : t->dim); cv_rect(x + 8 + i * 5, 46, 4, 3, i < lit ? t->acc : t->dim); }
+    } else if (chip == CHIP_SN77) {                             /* a cyan scribble of ten bars */
+        static const uint8_t HS[10] = {4, 9, 14, 8, 3, 7, 13, 10, 5, 11};
+        int32_t lit = (v * 10 + max - 1) / max;
+        for (i = 0; i < 10; i++) cv_rect(x + 8 + i * 4, 48 - HS[i], 3, HS[i], i < lit ? t->acc : t->dim);
+    } else if (chip == CHIP_C30) {                              /* a row of gold bulbs */
+        int32_t lit = (v * 7 + max - 1) / max;
+        for (i = 0; i < 7; i++) cv_rect(x + 9 + i * 6, 38, 5, 5, i < lit ? t->acc : t->dim);
     } else if (chip == CHIP_GB) {                               /* five chunky cells */
         int32_t lit = (v * 5 + max - 1) / max;
         for (i = 0; i < 5; i++) cv_rect(x + 8 + i * 8, 34, 7, 14, i < lit ? t->acc : t->dim);
@@ -285,7 +446,7 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
     cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
         int32_t x = CV_CARD_X(k), i;
-        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_POKEY ? "DIST" : chan[c].kind == KD_AY || chan[c].kind == KD_S5B ? "NOISE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : chan[c].kind == KD_S5B ? "BUZZ" : "SWEEP";
+        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 3u ? (fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_POKEY ? "DIST" : chan[c].kind == KD_AY || chan[c].kind == KD_S5B || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG ? "NOISE" : chan[c].kind == KD_SN77 ? "MIX" : IS_OPLL(chan[c].kind) ? "INST" : chan[c].kind == KD_SAA || chan[c].kind == KD_TED ? "NOISE" : chan[c].kind == KD_LYNX ? "TYPE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : chan[c].kind == KD_S5B ? "BUZZ" : chan[c].kind == KD_FDS ? "MOD" : chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ ? "WAVE" : chan[c].kind == KD_SN77 ? "SLF" : "SWEEP";
         uint16_t lc = page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c))) ? t->dim : t->fg;
         skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
         if (!*lab) continue;
@@ -316,12 +477,19 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
             if (chan[c].kind == KD_TIA) card_bar(t, chip, x, in->wave, 9);
             else if (chan[c].kind == KD_POKEY) card_bar(t, chip, x, in->wave, 7);
             else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B) card_bar(t, chip, x, in->wave, 15);
+            else if (IS_OPLL(chan[c].kind)) card_bar(t, chip, x, in->wave, 14);
+            else if (chan[c].kind == KD_SAA || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG) card_bar(t, chip, x, in->wave, 15);
+            else if (chan[c].kind == KD_SN77) card_bar(t, chip, x, in->wave, 3);
+            else if (chan[c].kind == KD_TED) card_bar(t, chip, x, in->wave, 1);
+            else if (chan[c].kind == KD_LYNX) card_bar(t, chip, x, in->wave, 7);
+            else if (fm && (chan[c].kind == KD_OPM || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPZ)) { for (i = 0; i < 8; i++) cv_rect(x + 6 + i * 6, 34, 5, 12, i == (int32_t)in->duty ? t->acc : t->dim); }       /* which of eight */
             else if (fm) { for (i = 0; i < 4; i++) cv_rect(x + 6 + i * 12, 34, 10, 12, i == (int32_t)in->duty ? t->acc : t->dim); }       /* which of four */
             else if (k1) channel_glyph(c, x + 8, 26, 40, 26, t->acc);
         }
         else if (k == 1u) { if (has_vol(c)) card_bar(t, chip, x, in->vol, 15); }
         else if (k == 2u) card_bar(t, chip, x, in->vib_dep, 15);
-        else if (chan[c].kind == KD_S5B) { for (i = 0; i < 4; i++) cv_rect(x + 6 + i * 12, 34, 10, 12, i == (int32_t)in->pan ? t->acc : t->dim); }       /* the buzz: off, down, up, triangle */
+        else if (has_buzz(c) && (chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ)) { for (i = 0; i < 8; i++) cv_rect(x + 6 + i * 6, 34, 5, 12, i == (int32_t)in->pan ? t->acc : t->dim); }       /* the OPL3's eight waves */
+        else if (has_buzz(c)) { for (i = 0; i < 4; i++) cv_rect(x + 6 + i * 12, 34, 10, 12, i == (int32_t)in->pan ? t->acc : t->dim); }       /* the buzz: off, down, up, triangle; the modulator: off to deep */
         else if (has_pan(c)) {                                      /* left, centre, right */
             int32_t p;
             for (p = 0; p < 3; p++) cv_rect(x + 7 + p * 15, 36, 12, 10, p == (int32_t)in->pan ? t->acc : t->dim);

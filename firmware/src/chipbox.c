@@ -63,6 +63,44 @@ static const theme_t THEME[CHIPS] = {
      RGB(22, 26, 40), RGB(12, 15, 26), RGB(236, 238, 246), RGB(255, 112, 96), RGB(96, 104, 134), RGB(236, 238, 246), RGB(255, 112, 96)},
     {"SUNSOFT 5B", {"5B1", "5B2", "5B3"},                                         /* a cartridge: night blue, a sun */
      RGB(10, 14, 34), RGB(5, 8, 22), RGB(244, 240, 226), RGB(255, 196, 36), RGB(100, 96, 80), RGB(244, 240, 226), RGB(255, 196, 36)},
+    {"NES MMC5", {"MP1", "MP2", "MP3"},                                           /* a cartridge: slate green, mint */
+     RGB(18, 30, 30), RGB(10, 18, 18), RGB(222, 236, 230), RGB(96, 214, 168), RGB(84, 118, 108), RGB(222, 236, 230), RGB(96, 214, 168)},
+    {"FAMICOM DISK", {"FD1", "FD2", "FD3"},                                       /* the disk drive: deep blue, orange */
+     RGB(12, 20, 46), RGB(6, 11, 30), RGB(236, 238, 246), RGB(255, 142, 40), RGB(80, 94, 140), RGB(236, 238, 246), RGB(255, 142, 40)},
+    {"MSX SCC", {"SC1", "SC2", "SC3"},                                            /* a game cartridge: near black, lime */
+     RGB(10, 14, 22), RGB(5, 8, 14), RGB(232, 240, 226), RGB(190, 232, 48), RGB(86, 106, 70), RGB(232, 240, 226), RGB(190, 232, 48)},
+    {"MSX MUSIC", {"FM1", "FM2", "FM3"},                                          /* the FM cartridge: ocean blue, cyan */
+     RGB(8, 26, 40), RGB(4, 15, 26), RGB(228, 242, 248), RGB(78, 218, 255), RGB(70, 104, 124), RGB(228, 242, 248), RGB(78, 218, 255)},
+    {"KONAMI VRC7", {"VR1", "VR2", "VR3"},                                        /* a cartridge: warm black, vermilion */
+     RGB(28, 22, 22), RGB(17, 13, 13), RGB(240, 230, 226), RGB(255, 98, 66), RGB(120, 92, 88), RGB(240, 230, 226), RGB(255, 98, 66)},
+    {"YM2151", {"OM1", "OM2", "OM3"},                                             /* the arcade board: black violet, magenta */
+     RGB(30, 8, 32), RGB(18, 4, 20), RGB(244, 226, 244), RGB(255, 70, 210), RGB(124, 70, 120), RGB(244, 226, 244), RGB(255, 70, 210)},
+    {"OPL3", {"O31", "O32", "O33"},                                               /* a sound card: royal blue board, silver */
+     RGB(10, 26, 64), RGB(5, 15, 42), RGB(236, 240, 250), RGB(210, 226, 255), RGB(78, 100, 150), RGB(236, 240, 250), RGB(210, 226, 255)},
+    {"WONDERSWAN", {"SW1", "SW2", "SW3"},                                         /* a handheld: indigo, lavender */
+     RGB(22, 18, 62), RGB(12, 9, 42), RGB(236, 234, 250), RGB(150, 160, 255), RGB(96, 92, 150), RGB(236, 234, 250), RGB(150, 160, 255)},
+    {"SAM COUPE", {"SA1", "SA2", "SA3"},                                          /* a home computer: warm black, yellow */
+     RGB(24, 18, 8), RGB(14, 10, 4), RGB(250, 244, 226), RGB(255, 226, 60), RGB(120, 106, 70), RGB(250, 244, 226), RGB(255, 226, 60)},
+    {"VIC-20", {"VI1", "VI2", "VI3"},                                             /* the blue screen, a pale cyan */
+     RGB(30, 44, 120), RGB(16, 26, 84), RGB(236, 244, 255), RGB(160, 230, 255), RGB(90, 108, 176), RGB(236, 244, 255), RGB(160, 230, 255)},
+    {"PLUS/4", {"TD1", "TD2", "TD3"},                                             /* a grey case, a light green */
+     RGB(36, 36, 42), RGB(22, 22, 27), RGB(238, 240, 238), RGB(140, 255, 120), RGB(110, 112, 118), RGB(238, 240, 238), RGB(140, 255, 120)},
+    {"ATARI LYNX", {"LY1", "LY2", "LY3"},                                         /* a black handheld, orange */
+     RGB(10, 14, 12), RGB(4, 7, 6), RGB(238, 240, 236), RGB(255, 150, 30), RGB(110, 90, 60), RGB(238, 240, 236), RGB(255, 150, 30)},
+    {"PC-98", {"PC1", "PC2", "PC3"},                                              /* a beige Japanese PC, peach */
+     RGB(34, 24, 28), RGB(21, 14, 17), RGB(246, 238, 228), RGB(255, 170, 120), RGB(128, 98, 96), RGB(246, 238, 228), RGB(255, 170, 120)},
+    {"NEO GEO", {"NG1", "NG2", "NG3"},                                            /* black and crimson, the MVS cabinet */
+     RGB(24, 8, 10), RGB(13, 3, 5), RGB(246, 232, 232), RGB(255, 40, 70), RGB(128, 60, 70), RGB(246, 232, 232), RGB(255, 40, 70)},
+    {"NEO GEO POCKET", {"NP1", "NP2", "NP3"},                                     /* a handheld: deep violet, hot pink */
+     RGB(22, 16, 34), RGB(12, 8, 22), RGB(240, 234, 248), RGB(255, 110, 170), RGB(110, 90, 130), RGB(240, 234, 248), RGB(255, 110, 170)},
+    {"MSX-AUDIO", {"MA1", "MA2", "MA3"},                                          /* a cartridge: dark green, light green */
+     RGB(8, 34, 30), RGB(4, 21, 18), RGB(234, 246, 238), RGB(120, 230, 120), RGB(72, 112, 98), RGB(234, 246, 238), RGB(120, 230, 120)},
+    {"TX81Z", {"TX1", "TX2", "TX3"},                                              /* a rack synth: charcoal, an LCD cream */
+     RGB(30, 26, 22), RGB(18, 15, 12), RGB(246, 240, 224), RGB(255, 235, 170), RGB(120, 108, 88), RGB(246, 240, 224), RGB(255, 235, 170)},
+    {"SN76477", {"S71", "S72", "S73"},                                            /* a vector arcade: black, cyan */
+     RGB(4, 8, 16), RGB(1, 3, 9), RGB(226, 248, 252), RGB(60, 255, 255), RGB(50, 100, 112), RGB(226, 248, 252), RGB(60, 255, 255)},
+    {"NAMCO SYSTEM 1", {"C31", "C32", "C33"},                                     /* a red cabinet, a gold marquee */
+     RGB(36, 10, 12), RGB(22, 5, 7), RGB(252, 240, 224), RGB(255, 186, 60), RGB(136, 80, 70), RGB(252, 240, 224), RGB(255, 186, 60)},
 };
 
 static void text_on(uint32_t x, uint32_t y, uint32_t w, const felucca_font_t *f, const char *s, uint16_t c, uint16_t bg, int align)
@@ -91,16 +129,17 @@ static int quiet(void)
 }
 
 /* ---- parameters under the knobs */
-static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV || chan[c].kind == KD_WSG || chan[c].kind == KD_N163; }
-static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kind == KD_OPL; }                              /* page 4 is its operators */
+static uint32_t has_wave(uint32_t c) { return chan[c].kind == KD_GB_WAV || chan[c].kind == KD_PCE || chan[c].kind == KD_VB_WAV || chan[c].kind == KD_WSG || chan[c].kind == KD_N163 || chan[c].kind == KD_FDS || chan[c].kind == KD_SCC || chan[c].kind == KD_WS || chan[c].kind == KD_C30; }
+static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kind == KD_OPL || chan[c].kind == KD_OPM || chan[c].kind == KD_OPL3 || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPL1 || chan[c].kind == KD_OPZ; }                              /* page 4 is its operators */
 static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI && chan[c].kind != KD_SPK; }                       /* the NES triangle has no level control */
-static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU; }
+static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_MMC5; }
+static uint32_t has_buzz(uint32_t c) { return chan[c].kind == KD_S5B || chan[c].kind == KD_FDS || chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_SN77; }                        /* knob 4 on the tone page picks one of four (the 5B's buzz, the Disk System's modulator) */
 static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : has_wave(c) || has_fm(c) ? 4u : 3u; }                  /* pages of knobs */
 static uint32_t has_k1(uint32_t c)                                                               /* knob 1 does something on the tone page */
 {
-    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B;
+    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B || IS_OPLL(chan[c].kind) || chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_LYNX || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_SN77;
 }
-static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return (ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD || ch == CHIP_VB) && !IS_DRUM(chan[c].kind); }
+static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return (ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD || ch == CHIP_VB || ch == CHIP_OPM || ch == CHIP_WS || ch == CHIP_SAA || ch == CHIP_LYNX || ch == CHIP_PC98 || ch == CHIP_NEO || ch == CHIP_NGP || ch == CHIP_C30) && chan[c].kind != KD_PC98_SSG && chan[c].kind != KD_NEO_SSG && !IS_DRUM(chan[c].kind); }
 static int8_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return (int8_t)(v < lo ? lo : v > hi ? hi : v); }
 static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* knob k of a page of cards, on channel c */
 {
@@ -119,15 +158,19 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         int32_t v;
         if (has_wave(c)) { v = ((int32_t)in->wave + 2) / 5 + (d < 0 ? -1 : 1); in->wave = (uint8_t)((v < 0 ? 0 : v > 3 ? 3 : v) * 5); }       /* pulse, saw, triangle, sine */
         else if (chan[c].kind == KD_TIA) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 9);          /* the sound type */
-        else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 15);         /* the noise mix */
+        else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B || chan[c].kind == KD_SAA || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 15);         /* the noise mix */
+        else if (chan[c].kind == KD_TED) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 1);
+        else if (chan[c].kind == KD_SN77) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 3);          /* the mixer */          /* tone or noise */
+        else if (chan[c].kind == KD_LYNX) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);         /* the sound */
         else if (chan[c].kind == KD_POKEY) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);        /* the distortion */
-        else if (has_fm(c)) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 3);          /* the algorithm */
+        else if (IS_OPLL(chan[c].kind)) opll_set(in, chan[c].kind, (uint32_t)clamp_i((int32_t)in->wave + d, 0, 14));       /* the instrument, with its envelope */
+        else if (has_fm(c)) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, chan[c].kind == KD_OPL1 ? 1 : chan[c].kind == KD_OPM || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPZ ? 7 : 3);          /* the algorithm */
         else if (has_duty(c)) { v = (int32_t)in->duty + d; in->duty = (uint8_t)(v < 0 ? 0 : v > (chan[c].kind == KD_VRC6_PU ? 7 : 3) ? (chan[c].kind == KD_VRC6_PU ? 7 : 3) : v); }
     }
     else if (k == 1u) in->vol = (uint8_t)clamp_i((int32_t)in->vol + d, 0, 15);
     else if (k == 2u) in->vib_dep = (uint8_t)clamp_i((int32_t)in->vib_dep + d, 0, 15);
     else if (has_pan(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, 2);
-    else if (chan[c].kind == KD_S5B) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, 3);          /* the buzz */
+    else if (has_buzz(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ ? 7 : 3);          /* the buzz, the modulator */
     else in->sweep = clamp_i((int32_t)in->sweep + d, -16, 16);
 }
 
@@ -173,7 +216,7 @@ static void channel_glyph(uint32_t c, int32_t x, int32_t y, int32_t w, int32_t h
         for (i = 0; i < 32; i++) cv_rect(x + i * w / 32, y + h - 2 - wv[i] * (h - 2) / 15, w / 32 + 1, 2, col);
     } else if (chan[c].kind == KD_NES_TRI) wave_glyph(G_TRI, 0, x, y, w, h, col);
     else if (chan[c].kind == KD_VRC6_SAW) wave_glyph(G_SAW, 0, x, y, w, h, col);
-    else if (has_fm(c)) wave_glyph(G_SINE, 0, x, y, w, h, col);
+    else if (has_fm(c) || IS_OPLL(chan[c].kind)) wave_glyph(G_SINE, 0, x, y, w, h, col);
     else if (chan[c].kind == KD_SPK) wave_glyph(G_PULSE, 4, x, y, w, h, col);
     else if (chan[c].kind == KD_POKEY) {                        /* the distortion's bits, as they run */
         uint32_t w7 = in->wave > 7u ? 7u : in->wave;

@@ -1,0 +1,18 @@
+# the four new consoles' chip screens
+100 midi 0xB0 106 33
+200 midi 0xB0 106 34
+300 midi 0xB0 106 35
+400 midi 0xB0 106 36
+500 held 0x100
+550 held 0
+950 enc 6 1
+1030 enc 6 1
+1110 enc 6 1
+1190 enc 6 1
+1970 shot
+2070 enc 6 1
+2770 shot
+2870 enc 6 1
+3570 shot
+3670 enc 6 1
+4370 shot

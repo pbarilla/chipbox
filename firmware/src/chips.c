@@ -11,14 +11,23 @@
 
 #define OS 4u                                   /* oscillator steps per output frame */
 #define MAXCH 16u
-enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB, CHIP_POKEY, CHIP_SPK, CHIP_OPL, CHIP_WSG, CHIP_N163, CHIP_S5B, CHIPS };
-enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_VB_WAV, KD_DRUM0, KD_POKEY = KD_DRUM0 + 9, KD_SPK, KD_OPL, KD_WSG, KD_N163, KD_S5B, KD_DRUMB, KINDS = KD_DRUMB + 6 };       /* the drum kits, one a console, in the order of the chips */
-#define IS_DRUM(k) (((k) >= KD_DRUM0 && (k) < KD_POKEY) || (k) >= KD_DRUMB)      /* the kits of the first nine consoles come first, the later ones after the later chips */
-#define DRUM_KIT(k) ((k) < KD_POKEY ? (k) - KD_DRUM0 : 9u + (k) - KD_DRUMB)
+enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB, CHIP_POKEY, CHIP_SPK, CHIP_OPL, CHIP_WSG, CHIP_N163, CHIP_S5B, CHIP_MMC5, CHIP_FDS, CHIP_SCC, CHIP_OPLL, CHIP_VRC7, CHIP_OPM, CHIP_OPL3, CHIP_WS, CHIP_SAA, CHIP_VIC, CHIP_TED, CHIP_LYNX, CHIP_PC98, CHIP_NEO, CHIP_NGP, CHIP_OPL1, CHIP_OPZ, CHIP_SN77, CHIP_C30, CHIPS };
+enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_VB_WAV, KD_DRUM0, KD_POKEY = KD_DRUM0 + 9, KD_SPK, KD_OPL, KD_WSG, KD_N163, KD_S5B, KD_DRUMB, KD_MMC5 = KD_DRUMB + 6, KD_FDS, KD_SCC, KD_OPLL, KD_DRUMC, KD_VRC7 = KD_DRUMC + 4, KD_OPM, KD_OPL3, KD_WS, KD_DRUMD, KD_SAA = KD_DRUMD + 4, KD_VIC, KD_TED, KD_LYNX, KD_DRUME, KD_PC98_FM = KD_DRUME + 4, KD_PC98_SSG, KD_NEO_FM, KD_NEO_SSG, KD_NGP, KD_OPL1, KD_OPZ, KD_SN77, KD_C30, KD_DRUMF, KINDS = KD_DRUMF + 7 };       /* the drum kits, one a console, in the order of the chips */
+#define IS_DRUM(k) (((k) >= KD_DRUM0 && (k) < KD_POKEY) || ((k) >= KD_DRUMB && (k) < KD_MMC5) || ((k) >= KD_DRUMC && (k) < KD_VRC7) || ((k) >= KD_DRUMD && (k) < KD_SAA) || ((k) >= KD_DRUME && (k) < KD_PC98_FM) || (k) >= KD_DRUMF)      /* the kits of the first nine consoles come first, the later ones after the later chips */
+#define DRUM_KIT(k) ((k) < KD_POKEY ? (k) - KD_DRUM0 : (k) < KD_MMC5 ? 9u + (k) - KD_DRUMB : (k) < KD_VRC7 ? 15u + (k) - KD_DRUMC : (k) < KD_SAA ? 19u + (k) - KD_DRUMD : (k) < KD_PC98_FM ? 23u + (k) - KD_DRUME : 27u + (k) - KD_DRUMF)
+#define IS_OPLL(k) ((k) == KD_OPLL || (k) == KD_VRC7)                        /* the YM2413 and its Konami cousin: 15 ROM instruments */
 static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB,
                                          CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB,
                                          CHIP_POKEY, CHIP_SPK, CHIP_OPL, CHIP_WSG, CHIP_N163, CHIP_S5B,
-                                         CHIP_POKEY, CHIP_SPK, CHIP_OPL, CHIP_WSG, CHIP_N163, CHIP_S5B};
+                                         CHIP_POKEY, CHIP_SPK, CHIP_OPL, CHIP_WSG, CHIP_N163, CHIP_S5B,
+                                         CHIP_MMC5, CHIP_FDS, CHIP_SCC, CHIP_OPLL,
+                                         CHIP_MMC5, CHIP_FDS, CHIP_SCC, CHIP_OPLL,
+                                         CHIP_VRC7, CHIP_OPM, CHIP_OPL3, CHIP_WS,
+                                         CHIP_VRC7, CHIP_OPM, CHIP_OPL3, CHIP_WS,
+                                         CHIP_SAA, CHIP_VIC, CHIP_TED, CHIP_LYNX,
+                                         CHIP_SAA, CHIP_VIC, CHIP_TED, CHIP_LYNX,
+                                         CHIP_PC98, CHIP_PC98, CHIP_NEO, CHIP_NEO, CHIP_NGP, CHIP_OPL1, CHIP_OPZ, CHIP_SN77, CHIP_C30,
+                                         CHIP_PC98, CHIP_NEO, CHIP_NGP, CHIP_OPL1, CHIP_OPZ, CHIP_SN77, CHIP_C30};
 
 /* ---- instruments: what a note sounds like, per channel */
 typedef struct {
@@ -54,8 +63,33 @@ static const inst_t INST_DEF[KINDS] = {
     I(10, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Namco 163: a triangle */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 0),           /* Sunsoft 5B: wave = the noise mix, pan = the buzz (0 off) */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* NES MMC5 pulse */
+    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 0),          /* Famicom Disk wave: a triangle, pan = the modulator's depth (0 off) */
+    I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* Konami SCC: a saw to start with, an 8 bit wave */
+    I(0, 0, 0, 0, 0, 0, 0, 0, 0, 1),            /* MSX Music: wave = the instrument 0..14 (the envelope is set by chan_add) */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    I(0, 0, 0, 0, 0, 0, 0, 0, 0, 1),            /* Konami VRC7: wave = the instrument 0..14 (the envelope is set by chan_add) */
+    {1, 4, 5, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* YM2151: duty = algorithm 0..7, wave = ratio, wf = index, wc = feedback, wt = index decay, pan = left, centre, right */
+    {1, 1, 4, 0, 4, 0, 6, 12, 3, 5, 0, 0, 0, 15, 0, 1, 0},     /* OPL3: duty = connection 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay, pan = the wave 0..7 */
+    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* WonderSwan: a 4 bit wave, a triangle to start with; pan = left, centre, right */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* SAA1099: wave = the noise mix 0..15, pan = left, centre, right */
+    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* VIC-20: one square, the pitch a 7 bit divide */
+    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* Plus/4 TED: wave = 0 tone, 1 noise */
+    I(1, 0, 0, 4, 12, 3, 5, 0, 0, 1),           /* Atari Lynx: wave = the sound 0..7 (a square, then shift register taps), pan = left, centre, right */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    {1, 4, 5, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* PC-98 FM (YM2608): like the YM2151 */
+    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* PC-98 SSG: the AY's tone and noise */
+    {1, 4, 5, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* Neo Geo FM (YM2610) */
+    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* Neo Geo SSG */
+    I(0, 0, 0, 6, 14, 4, 5, 4, 0, 1),           /* Neo Geo Pocket: a tone, stereo */
+    {1, 0, 7, 0, 3, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* MSX-Audio (YM3526): duty = 0 FM, 1 both play */
+    {1, 4, 5, 0, 4, 0, 6, 12, 3, 5, 0, 0, 0, 15, 0, 1, 0},     /* Yamaha OPZ: duty = algorithm 0..7, pan = the wave 0..7 */
+    I(0, 0, 0, 3, 14, 3, 5, 0, 0, 0),           /* SN76477: wave = the mixer 0..3, pan = the slow oscillator 0..3 */
+    I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* Namco C30: a 4 bit wave, stereo */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
 };
-static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "VB", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "POK", "SPK", "OPL", "WSG", "N16", "5B", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM"};
+static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "VB", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "POK", "SPK", "OPL", "WSG", "N16", "5B", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "MM5", "FDS", "SCC", "YM", "DRM", "DRM", "DRM", "DRM", "VR7", "OPM", "OP3", "WS", "DRM", "DRM", "DRM", "DRM", "SAA", "VIC", "TED", "LYN", "DRM", "DRM", "DRM", "DRM", "FM", "SSG", "FM", "SSG", "NGP", "MA", "OPZ", "77", "C30", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM"};
 
 /* the arp's chords: octave, major, minor, maj7, min7, sus4, power, dim */
 static const uint8_t ARP_N[8] = {2, 4, 4, 4, 4, 4, 4, 4};
@@ -101,7 +135,7 @@ static struct {
     int32_t bend;                               /* Q8 semitones from sweep */
     inst_t in;
 } vc[MAXCH];
-static struct { uint32_t ph, inc; const uint8_t *wav; uint8_t duty, vol, pan, wshift; uint32_t ph2, ph3, inc2, inc3, idx, rng; int32_t y1, y2; uint8_t alg, fb; } osc[MAXCH];
+static struct { uint32_t ph, inc; const uint8_t *wav; uint8_t duty, vol, pan, wshift; uint32_t ph2, ph3, ph4, inc2, inc3, inc4, idx, rng; int32_t y1, y2; uint8_t alg, fb; } osc[MAXCH];
 #define AWAKE 30u                               /* ticks a chip keeps rendering after its last voice ends */
 static uint8_t awake[CHIPS], booted;
 static uint32_t tick_left, tick_len = FS / 60u;
@@ -126,8 +160,9 @@ static uint32_t interp(const uint16_t *T, uint32_t pq)  /* a table indexed by no
 enum { AN_CLEAN, AN_HW, AN_ALT, AN_MODES };
 static volatile uint32_t analog_mode[CHIPS] = {AN_HW, AN_HW};
 typedef struct { int32_t x1, y1; } hpf_t;
-static hpf_t hp_nes[2], hp_gb[2], hp_x[2], hp_vb[2], hp_nx[6];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
-static int32_t lp_nes, lp_sp, lp_ws;
+#define STEREO_IDX(ch) ((ch) == CHIP_OPM ? 0 : (ch) == CHIP_WS ? 1 : (ch) == CHIP_SAA ? 2 : (ch) == CHIP_LYNX ? 3 : (ch) == CHIP_PC98 ? 4 : (ch) == CHIP_NEO ? 5 : (ch) == CHIP_NGP ? 6 : (ch) == CHIP_C30 ? 7 : -1)       /* the later chips with a right channel of their own */
+static hpf_t hp_nes[2], hp_gb[2], hp_x[2], hp_vb[2], hp_nx[25], hp_nr[8];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
+static int32_t lp_nes, lp_sp, lp_ws, lp_fds;
 static int32_t hpf(hpf_t *f, int32_t x, int32_t b)
 {
     int32_t t = f->y1 + x - f->x1, y = t - ((t * b) >> 16);
@@ -156,8 +191,9 @@ static void post(uint32_t chip, int32_t *out, uint32_t n)
             hpf_t *h = &hp_nx[chip - CHIP_POKEY];
             if (chip == CHIP_SPK) l = lpf(&lp_sp, hpf(h, l, B_SPK_HP), A_SPK_LP);
             else if (chip == CHIP_WSG) l = lpf(&lp_ws, hpf(h, l, B_DC_HP14), A_WSG_LP);
+            else if (chip == CHIP_FDS) l = lpf(&lp_fds, hpf(h, l, B_DC_HP14), A_FDS_LP);
             else l = hpf(h, l, B_DC_HP14);
-            r = l;
+            r = STEREO_IDX(chip) >= 0 ? hpf(&hp_nr[STEREO_IDX(chip)], r, B_DC_HP14) : l;
         } else if (chip != CHIP_GB) {
             l = hpf(&hp_x[chip == CHIP_AY], l, B_DC_HP14); r = l;
         } else {
@@ -256,14 +292,70 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         osc[c].inc = t; osc[c].inc2 = (t >> 1) * FM_RAT[wi->wave & 15u];
         osc[c].idx = FM_IDX[wi->wf & 15u] * ix >> 8; osc[c].fb = wi->wc & 15u; osc[c].alg = (uint8_t)(wi->duty & 3u); osc[c].vol = (uint8_t)vol;
         break; }
-    case KD_WSG: case KD_N163:                          /* a 4 bit wave, 32 steps, read live; the volume is linear */
-        osc[c].inc = interp32(NOTE_INC, pq); osc[c].vol = (uint8_t)vol;
+    case KD_OPZ: {                                      /* four operators like the YM2151 (8 algorithms), and the OPL3's eight waves */
+        const inst_t *wi = &chan[c].in;
+        uint32_t ix = 4096u / (16u + vc[c].age * (wi->wt & 15u));
+        t = interp32(NOTE_INC, pq);
+        osc[c].inc = t; osc[c].inc2 = (t >> 1) * FM_RAT[wi->wave & 15u]; osc[c].inc3 = t; osc[c].inc4 = t * 2u;
+        osc[c].idx = FM_IDX[wi->wf & 15u] * ix >> 8; osc[c].fb = wi->wc & 15u; osc[c].vol = (uint8_t)vol;
+        osc[c].alg = (uint8_t)(wi->duty & 7u); osc[c].duty = wi->pan & 7u; osc[c].pan = 1u;
+        break; }
+    case KD_OPL1: {                                     /* the OPL2 without its wave choice: A and C, in FM or both playing */
+        const inst_t *wi = &chan[c].in;
+        uint32_t ix = 4096u / (16u + vc[c].age * (wi->wt & 15u));
+        t = interp32(NOTE_INC, pq);
+        osc[c].inc = t; osc[c].inc2 = (t >> 1) * FM_RAT[wi->wave & 15u];
+        osc[c].idx = FM_IDX[wi->wf & 15u] * ix >> 8; osc[c].fb = wi->wc & 15u; osc[c].alg = wi->duty ? 3u : 0u; osc[c].vol = (uint8_t)vol;
+        break; }
+    case KD_SN77: {                                     /* a square, noise, or both; the slow oscillator swings the pitch (pan = how fast; the siren swings it twice as far) */
+        static const uint8_t SLF[4] = {2, 3, 6, 12};
+        const uint32_t m = chan[c].in.wave & 3u;
+        osc[c].inc = interp32(NOTE_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].inc3 = SLF[in->pan & 3u] * SN77_SLF;
+        osc[c].duty = (uint8_t)m; osc[c].alg = (uint8_t)((in->pan & 3u) || m == 3u); osc[c].fb = (uint8_t)(m == 3u); osc[c].vol = (uint8_t)vol;
+        break; }
+    case KD_NGP: osc[c].inc = K_NGP / interp(NGP_N, pq); osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan; break;
+    case KD_PC98_FM: case KD_NEO_FM: case KD_OPM: case KD_OPL3: {                        /* four operators: 1 (the ratio, with feedback), 2 (the note), 3 (an octave up), 4 (the note; the OPM detunes it a hair) */
+        const inst_t *wi = &chan[c].in;
+        uint32_t opl3 = chan[c].kind == KD_OPL3, ix = 4096u / (16u + vc[c].age * (wi->wt & 15u));
+        t = interp32(NOTE_INC, pq);
+        osc[c].inc = opl3 ? t : t + (t >> 9); osc[c].inc2 = (t >> 1) * FM_RAT[wi->wave & 15u]; osc[c].inc3 = t; osc[c].inc4 = t * 2u;
+        osc[c].idx = FM_IDX[wi->wf & 15u] * ix >> 8; osc[c].fb = wi->wc & 15u; osc[c].vol = (uint8_t)vol;
+        osc[c].alg = (uint8_t)(opl3 ? 8u + (wi->duty & 3u) : wi->duty & 7u); osc[c].duty = opl3 ? wi->pan & 7u : 0u; osc[c].pan = opl3 ? 1u : in->pan;
+        break; }
+    case KD_PC98_SSG: case KD_NEO_SSG: osc[c].inc = interp32(NOTE_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol; break;
+    case KD_SAA: osc[c].inc = interp32(SAA_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan; break;
+    case KD_VIC: osc[c].inc = interp32(VIC_INC, pq); osc[c].vol = (uint8_t)vol; break;
+    case KD_TED: osc[c].inc = interp32(TED_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].duty = chan[c].in.wave & 1u; osc[c].vol = (uint8_t)vol; break;
+    case KD_LYNX: {                                     /* the square plays the note; a short shift register cycle is a tone (the note is the cycle's rate), a long one is noise */
+        const uint32_t w = chan[c].in.wave & 7u, len = LYNX_LEN[w];
+        t = interp32(NOTE_INC, pq);
+        if (w) { const uint32_t m = len <= 31u ? len : 16u; t = t > 0xFFFFFFFFu / m ? 0xFFFFFFFFu : t * m; }
+        osc[c].inc = t; osc[c].duty = (uint8_t)w; osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan;
+        break; }
+    case KD_WSG: case KD_N163: case KD_WS: case KD_C30:              /* a 4 bit wave, 32 steps, read live; the volume is linear */
+        osc[c].inc = interp32(NOTE_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan;
         {   const inst_t *wi = &chan[c].in;
             uint32_t key = (1u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
             if (wkey[c] != key) { wave_make(wi, wtab[c]); wkey[c] = key; }
             osc[c].wav = wtab[c];
         }
         break;
+    case KD_MMC5: t = interp(NES_PT, pq); osc[c].inc = K_NES / (t + 1u); osc[c].duty = in->duty & 3u; osc[c].vol = (uint8_t)vol; break;
+    case KD_FDS: case KD_SCC:                           /* FDS: a 6 bit wave, 32 steps; SCC: an 8 bit wave; both read live. The FDS also bends its phase by its modulator (pan = depth) */
+        osc[c].inc = interp32(NOTE_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].alg = chan[c].kind == KD_FDS ? chan[c].in.pan & 3u : 0u;
+        {   const inst_t *wi = &chan[c].in;
+            uint32_t fds = chan[c].kind == KD_FDS, key = ((fds ? 2u : 3u) << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
+            if (wkey[c] != key) { wave_make_n(wi, wtab[c], fds ? 63 : 255); wkey[c] = key; }
+            osc[c].wav = wtab[c];
+        }
+        break;
+    case KD_OPLL: case KD_VRC7: {                       /* one of the 15 instruments: two operators, the carrier and modulator multiples from the chip's ROM */
+        const uint32_t n = (chan[c].in.wave > 14u ? 14u : chan[c].in.wave) + (chan[c].kind == KD_VRC7 ? 15u : 0u);
+        uint32_t ix = 4096u / (16u + vc[c].age * OPLL_P[n].wt);
+        t = interp32(NOTE_INC, pq);
+        osc[c].inc = (t >> 1) * OPLL_P[n].cm; osc[c].inc2 = (t >> 1) * OPLL_P[n].mm;
+        osc[c].idx = OPLL_P[n].idx * ix >> 8; osc[c].fb = OPLL_P[n].fb; osc[c].alg = OPLL_P[n].ws; osc[c].vol = (uint8_t)vol;
+        break; }
     case KD_S5B: osc[c].inc = interp32(NOTE_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].inc3 = osc[c].inc; osc[c].duty = chan[c].in.wave & 15u; osc[c].alg = chan[c].in.pan & 3u; osc[c].vol = (uint8_t)vol; break;
     default: osc[c].inc = K_SMS / interp(SMS_N, pq); osc[c].vol = (uint8_t)vol; break;
     }
@@ -498,6 +590,274 @@ static void r_wave4(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, u
         out[2u * i] += acc; out[2u * i + 1u] += acc;
     }
 }
+static int32_t fm4_wave(uint32_t p, uint32_t w)       /* the OPL3's eight waves at a phase: sine, half, absolute, pulse sine, alternating, camel, square, saw-like */
+{
+    int32_t s = SIN_T[(p >> 22) & 1023u], f;
+    switch (w) {
+    case 0: return s;
+    case 1: return s > 0 ? s : 0;
+    case 2: return s < 0 ? -s : s;
+    case 3: return (p >> 30) & 1u ? 0 : (s < 0 ? -s : s);
+    case 4: return p >> 31 ? 0 : SIN_T[(p >> 21) & 1023u];
+    case 5: if (p >> 31) return 0; s = SIN_T[(p >> 21) & 1023u]; return s < 0 ? -s : s;
+    case 6: return s >= 0 ? 16384 : -16384;
+    default: f = (int32_t)((p >> 23) & 511u); f = ((512 - f) * (512 - f)) >> 4; return p >> 31 ? -f : f;
+    }
+}
+static void r_fm4(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, uint32_t opl3)       /* the YM2151 (8 algorithms) and the OPL3's four-operator voices (4 connections) */
+{
+    static const uint8_t NORM[12] = {255, 255, 255, 255, 128, 85, 85, 64, 255, 128, 128, 85};         /* one over the number of carriers */
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < 1u; s++)                                                  /* one step a sample: four operators a voice are dear, sixteen voices would not fit twice */
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], alg = osc[c].alg, ix = osc[c].idx, w = osc[c].duty;
+                int32_t a, o, o2, o3;
+#define OPM(ph, x) FMS(ph, FMM(x, ix))
+#define OPC(ph, x) fm4_wave((ph) + FMM(x, ix), w)
+                osc[c].ph += osc[c].inc << 2; osc[c].ph2 += osc[c].inc2 << 2; osc[c].ph3 += osc[c].inc3 << 2; osc[c].ph4 += osc[c].inc4 << 2;
+                a = FMS(osc[c].ph2, (uint32_t)((osc[c].y1 + osc[c].y2) >> 1) * FM_FB[osc[c].fb] << 2);
+                osc[c].y2 = osc[c].y1; osc[c].y1 = a;
+                switch (alg) {
+                case 0: case 8: o = OPC(osc[c].ph, OPM(osc[c].ph4, OPM(osc[c].ph3, a))); break;                                          /* 1 > 2 > 3 > 4 */
+                case 1: o = OPC(osc[c].ph, OPM(osc[c].ph4, a + FMS(osc[c].ph3, 0u))); break;                                             /* (1 + 2) > 3 > 4 */
+                case 2: o = OPC(osc[c].ph, a + OPM(osc[c].ph4, FMS(osc[c].ph3, 0u))); break;                                             /* (1 + (2 > 3)) > 4 */
+                case 3: o = OPC(osc[c].ph, OPM(osc[c].ph3, a) + FMS(osc[c].ph4, 0u)); break;                                             /* ((1 > 2) + 3) > 4 */
+                case 4: o = OPC(osc[c].ph3, a) + OPC(osc[c].ph, FMS(osc[c].ph4, 0u)); break;                                             /* (1 > 2) + (3 > 4) */
+                case 5: o = OPC(osc[c].ph3, a) + OPC(osc[c].ph4, a) + OPC(osc[c].ph, a); break;                                          /* 1 > 2, 3, 4 */
+                case 6: o = OPC(osc[c].ph3, a) + OPC(osc[c].ph4, 0u) + OPC(osc[c].ph, 0u); break;                                        /* 1 > 2, then 3 and 4 */
+                case 7: o = a + OPC(osc[c].ph3, 0u) + OPC(osc[c].ph4, 0u) + OPC(osc[c].ph, 0u); break;                                   /* all four */
+                case 9: o = a + OPC(osc[c].ph, OPM(osc[c].ph4, FMS(osc[c].ph3, 0u))); break;                                             /* 1 + (2 > 3 > 4) */
+                case 10: o2 = OPM(osc[c].ph3, a); o3 = OPC(osc[c].ph4, o2); o = o3 + OPC(osc[c].ph, 0u); break;                          /* (1 > 2 > 3) + 4 */
+                default: o = a + OPC(osc[c].ph4, FMS(osc[c].ph3, 0u)) + OPC(osc[c].ph, 0u); break;                                       /* 1 + (2 > 3) + 4 */
+                }
+#undef OPM
+#undef OPC
+                o = (o * NORM[alg < 12u ? alg : 0u] >> 8) * PCE_AMP[osc[c].vol & 15u] >> 8;
+                if (opl3 || osc[c].pan != 2u) l += o;
+                if (opl3 || osc[c].pan != 0u) r += o;
+            }
+        out[2u * i] += l * 3; out[2u * i + 1u] += r * 3;
+    }
+}
+static void r_ws(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the WonderSwan: 4 bit waves, a volume and a side each; the mix is sampled at 24 kHz */
+{
+    static uint32_t cnt;
+    static int32_t hl, hr;
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t al = 0, ar = 0;
+        for (s = 0; s < OS; s++) {
+            int32_t l = 0, r = 0;
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t v;
+                osc[c].ph += osc[c].inc;
+                v = ((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 15) * (int32_t)osc[c].vol * 7;
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+            cnt += 24000u; if (cnt >= FS * OS) { cnt -= FS * OS; hl = l; hr = r; }
+            al += hl; ar += hr;
+        }
+        out[2u * i] += al; out[2u * i + 1u] += ar;
+    }
+}
+static void r_saa(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the Sam Coupe's chip: a square and noise a channel, linear 4 bit levels, a side each */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], nz = osc[c].duty, old = osc[c].ph2;
+                int32_t tb = osc[c].ph >> 31 ? 1 : -1, nb, v;
+                osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc2;
+                if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 3) & 1u) << 16));
+                if (!osc[c].rng) osc[c].rng = 1u;
+                nb = osc[c].rng & 1u ? 1 : -1;
+                v = (tb * (int32_t)(16u - nz) + nb * (int32_t)nz) * (int32_t)(osc[c].vol & 15u) * 5;
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l; out[2u * i + 1u] += r;
+    }
+}
+static void r_vic(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the VIC-20: one square a channel */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t a = (int32_t)(osc[c].vol & 15u) * 80;
+                osc[c].ph += osc[c].inc;
+                acc += osc[c].ph >> 31 ? a : -a;
+            }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+static void r_ted(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the Plus/4: a square or an 8 bit shift register noise, 9 levels */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], old = osc[c].ph2;
+                int32_t a = (int32_t)((osc[c].vol * 9u) >> 4) * 150, b;
+                osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc2;
+                if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng << 1 | (((osc[c].rng >> 7) ^ (osc[c].rng >> 5) ^ (osc[c].rng >> 4) ^ (osc[c].rng >> 3)) & 1u)) & 255u;
+                if (!osc[c].rng) osc[c].rng = 1u;
+                b = osc[c].duty ? (osc[c].rng & 1u) : (osc[c].ph >> 31);
+                acc += b ? a : -a;
+            }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+static void r_lynx(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* Mikey: a 12 bit shift register with chosen taps, or a square; a side each */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], old = osc[c].ph, b;
+                int32_t v;
+                osc[c].ph += osc[c].inc;
+                if (!osc[c].rng) osc[c].rng = 0xFFFu;
+                if (osc[c].duty) {
+                    if (osc[c].ph < old) {
+                        uint32_t x = osc[c].rng & LYNX_MASK[osc[c].duty];
+                        x ^= x >> 8; x ^= x >> 4; x ^= x >> 2; x ^= x >> 1;
+                        osc[c].rng = (osc[c].rng << 1 | (x & 1u)) & 0xFFFu;
+                    }
+                    b = osc[c].rng & 1u;
+                } else b = osc[c].ph >> 31;
+                v = (int32_t)(osc[c].vol & 15u) * 80;
+                if (!b) v = -v;
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l; out[2u * i + 1u] += r;
+    }
+}
+static void r_two(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, uint32_t kfm)       /* a chip with FM and an AY-style SSG: each kind through its own renderer */
+{
+    uint8_t a[MAXCH], b[MAXCH];
+    uint32_t k, nf = 0, ns = 0;
+    for (k = 0; k < na; k++) { if (chan[act[k]].kind == kfm) a[nf++] = act[k]; else b[ns++] = act[k]; }
+    if (nf) r_fm4(out, n, a, nf, 0);
+    if (ns) r_ay(out, n, b, ns);
+}
+static void r_ngp(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the Neo Geo Pocket's SN76489 twin: tones with a side each */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t v;
+                osc[c].ph += osc[c].inc;
+                v = osc[c].ph >> 31 ? SMS_AMP[osc[c].vol] : -SMS_AMP[osc[c].vol];
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l >> 2; out[2u * i + 1u] += r >> 2;
+    }
+}
+static void r_sn77(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the SN76477: a square (its pitch swung by the slow oscillator), noise, or both */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], old = osc[c].ph2, m = osc[c].duty;
+                int32_t a = (int32_t)(osc[c].vol & 15u) * 64, step = (int32_t)osc[c].inc, v = 0;
+                if (osc[c].alg) {
+                    uint32_t tp = osc[c].ph3 >> 16;
+                    int32_t tri = (int32_t)(tp < 32768u ? tp : 65535u - tp) - 16384;     /* -16384 .. 16383 */
+                    step += ((int32_t)(osc[c].inc >> 15) * tri) * (osc[c].fb ? 2 : 1);
+                    osc[c].ph3 += osc[c].inc3;
+                }
+                osc[c].ph += (uint32_t)step; osc[c].ph2 += osc[c].inc2;
+                if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 3) & 1u) << 16));
+                if (!osc[c].rng) osc[c].rng = 1u;
+                if (m != 2u) v += osc[c].ph >> 31 ? a : -a;
+                if (m == 1u || m == 2u) v += osc[c].rng & 1u ? a : -a;
+                acc += m == 1u ? v >> 1 : v;
+            }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+static void r_c30(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* Namco System 1: 4 bit waves, a side each */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t l = 0, r = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                int32_t v;
+                osc[c].ph += osc[c].inc;
+                v = ((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 15) * (int32_t)osc[c].vol * 7;
+                if (osc[c].pan != 2u) l += v;
+                if (osc[c].pan != 0u) r += v;
+            }
+        out[2u * i] += l; out[2u * i + 1u] += r;
+    }
+}
+static void r_mmc5(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the cartridge's two extra pulses, the NES's own pulse mixer, no triangle */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++) {
+            int32_t psum = 0;
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                osc[c].ph += osc[c].inc;
+                if ((NES_DUTY[osc[c].duty] >> (osc[c].ph >> 29)) & 1u) psum += osc[c].vol;
+            }
+            acc += nes_mix(psum, 0);
+        }
+        acc >>= 2;
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+static void r_fds(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* a 6 bit wave; the modulator (a sine at the note) pushes the wave's phase */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], ph;
+                osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc;
+                ph = osc[c].ph + (osc[c].alg ? (uint32_t)((int32_t)SIN_T[osc[c].ph2 >> 22] * (1 << (13u + osc[c].alg))) : 0u);
+                acc += ((int32_t)osc[c].wav[ph >> 27] * 2 - 63) * (int32_t)osc[c].vol;
+            }
+        out[2u * i] += acc + (acc >> 1); out[2u * i + 1u] += acc + (acc >> 1);
+    }
+}
+static void r_scc(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* an 8 bit wave, 32 steps, a 4 bit volume */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k];
+                osc[c].ph += osc[c].inc;
+                acc += ((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 255) * (int32_t)osc[c].vol * 7 >> 4;
+            }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
 static void r_s5b(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the AY's tone and noise, and the buzz: its envelope run as a wave at the note's pitch */
 {
     uint32_t i, s, k;
@@ -565,7 +925,7 @@ static const uint8_t DR_LANE_TYPE[11] = {0, 2, 4, 5, 7, 11, 3, 6, 8, 10, 12};   
 static uint32_t dv_dm(uint32_t ms) { uint32_t t = ms * 44u; return t < 2u ? 0u : 65536u - 65536u / t; }        /* decay multiplier per sample, Q16 */
 static void dv_hit(uint32_t c, uint32_t note, uint32_t vel)
 {
-    static const uint8_t WAVE[15] = {1, 2, 0, 3, 2, 3, 2, 0, 0, 2, 2, 0, 1, 3, 2}, BITS[15] = {4, 4, 8, 5, 5, 5, 5, 12, 6, 6, 2, 12, 4, 4, 5};        /* by console: NES GB SMS PCE TIA VRC6 AY MD VB POKEY SPK OPL WSG N163 S5B */
+    static const uint8_t WAVE[27] = {1, 2, 0, 3, 2, 3, 2, 0, 0, 2, 2, 0, 1, 3, 2, 1, 1, 3, 0, 0, 0, 0, 1, 2, 2, 2, 3}, BITS[27] = {4, 4, 8, 5, 5, 5, 5, 12, 6, 6, 2, 12, 4, 4, 5, 4, 6, 8, 12, 12, 12, 12, 4, 5, 6, 4, 8};        /* by console: NES GB SMS PCE TIA VRC6 AY MD VB POKEY SPK OPL WSG N163 S5B MMC5 FDS SCC OPLL VRC7 OPM OPL3 WS SAA VIC TED LYNX */
     static const uint16_t MET[6] = {205, 304, 370, 523, 540, 800};
     uint32_t type = note < 13u ? note : note % 12u, kit = DRUM_KIT(chan[c].kind), k, j = 0;
     const drum_t *d = &DRUM[type];
@@ -576,8 +936,8 @@ static void dv_hit(uint32_t c, uint32_t note, uint32_t vel)
     v = &dv[c][k];
     memset(v, 0, sizeof *v);
     v->on = 1; v->type = (uint8_t)type; v->wave = WAVE[kit]; v->bits = BITS[kit]; v->filt = d->filt; v->burst = d->burst;
-    v->width = (kit == 4u ? (type == 2u || type == 3u ? 5u : 4u) : ((kit == 0u || kit == 1u || kit == 5u || kit == 6u || kit == 14u) && d->metal == 1u ? 7u : 15u));
-    v->metal = kit == 7u ? d->metal : (kit == 2u || kit == 11u) ? (d->metal == 1u ? 2u : d->metal) : d->metal == 3u ? 3u : 0u;     /* Mega Drive: six squares; Master System: the Yamaha XOR; the rest make hats from noise */
+    v->width = (kit == 4u ? (type == 2u || type == 3u ? 5u : 4u) : ((kit == 0u || kit == 1u || kit == 5u || kit == 6u || kit == 14u || kit == 15u) && d->metal == 1u ? 7u : 15u));
+    v->metal = kit == 7u || kit == 20u ? d->metal : (kit == 2u || kit == 11u || kit == 18u || kit == 19u || kit == 21u) ? (d->metal == 1u ? 2u : d->metal) : d->metal == 3u ? 3u : 0u;     /* Mega Drive: six squares; Master System: the Yamaha XOR; the rest make hats from noise */
     v->vel = (int32_t)vel + 1;
     v->f0 = d->f0 * 97392u; v->f1 = d->f1 * 97392u;
     v->pe = d->pd ? 32767 : 0; v->pdm = dv_dm(d->pd);
@@ -653,7 +1013,11 @@ static void chip_clear(uint32_t chip)
     case CHIP_VB: memset(hp_vb, 0, sizeof hp_vb); break;
     case CHIP_SPK: lp_sp = 0; memset(&hp_nx[1], 0, sizeof hp_nx[1]); break;
     case CHIP_WSG: lp_ws = 0; memset(&hp_nx[3], 0, sizeof hp_nx[3]); break;
-    case CHIP_OPL: case CHIP_N163: case CHIP_S5B: case CHIP_POKEY: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
+    case CHIP_FDS: lp_fds = 0; memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
+    case CHIP_OPL: case CHIP_N163: case CHIP_S5B: case CHIP_POKEY: case CHIP_MMC5: case CHIP_SCC: case CHIP_OPLL: case CHIP_VRC7: case CHIP_OPL3: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
+    case CHIP_VIC: case CHIP_TED: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
+    case CHIP_OPZ: case CHIP_SN77: case CHIP_OPL1: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
+    case CHIP_OPM: case CHIP_WS: case CHIP_SAA: case CHIP_LYNX: case CHIP_PC98: case CHIP_NEO: case CHIP_NGP: case CHIP_C30: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); memset(&hp_nr[STEREO_IDX(chip)], 0, sizeof hp_nr[0]); break;
     default: break;
     }
 }
@@ -743,6 +1107,14 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
 #include "seq.c"
 #include "fx.c"
 
+static void opll_set(inst_t *in, uint32_t kind, uint32_t n)      /* an instrument: the sound, and the envelope its ROM says (tweak it on the other pages after) */
+{
+    if (n > 14u) n = 14u;
+    in->wave = (uint8_t)n;
+    if (kind == KD_VRC7) n += 15u;
+    in->atk = OPLL_P[n].atk; in->dec = OPLL_P[n].dec; in->sus = OPLL_P[n].sus; in->rel = OPLL_P[n].rel;
+}
+
 /* ---- changing the channel list (main loop; the audio side waits) */
 static int chan_add(uint32_t kind)               /* the new channel's number, or -1 when full */
 {
@@ -751,6 +1123,7 @@ static int chan_add(uint32_t kind)               /* the new channel's number, or
     chan_lock = 1;
     c = chan_n;
     chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind];
+    if (IS_OPLL(kind)) opll_set(&chan[c].in, kind, 0u);
     memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE;
     memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0; memset(dv[c], 0, sizeof dv[c]);
     chan_n++;
@@ -815,6 +1188,24 @@ static void chip_render(int32_t *out, uint32_t n)
             case CHIP_WSG: r_wave4(mix, run, act, na, 0); break;
             case CHIP_N163: r_wave4(mix, run, act, na, 1); break;
             case CHIP_S5B: r_s5b(mix, run, act, na); break;
+            case CHIP_MMC5: r_mmc5(mix, run, act, na); break;
+            case CHIP_FDS: r_fds(mix, run, act, na); break;
+            case CHIP_SCC: r_scc(mix, run, act, na); break;
+            case CHIP_OPLL: case CHIP_VRC7: r_opl(mix, run, act, na); break;
+            case CHIP_OPM: r_fm4(mix, run, act, na, 0); break;
+            case CHIP_OPL3: r_fm4(mix, run, act, na, 1); break;
+            case CHIP_WS: r_ws(mix, run, act, na); break;
+            case CHIP_SAA: r_saa(mix, run, act, na); break;
+            case CHIP_VIC: r_vic(mix, run, act, na); break;
+            case CHIP_TED: r_ted(mix, run, act, na); break;
+            case CHIP_LYNX: r_lynx(mix, run, act, na); break;
+            case CHIP_PC98: r_two(mix, run, act, na, KD_PC98_FM); break;
+            case CHIP_NEO: r_two(mix, run, act, na, KD_NEO_FM); break;
+            case CHIP_NGP: r_ngp(mix, run, act, na); break;
+            case CHIP_OPL1: r_opl(mix, run, act, na); break;
+            case CHIP_OPZ: r_fm4(mix, run, act, na, 1); break;
+            case CHIP_SN77: r_sn77(mix, run, act, na); break;
+            case CHIP_C30: r_c30(mix, run, act, na); break;
             default: r_sms(mix, run, act, na); break;
             }
             post(chip, mix, run);

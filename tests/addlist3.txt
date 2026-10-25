@@ -1,0 +1,52 @@
+# the add list at the end, then the PC-98's channels
+600 enc 6 -1
+650 enc 6 1
+700 enc 6 1
+750 enc 6 1
+800 enc 6 1
+850 enc 6 1
+900 btn 1
+1100 enc 0 1
+1140 enc 0 1
+1180 enc 0 1
+1220 enc 0 1
+1260 enc 0 1
+1300 enc 0 1
+1340 enc 0 1
+1380 enc 0 1
+1420 enc 0 1
+1460 enc 0 1
+1500 enc 0 1
+1540 enc 0 1
+1580 enc 0 1
+1620 enc 0 1
+1660 enc 0 1
+1700 enc 0 1
+1740 enc 0 1
+1780 enc 0 1
+1820 enc 0 1
+1860 enc 0 1
+1900 enc 0 1
+1940 enc 0 1
+1980 enc 0 1
+2020 enc 0 1
+2060 enc 0 1
+2100 enc 0 1
+2140 enc 0 1
+2180 enc 0 1
+2220 enc 0 1
+2260 enc 0 1
+2300 enc 0 1
+2340 enc 0 1
+2380 enc 0 1
+2420 enc 0 1
+2560 shot
+2660 enc 0 -1
+2700 enc 0 -1
+2740 enc 0 -1
+2780 enc 0 -1
+2820 enc 0 -1
+2860 enc 0 -1
+2900 enc 0 -1
+3160 btn 1
+3460 shot

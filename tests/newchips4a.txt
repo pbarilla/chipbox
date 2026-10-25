@@ -1,0 +1,18 @@
+# VRC7, YM2151, OPL3, WonderSwan: chip screens, then page 1 of the OPM and OPL3
+100 midi 0xB0 106 57
+200 midi 0xB0 106 59
+300 midi 0xB0 106 61
+400 midi 0xB0 106 62
+500 held 0x100
+550 held 0
+950 enc 6 1
+1030 enc 6 1
+1110 enc 6 1
+1190 enc 6 1
+1970 shot
+2070 enc 6 1
+2770 shot
+2870 enc 6 1
+3570 shot
+3670 enc 6 1
+4370 shot

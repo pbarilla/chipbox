@@ -99,6 +99,25 @@ static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t
     else if (chip == CHIP_OPL) { rk_rect(x + 3, y, 4, 15, c); rk_rect(x + 1, y + 2, 8, 11, c); rk_rect(x, y + 4, 10, 7, c); }      /* a capsule */
     else if (chip == CHIP_WSG) { rk_rect(x, y, 10, 15, c); if (lit) rk_rect(x + 6, y + 5, 4, 5, R_BG); }      /* Pac-Man's mouth */
     else if (chip == CHIP_S5B) { rk_rect(x + 3, y, 4, 15, c); rk_rect(x, y + 5, 10, 5, c); }                 /* a cross */
+    else if (chip == CHIP_MMC5) { rk_rect(x, y, 4, 15, c); rk_rect(x + 6, y + 4, 4, 11, c); }                  /* two pulses */
+    else if (chip == CHIP_FDS) { rk_rect(x, y, 10, 15, c); rk_rect(x + 3, y, 4, 4, R_BG); }                   /* a disk's shutter */
+    else if (chip == CHIP_SCC) { rk_rect(x, y + 10, 4, 5, c); rk_rect(x + 3, y + 5, 4, 10, c); rk_rect(x + 6, y, 4, 15, c); }      /* steps */
+    else if (chip == CHIP_OPLL) { rk_rect(x, y, 10, 15, c); rk_rect(x + 3, y + 11, 4, 4, R_BG); }              /* a notch at the foot */
+    else if (chip == CHIP_VRC7) { rk_rect(x, y, 10, 15, c); rk_rect(x + 6, y, 4, 4, R_BG); }                  /* a cut corner */
+    else if (chip == CHIP_OPM) { rk_rect(x, y, 4, 15, c); rk_rect(x + 6, y, 4, 15, c); }                        /* two towers */
+    else if (chip == CHIP_OPL3) { rk_rect(x, y + 3, 10, 9, c); rk_rect(x + 1, y, 2, 3, c); rk_rect(x + 5, y, 2, 3, c); rk_rect(x + 1, y + 12, 2, 3, c); rk_rect(x + 5, y + 12, 2, 3, c); }      /* a chip with legs */
+    else if (chip == CHIP_WS) { rk_rect(x, y + 3, 10, 9, c); if (lit) rk_rect(x + 3, y + 5, 4, 5, R_BG); }      /* a handheld's screen */
+    else if (chip == CHIP_SAA) { uint32_t r; rk_rect(x, y, 10, 15, c); for (r = 0; r < 4u; r++) rk_rect(x, y + 2 + (int32_t)r * 4, 10, 1, r & 1u ? R_BG : c); rk_rect(x, y + 6, 10, 1, R_BG); rk_rect(x, y + 10, 10, 1, R_BG); }      /* a stripe set */
+    else if (chip == CHIP_VIC) { rk_rect(x, y + 4, 10, 11, c); rk_rect(x + 2, y, 6, 4, c); }                  /* a slab with a lid */
+    else if (chip == CHIP_TED) { rk_rect(x, y, 10, 15, c); rk_rect(x + 2, y + 11, 6, 2, R_BG); }              /* a bar at the foot */
+    else if (chip == CHIP_PC98) { rk_rect(x, y, 10, 15, c); rk_rect(x + 2, y + 2, 6, 5, R_BG); }                 /* a monitor */
+    else if (chip == CHIP_NEO) { rk_rect(x, y + 3, 10, 12, c); rk_rect(x + 2, y, 6, 3, c); }                   /* a slab with a lid */
+    else if (chip == CHIP_NGP) { rk_rect(x, y + 4, 10, 8, c); rk_rect(x + 2, y + 1, 6, 3, c); rk_rect(x + 2, y + 12, 6, 3, c); }      /* a pocket */
+    else if (chip == CHIP_OPL1) { rk_rect(x, y + 5, 10, 10, c); rk_rect(x + 2, y, 2, 5, c); rk_rect(x + 6, y, 2, 5, c); }      /* a card with its contacts */
+    else if (chip == CHIP_OPZ) { rk_rect(x, y, 10, 15, c); rk_rect(x + 1, y + 3, 8, 1, R_BG); rk_rect(x + 1, y + 7, 8, 1, R_BG); rk_rect(x + 1, y + 11, 8, 1, R_BG); }      /* three lines */
+    else if (chip == CHIP_SN77) { rk_rect(x + 2, y, 6, 15, c); rk_rect(x, y + 2, 2, 2, c); rk_rect(x, y + 6, 2, 2, c); rk_rect(x, y + 10, 2, 2, c); rk_rect(x + 8, y + 2, 2, 2, c); rk_rect(x + 8, y + 6, 2, 2, c); rk_rect(x + 8, y + 10, 2, 2, c); }      /* a chip with legs */
+    else if (chip == CHIP_C30) { rk_rect(x, y, 10, 15, c); rk_rect(x, y, 10, 3, lit ? R_WHITE : c); rk_rect(x + 2, y + 5, 6, 5, R_BG); }      /* a cabinet */
+    else if (chip == CHIP_LYNX) { rk_rect(x, y + 2, 10, 11, c); rk_rect(x + 2, y, 6, 2, c); rk_rect(x + 2, y + 13, 6, 2, c); }      /* a rounded handheld */
     else {
         rk_rect(x, y, 10, 15, c);
         if (lit && chip == CHIP_NES) { uint16_t hi = mix16(c, R_WHITE, 110); rk_rect(x, y, 10, 1, hi); rk_rect(x, y, 1, 15, hi); }     /* bevelled */
