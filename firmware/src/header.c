@@ -60,7 +60,7 @@ static void ico_chip(int32_t x, int32_t y, uint16_t body, uint16_t pin, uint16_t
 /* the chips' logos, made up: the chip's own number in the console's colours. Returns the width; rack_label is the little 3 x 5 font from rack.c */
 static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
 {
-    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612", "VSU", "POKEY", "8253", "YM3812", "WSG", "N163", "5B", "MMC5", "RP2C33", "SCC", "YM2413", "VRC7", "YM2151", "YMF262", "ASWAN", "SAA1099", "6560", "7360", "MIKEY", "YM2608", "YM2610", "T6W28", "Y8950", "YM2414", "SN76477", "C30"};
+    static const char *const NUM[CHIPS] = {"2A03", "DMG", "SN76489", "HUC6280", "TIA", "VRC6", "AY8910", "YM2612", "VSU", "POKEY", "8253", "YM3812", "WSG", "N163", "5B", "MMC5", "RP2C33", "SCC", "YM2413", "VRC7", "YM2151", "YMF262", "ASWAN", "SAA1099", "6560", "7360", "MIKEY", "YM2608", "YM2610", "T6W28", "Y8950", "YM2414", "SN76477", "C30", "MSM5232", "ULA"};
     const char *s = NUM[chip < CHIPS ? chip : 0];
     int32_t n = 0, w;
     while (s[n]) n++;
@@ -182,6 +182,15 @@ static int32_t ico_logo(uint32_t chip, int32_t x, int32_t y)
     } else if (chip == CHIP_C30) {              /* gold, corners cut, dark red letters */
         cv_rect(x + 2, y, w - 4, 14, RGB(255, 186, 60)); cv_rect(x, y + 2, w, 10, RGB(255, 186, 60));
         rack_label(x + 5, y + 2, s, RGB(36, 10, 12));
+    } else if (chip == CHIP_MSM) {              /* black with a raspberry rim, three little drawbars underneath */
+        cv_rect(x, y, w, 14, RGB(255, 60, 120)); cv_rect(x + 1, y + 1, w - 2, 12, RGB(24, 18, 26));
+        cv_rect(x + 3, y + 11, 3, 1, RGB(255, 60, 120)); cv_rect(x + 8, y + 10, 3, 2, RGB(255, 60, 120)); cv_rect(x + 13, y + 9, 3, 3, RGB(255, 60, 120));
+        rack_label(x + 5, y + 1, s, RGB(246, 234, 240));
+    } else if (chip == CHIP_ZX) {               /* black, the four rainbow stripes slanting up at the right */
+        cv_rect(x, y, w, 14, RGB(10, 10, 12)); cv_rect(x, y, w, 1, R_WHITE); cv_rect(x, y + 13, w, 1, R_WHITE);
+        { int32_t k; static const uint16_t RB[4] = {RGB(236, 60, 56), RGB(250, 204, 40), RGB(60, 200, 80), RGB(60, 190, 230)};
+          for (k = 0; k < 4; k++) cv_rect(x + w - 12 + k * 2, y + 1, 2, 12, RB[k]); }
+        rack_label(x + 4, y + 2, s, R_WHITE);
     } else {                                    /* Sega black, a blue edge */
         cv_rect(x, y, w, 14, RGB(10, 10, 14)); cv_rect(x, y, w, 1, R_WHITE); cv_rect(x, y + 13, w, 1, R_WHITE);
         cv_rect(x, y + 1, 3, 12, RGB(0, 98, 210));
@@ -342,6 +351,18 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x + 10, y + 4, 18, 9, RGB(4, 4, 8)); cv_rect(x + 14, y + 7, 4, 3, RGB(255, 186, 60)); cv_rect(x + 21, y + 8, 3, 3, RGB(240, 240, 250));
         cv_rect(x + 5, y + 14, 28, 3, RGB(40, 12, 14)); cv_rect(x + 14, y + 14, 3, 1, RGB(255, 186, 60)); cv_rect(x + 21, y + 14, 2, 1, RGB(240, 240, 250));
         cv_rect(x + 12, y + 18, 14, 3, RGB(90, 14, 18));
+    } else if (chip == CHIP_MSM) {              /* a Poly-800: a black slab, a red and a yellow stripe, little buttons and an LCD, a keyboard along the bottom */
+        cv_rect(x, y, 38, 22, RGB(30, 28, 34)); cv_rect(x, y, 38, 1, RGB(100, 96, 106));
+        cv_rect(x + 3, y + 3, 10, 5, RGB(255, 200, 80)); cv_rect(x + 5, y + 5, 6, 1, RGB(60, 40, 20));
+        { int32_t k; for (k = 0; k < 6; k++) cv_rect(x + 17 + k * 3, y + 4, 2, 3, k % 2 ? RGB(255, 60, 120) : RGB(190, 186, 196)); }
+        cv_rect(x, y + 10, 38, 1, RGB(255, 60, 120)); cv_rect(x, y + 11, 38, 1, RGB(255, 200, 80));
+        cv_rect(x + 1, y + 13, 36, 8, RGB(236, 234, 238));
+        { int32_t k; for (k = 0; k < 12; k++) cv_rect(x + 3 + k * 3, y + 13, 1, 8, RGB(60, 58, 64)); }
+        { int32_t k; for (k = 0; k < 8; k++) if (k != 2 && k != 6) cv_rect(x + 3 + k * 3 + 2, y + 13, 2, 5, RGB(24, 22, 28)); }
+    } else if (chip == CHIP_ZX) {               /* a ZX Spectrum 48K: a black slab, four rows of grey rubber keys, the rainbow in the corner */
+        cv_rect(x + 2, y + 2, 34, 18, RGB(24, 24, 28)); cv_rect(x, y + 4, 38, 14, RGB(24, 24, 28)); cv_rect(x + 2, y + 2, 34, 1, RGB(70, 70, 78));
+        { int32_t r, k; for (r = 0; r < 4; r++) for (k = 0; k < 10; k++) cv_rect(x + 3 + k * 3 + (r & 1), y + 5 + r * 3, 2, 2, RGB(190, 190, 196)); }
+        cv_rect(x + 28, y + 3, 2, 2, RGB(236, 60, 56)); cv_rect(x + 30, y + 3, 2, 2, RGB(250, 204, 40)); cv_rect(x + 32, y + 3, 2, 2, RGB(60, 200, 80)); cv_rect(x + 34, y + 3, 2, 2, RGB(60, 190, 230));
     } else if (chip == CHIP_OPM) {              /* an X68000: two black towers side by side, a magenta stripe, floppy slots */
         cv_rect(x + 2, y, 15, 21, RGB(30, 30, 36)); cv_rect(x + 20, y, 15, 21, RGB(30, 30, 36));
         cv_rect(x + 2, y, 15, 1, RGB(90, 90, 100)); cv_rect(x + 20, y, 15, 1, RGB(90, 90, 100));
@@ -410,6 +431,8 @@ static void hdr_rule(uint32_t chip, const theme_t *t)
     else if (chip == CHIP_OPZ) { cv_rect(0, 38, 240, 1, t->acc); cv_rect(0, 40, 240, 1, t->acc); }               /* two cream lines */
     else if (chip == CHIP_SN77) { for (x = 0; x < 240; x += 2) cv_rect(x, 38 + (int32_t)(((x * 7) / 5) % 5 > 2 ? 2 : 0), 2, 2, t->acc); }       /* a cyan scribble */
     else if (chip == CHIP_C30) { cv_rect(0, 38, 240, 3, t->acc); cv_rect(0, 41, 240, 1, t->dim); }               /* a gold marquee bar */
+    else if (chip == CHIP_MSM) { cv_rect(0, 38, 240, 1, t->acc); for (x = 4; x < 240; x += 12) cv_rect(x, 39, 2, 1 + ((x / 12) % 3), t->acc); }       /* drawbars hanging off a line */
+    else if (chip == CHIP_ZX) { for (x = 0; x < 240; x += 1) { int32_t q = (x / 6) & 3; cv_rect(x, 38 + q, 1, 1, q == 0 ? RGB(236, 60, 56) : q == 1 ? RGB(250, 204, 40) : q == 2 ? RGB(60, 200, 80) : RGB(60, 190, 230)); } }       /* a slanting rainbow */
     else { cv_rect(0, 38, 240, 1, t->fg); cv_rect(0, 41, 240, 1, t->fg); }                                   /* a double line */
 }
 /* a console, lifted dy (the animations drop it in from above) */

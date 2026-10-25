@@ -18,6 +18,8 @@ K.update(SAA=49, VIC=50, TED=51, LYNX=52)
 for i, n in enumerate("SAA VIC TED LYNX".split()): K["DRUMS_" + n] = 53 + i
 K.update(PC98_FM=57, PC98_SSG=58, NEO_FM=59, NEO_SSG=60, NGP=61, OPL1=62, OPZ=63, SN77=64, C30=65)
 for i, n in enumerate("PC98 NEO NGP OPL1 OPZ SN77 C30".split()): K["DRUMS_" + n] = 66 + i
+K.update(MSM=73, ZX=74)
+for i, n in enumerate("MSM ZX".split()): K["DRUMS_" + n] = 75 + i
 # wave, duty, atk, dec, sus, rel, vib_spd, vib_dep, sweep, pan  (the firmware's INST_DEF, chips.c)
 D = {"NES_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1), "NES_TRI": (0, 0, 0, 0, 15, 2, 5, 0, 0, 1), "GB_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1),
      "GB_WAV": (15, 0, 0, 0, 15, 2, 5, 0, 0, 1), "SMS": (0, 0, 0, 6, 14, 4, 5, 4, 0, 1), "PCE": (5, 0, 0, 0, 12, 2, 5, 0, 0, 1),
@@ -26,8 +28,10 @@ D = {"NES_PU": (0, 2, 0, 5, 9, 4, 5, 0, 0, 1), "NES_TRI": (0, 0, 0, 0, 15, 2, 5,
      "SPK": (0, 0, 0, 0, 15, 1, 5, 0, 0, 1), "WSG": (5, 0, 0, 0, 12, 2, 5, 0, 0, 1), "N163": (10, 0, 0, 0, 15, 2, 5, 0, 0, 1),
      "S5B": (0, 0, 0, 5, 12, 3, 5, 0, 0, 0)}
 DRUM = (0, 0, 0, 4, 15, 4, 5, 0, 0, 1)
-FM = dict(wave=1, duty=0, wf=6, wc=0, wt=4, atk=0, dec=6, sus=12, rel=3, vib_spd=5, vib_dep=0, sweep=0, pan=1)
-OPL = dict(FM, wf=7, wc=0, wt=3)
+FM = dict(wave=1, duty=4, wf=9, wc=0, wt=4, atk=0, dec=6, sus=12, rel=3, vib_spd=5, vib_dep=0, sweep=0, pan=1)
+OPL = dict(FM, duty=0, wf=10, wc=0, wt=3)
+WFMAP = [0, 4, 6, 7, 8, 9, 9, 10, 10, 11, 11, 11, 12, 12, 12, 12]       # the INDEX knob was linear, now 3 dB a step: the same depth on the new scale
+MDALG = {0: 4, 1: 0, 2: 2, 3: 7}                  # the Mega Drive had 3 operators and 4 algorithms, now 4 and 8
 NAMES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
 
@@ -54,8 +58,10 @@ class Project:
         if kind == "MD": fields = dict(FM)
         if kind == "OPL": fields = dict(OPL)
         fields.update(dict(wf=0, wc=0, wt=0, vol=15, arp=0, arp_rate=1, arp_dir=0)); fields.update({k: v for k, v in fields.items() if k in ("wf", "wc", "wt")})
-        if kind == "MD": fields.update(wf=6, wc=0, wt=4)
-        if kind == "OPL": fields.update(wf=7, wc=0, wt=3)
+        if kind == "MD": fields.update(wf=9, wc=0, wt=4)
+        if kind == "OPL": fields.update(wf=10, wc=0, wt=3)
+        if kind in ("MD", "OPL") and "wf" in kw: kw = dict(kw, wf=WFMAP[kw["wf"]])
+        if kind == "MD" and "duty" in kw: kw = dict(kw, duty=MDALG[kw["duty"]])
         fields.update(kw)
         self.ch.append((K[kind], fields))
         return len(self.ch) - 1

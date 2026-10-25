@@ -117,6 +117,8 @@ static void rack_block(uint32_t chip, int32_t x, int32_t y, uint16_t c, uint32_t
     else if (chip == CHIP_OPZ) { rk_rect(x, y, 10, 15, c); rk_rect(x + 1, y + 3, 8, 1, R_BG); rk_rect(x + 1, y + 7, 8, 1, R_BG); rk_rect(x + 1, y + 11, 8, 1, R_BG); }      /* three lines */
     else if (chip == CHIP_SN77) { rk_rect(x + 2, y, 6, 15, c); rk_rect(x, y + 2, 2, 2, c); rk_rect(x, y + 6, 2, 2, c); rk_rect(x, y + 10, 2, 2, c); rk_rect(x + 8, y + 2, 2, 2, c); rk_rect(x + 8, y + 6, 2, 2, c); rk_rect(x + 8, y + 10, 2, 2, c); }      /* a chip with legs */
     else if (chip == CHIP_C30) { rk_rect(x, y, 10, 15, c); rk_rect(x, y, 10, 3, lit ? R_WHITE : c); rk_rect(x + 2, y + 5, 6, 5, R_BG); }      /* a cabinet */
+    else if (chip == CHIP_MSM) { rk_rect(x, y + 6, 3, 9, c); rk_rect(x + 4, y + 2, 3, 13, c); rk_rect(x + 8, y + 9, 2, 6, c); }      /* drawbars */
+    else if (chip == CHIP_ZX) { rk_rect(x, y, 10, 15, c); rk_rect(x + 6, y, 1, 15, R_BG); rk_rect(x + 8, y, 1, 15, R_BG); }      /* a stripe set */
     else if (chip == CHIP_LYNX) { rk_rect(x, y + 2, 10, 11, c); rk_rect(x + 2, y, 6, 2, c); rk_rect(x + 2, y + 13, 6, 2, c); }      /* a rounded handheld */
     else {
         rk_rect(x, y, 10, 15, c);

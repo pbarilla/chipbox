@@ -94,25 +94,48 @@ def poly(bits, taps, hold=1):
         st = (st >> 1) | ((((st >> taps[0]) ^ (st >> taps[1])) & 1) << (bits - 1))
     return [b for b in seq for _ in range(hold)]
 def pure(h, l): return [1] * h + [0] * l
-def gated():                                    # 5 bit poly, clocked only while the 4 bit poly is high
-    a, b, sa, sb, seq = poly(4, (0, 1)), poly(5, (0, 2)), 0, 0, []
+def held45():                                   # type 3: the 4 bit poly, clocked only while the 5 bit poly is high (the output is the 4 bit poly)
+    a, b, sa, sb, seq, o = poly(4, (0, 1)), poly(5, (0, 2)), 0, 0, [], 0
     for _ in range(15 * 31):
-        if a[sa % 15]: sb += 1
-        sa += 1
-        seq.append(b[sb % 31])
+        if b[sb % 31]: o = a[sa % 15]; sa += 1
+        sb += 1
+        seq.append(o)
     return seq
-TIA = [
-    ([0, 1], 2),                                # pure /2
-    ([0] * 3 + [1] * 3, 6),                     # pure /6
-    (pure(13, 18), 31),                         # pure /31
-    ([b for b in pure(13, 18) for _ in range(3)], 93),
-    (poly(5, (0, 2), 6), 186),                  # 5 bit poly /6
-    (poly(4, (0, 1)), 15),                      # buzz
-    ([b for b in poly(4, (0, 1)) for _ in range(31)], 465),
-    (gated(), 465),
-    (poly(5, (0, 2)), 31),
-    (poly(9, (0, 4)), 511),                     # white noise
-]
+def gated_pulse(div):                           # types 7 and 15: a /2 or /6 pulse that only steps while the 5 bit poly is high
+    b, pl, sb, k, seq, seen = poly(5, (0, 2)), [1] * (div // 2) + [0] * (div - div // 2), 0, 0, [], {}
+    while (sb % 31, k % div) not in seen:
+        seen[(sb % 31, k % div)] = 1
+        if b[sb % 31]: k += 1
+        sb += 1
+        seq.append(pl[k % div])
+    return seq
+def tia_sim(audc, n=6000):                      # Stella's AudioChannel, step by step (audf = 0: one step a divider period): the cycle of the output bit
+    nc = pc = 0; ce = fb = nb4 = hold = False; div = 0; outb = []
+    for _ in range(n):
+        if ce:
+            nb4 = nc & 1
+            m = audc & 3
+            hold = False if m < 2 else ((nc & 0x1e) != 0x02 if m == 2 else (not nb4))
+            if m == 0: fb = bool(((pc ^ nc) & 1) or not (nc or pc != 0x0a) or not (audc & 0x0c))
+            else: fb = bool((((nc & 4) >> 2) ^ (nc & 1)) or nc == 0)
+        ce = div == 0
+        div = 0 if (div == 0 or div == 0x1f) else div + 1
+        if ce:
+            k = audc >> 2
+            if k == 0: pf = bool((((pc & 2) >> 1) ^ (pc & 1)) and pc != 0x0a and (audc & 3))
+            elif k == 1: pf = not (pc & 8)
+            elif k == 2: pf = not nb4
+            else: pf = not ((pc & 2) or not (pc & 0x0e))
+            nc >>= 1
+            if fb: nc |= 0x10
+            if not hold:
+                pc = (~(pc >> 1)) & 7
+                if pf: pc |= 8
+        outb.append(pc & 1)
+    outb = outb[3000:]
+    for per in range(1, 2000):
+        if all(outb[x] == outb[x + per] for x in range(len(outb) - per)): return outb[:per]
+TIA = [(tia_sim(a), 0) for a in (4, 12, 6, 14, 15, 1, 2, 3, 9, 8, 7)]      # /2, /6, /31, /93, 5 bit poly /6, 4 bit buzz, 4 bit /31, 4 bit by 5 bit, 5 bit poly, 9 bit white noise, 5 bit poly /2
 out.append(f"#define TIA_N {len(TIA)}u")
 arr("TIA_LEN", "uint16_t", [len(b) for b, _ in TIA], 10)
 rows = []
@@ -147,13 +170,11 @@ def held():                                     # 4 bit poly sampled only while 
 POKEY = [
     [0, 1],                                     # pure
     toggled(poly(5, (0, 2))),                   # 5 bit gated: the bumbly bass
-    toggled(poly(4, (0, 1))),                   # 4 bit gated
     poly(4, (0, 1)),                            # 4 bit buzz
-    poly(5, (0, 2)),                            # 5 bit buzz
     held(),                                     # 4 bit held by the 5 bit
-    poly(9, (0, 4)),                            # 9 bit noise
-    poly(5, (0, 2), 6),                         # 5 bit, slowed
 ]
+# the other four distortions run as shift registers in chips.c: the 17 bit noise, that gated by the 5 bit, the 9 bit noise (AUDCTL), and that gated
+arr("POKEY_P5", "uint8_t", poly(5, (0, 2)), 31)
 out.append(f"#define POKEY_N {len(POKEY)}u")
 arr("POKEY_LEN", "uint16_t", [len(b) for b in POKEY], 10)
 out.append("static const uint8_t POKEY_BITS[%d][64] = {" % len(POKEY))
@@ -167,12 +188,19 @@ out.append("};")
 # AY-3-8910 / YM2149: 16 levels, about 3 dB apart
 AY = [0, 0.0137, 0.0205, 0.0291, 0.0423, 0.0618, 0.0847, 0.1369, 0.1691, 0.2647, 0.3527, 0.4499, 0.5704, 0.6873, 0.8482, 1.0]
 arr("AY_AMP", "uint8_t", [round(100 * v) for v in AY])
+arr("YM_AMP", "uint16_t", [0] + [round(1600 * 10 ** (-3 * (15 - i) / 20)) for i in range(1, 16)])      # the YM2149 / 5B: 3 dB a step, 16 x finer so the quiet steps stay apart
 
 # Mega Drive FM (YM2612 style, three operators): a sine, modulation depth, feedback, ratios (in halves)
 arr("SIN_T", "int16_t", [round(16384 * math.sin(2 * math.pi * i / 1024)) for i in range(1024)], 16)
-arr("FM_IDX", "uint32_t", [round(65536 * (0.6 * i) / (2 * math.pi)) for i in range(16)], 8)
-arr("FM_FB", "uint32_t", [round(65536 * (4 * math.pi * i / 15) / (2 * math.pi)) for i in range(16)], 8)
-arr("FM_RAT", "uint8_t", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 20, 24, 28], 16)
+# modulation depth: 3 dB a step, 4 cycles (the chips' 8 pi) at the top; feedback: the chips' doubling steps from pi / 16 to 4 pi (2 cycles); the operator multiples in halves
+arr("FM_IDX", "uint32_t", [0] + [round(262144 * 10 ** (-3 * (15 - i) / 20)) for i in range(1, 16)], 8)
+arr("FM_FB", "uint32_t", [0] + [round(131072 * 2 ** (-6 * (15 - i) / 14)) for i in range(1, 16)], 8)
+arr("OPLL_FB", "uint32_t", [0] + [round(131072 * 2 ** (n - 7)) for n in range(1, 8)], 8)
+arr("FM_RAT", "uint8_t", [1] + [2 * m for m in range(1, 16)], 16)            # OPM / OPN / OPZ / YM2612: 0.5, then 1 to 15
+arr("OPL_RAT", "uint8_t", [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30], 16)       # the OPL family: 0.5, 1 to 10, 12, 12, 15, 15
+# attenuation in 0.75 dB steps (the chips' TL step), Q16; and the INDEX decay: dB a second for the DECAY knob, in 0.75 dB steps
+arr("DB_ATT", "uint32_t", [round(65536 * 10 ** (-0.0375 * i)) for i in range(128)], 8)
+arr("FM_DEC", "uint16_t", [0] + [round(30 * 2 ** ((n - 1) * 0.5) / 0.75) for n in range(1, 16)], 8)
 
 # punch-in filters: a one-pole low-pass / high-pass coefficient (Q14) for 16 cutoffs; 0 = open (bypassed)
 def pole(f):
@@ -207,25 +235,49 @@ VRC7_ROM = [
 ML = [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30]
 def rate_ms(r): return 9820.0 * 2 ** (1 - r) if r else 1e9              # time for a full fall at a rate 0..15, about
 def to_ticks(ms): return max(0, min(15, round((ms / (1000 / 60) - 1) / 2)))
-FBV = [0, 1, 1, 1, 2, 4, 8, 15]
+def dbps(r): return 0.0 if r == 0 else 2.95 * 2 ** (r - 1)               # a rate 1..15 as dB a second (measured on the chip, no key scaling)
+def knob_for(db):                                                           # the ENV knob (0 fast .. 15 slow) whose dB a second is nearest: 543 / 2^(n / 2)
+    return 15 if db <= 0 else max(0, min(15, round(2 * math.log2(543.0 / db))))
 rows = []
 for d in OPLL_ROM + VRC7_ROM:
     car_ar, car_dr, car_sl, car_rr, car_eg = d[5] >> 4, d[5] & 15, d[7] >> 4, d[7] & 15, d[1] >> 5 & 1
-    mod_dr, mod_eg = d[4] & 15, d[0] >> 5 & 1
+    mod_dr, mod_eg, mod_rr, mod_sl = d[4] & 15, d[0] >> 5 & 1, d[6] & 15, d[6] >> 4
     atk = 0 if car_ar >= 13 else min(15, round(0.31 * 2 ** (13 - car_ar) / (1000 / 60)))
-    dec = 15 if car_dr == 0 else to_ticks(rate_ms(car_dr))
-    sus = 0 if car_sl == 15 else round(15 * 10 ** (-3 * car_sl / 20))
+    dec = 15 if car_dr == 0 else knob_for(dbps(car_dr))
+    sus = 0 if car_sl == 15 else 15 - car_sl                                  # 3 dB a step, like the engine's level
     if car_dr == 0: sus = 15
-    if not car_eg: sus, dec = 0, (15 if car_rr == 0 else to_ticks(rate_ms(car_rr)))       # a percussive voice never holds: it falls on, at the release rate
-    rel = 15 if car_rr == 0 else to_ticks(rate_ms(car_rr))
-    wt = 0 if (mod_eg or mod_dr == 0) else max(1, min(15, round(16 / max(1.0, rate_ms(mod_dr) / (1000 / 60) / 4))))
-    mod_sl = d[6] >> 4
-    lvl = 10 ** (-0.0375 * (d[2] & 63)) * (10 ** (-3 * mod_sl / 20) if mod_eg else 1)       # a held modulator settles at its sustain level
-    rows.append((ML[d[1] & 15], ML[d[0] & 15], FBV[d[3] & 7], d[3] >> 4 & 1, atk, dec, sus, rel, wt, round(262144 * lvl)))
-out.append("static const struct { uint8_t cm, mm, fb, ws, atk, dec, sus, rel, wt; uint32_t idx; } OPLL_P[30] = {")
+    rel = knob_for(dbps(car_rr))
+    ws = (d[3] >> 4 & 1) | (d[3] >> 3 & 1) << 1                               # bit 0: the carrier's wave, bit 1: the modulator's (a half sine)
+    rows.append((ML[d[1] & 15], ML[d[0] & 15], d[3] & 7, ws, atk, dec, sus, rel, round(262144 * 10 ** (-0.0375 * (d[2] & 63))),
+                 round(dbps(mod_dr) / 0.75), mod_sl * 4, round(dbps(mod_rr) / 0.75), mod_eg, d[2] >> 6, d[3] >> 6, car_eg,
+                 0 if d[4] >> 4 >= 13 else min(255, round(0.31 * 2 ** (13 - (d[4] >> 4)) / (1000 / 60))),             # ... the carrier's EG flag and the modulator's attack in ticks
+                 (d[0] >> 7 & 1) | (d[0] >> 6 & 1) << 1 | (d[1] >> 7 & 1) << 2 | (d[1] >> 6 & 1) << 3))          # tremolo (AM) and vibrato flags: modulator bits 0, 1, carrier bits 2, 3
+out.append("static const struct { uint8_t cm, mm, fb, ws, atk, dec, sus, rel; uint32_t idx; uint16_t dru; uint8_t slu; uint16_t rru; uint8_t eg, kslm, kslc, ceg, mta, fl; } OPLL_P[30] = {")
 out.append("    /* violin guitar piano flute clarinet oboe trumpet organ horn synth harpsichord vibraphone synth-bass bass electric-guitar; then the VRC7's 15 */")
 for r in rows: out.append("    {" + ", ".join(str(v) for v in r) + "},")
 out.append("};")
+# key scale level: the OPLL's attenuation for a note, before the instrument's 0..3 shift (emu2413's kl_table, 2 x dB): fnum and block from the pitch
+KL = [0, 18.0, 24.0, 27.75, 30.0, 32.25, 33.75, 35.25, 36.0, 37.5, 38.25, 39.0, 39.75, 40.5, 41.25, 42.0]
+def ksl_tmp(n):
+    fr = f(n)
+    blk = 0
+    while blk < 7 and fr * 2 ** (19 - blk) / 49716.0 >= 512: blk += 1          # the smallest block whose 9 bit fnum fits
+    fnum = min(511, round(fr * 2 ** (19 - blk) / 49716.0))
+    return max(0, int(KL[fnum >> 5] - 6.0 * (7 - blk)))
+arr("ENV_EXP", "uint16_t", [max(1, round(543.0 / 2 ** (n / 2) * 256 / 180)) for n in range(16)], 8)            # the ROM-instrument envelopes: the ENV knob as a fall of 543 / 2^(n/2) dB a second, in engine level steps a tick (3 dB = 256)
+arr("KSL_TMP", "uint8_t", [ksl_tmp(n) for n in N], 16)
+
+# Divider-quantised pitch, so each note lands where the chip's register would put it (and the lowest and highest notes stop where the register does)
+def quant(clk_per_div, lo, hi):                  # f = clk_per_div / d, d a whole number lo..hi
+    return [inc_k(clk_per_div / max(lo, min(hi, round(clk_per_div / f(n))))) for n in N]
+arr("VB_INC", "uint32_t", quant(5000000 / 32, 1, 2048), 8)              # the VSU: 5 MHz / (32 (2048 - x))
+arr("WS_INC", "uint32_t", quant(3072000 / 32, 1, 2048), 8)              # WonderSwan: 96000 / (2048 - d)
+arr("SCC_INC", "uint32_t", quant(3579545 / 32, 1, 4096), 8)             # the SCC: 3.58 MHz / (32 (N + 1))
+arr("VRC6P_INC", "uint32_t", quant(1789773 / 16, 1, 4096), 8)           # VRC6 pulse: 1.79 MHz / (16 (P + 1))
+arr("VRC6S_INC", "uint32_t", quant(1789773 / 14, 1, 4096), 8)           # VRC6 saw: 1.79 MHz / (14 (P + 1))
+arr("S5B_INC", "uint32_t", quant(1789773 / 32, 1, 4095), 8)             # the 5B: 1.79 MHz / (32 P)
+arr("AY_INC", "uint32_t", quant(1773447 / 16, 1, 4095), 8)              # the AY on a Spectrum: 1.773 MHz / (16 P)
+arr("FDS_INC", "uint32_t", [inc_k(min(4095, round(f(n) / (1789773 / 4194304 * 1.0)))*(1789773 / 4194304)) for n in N], 8)      # the FDS: f = p * clk / 2^22, p 12 bit
 
 # Philips SAA1099 (Sam Coupe): a 3 bit octave and an 8 bit step, f = 15625 * 2^octave / (511 - step), so a note lands on the nearest step
 def saa(t):
