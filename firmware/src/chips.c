@@ -70,7 +70,7 @@ static const inst_t INST_DEF[KINDS] = {
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 0),           /* Sunsoft 5B: wave = the noise mix, pan = the buzz (0 off) */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), IV(0, 0, 0, 4, 15, 4, 5, 0, 0, 1, 14), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), IV(0, 0, 0, 4, 15, 4, 5, 0, 0, 1, 12), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
     I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* NES MMC5 pulse */
-    IV(10, 0, 0, 0, 15, 2, 5, 0, 0, 0, 7),          /* Famicom Disk wave: a triangle, pan = the modulator's depth (0 off) */
+    IV(10, 241, 0, 0, 15, 2, 5, 0, 0, 0, 7),          /* Famicom Disk wave: a triangle; pan = the modulator's depth 0..15 (0 off), duty = ratio (low nibble, 1 = x1) and shape (high nibble, 15 = sine), sweep = its depth envelope */
     IV(5, 0, 0, 0, 12, 2, 5, 0, 0, 1, 11),           /* Konami SCC: a saw to start with, an 8 bit wave */
     I(0, 0, 0, 0, 0, 0, 0, 0, 0, 1),            /* MSX Music: wave = the instrument 0..14 (the envelope is set by chan_add) */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
@@ -299,6 +299,53 @@ static uint32_t fm_gain_att(uint32_t q, uint32_t att)    /* the same with an ext
 }
 #include "sid.c"
 static const uint8_t S5B_NP[16] = {0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 19, 22, 25, 28, 31};       /* the noise period registers the PERIOD knob picks (0 = follows the note) */
+/* ---- the FDS modulator, as the chip does it: a table of 32 entries, each applied twice (64 steps), moves a 7 bit signed counter; counter x gain / 16 (+ 64, 8 bits, wraps) / 64 multiplies the carrier's pitch, so the pitch swings 0 .. 3.98 x the note.
+ * Here: the table holds the counter's path, 64 values, straight (the SHAPE knob, +-32), the modulator runs at note pitch x RATIO, depth (pan) is the gain, sweep fades the gain over the note */
+static const uint8_t FDS_R2[16] = {1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40};       /* the ratio knob, in halves */
+static const uint8_t FDS_P[16] = {0, 16, 32, 64, 68, 72, 76, 80, 85, 90, 95, 100, 106, 112, 119, 126};     /* the depth knob: the pitch's swing in 1/64 of the note's (64 = down to 0 and up to twice); 1..3 double (the old phase bend's levels, within 1 dB at the 2nd harmonic), then x1.05 a step to 126 = the chip's gain 63 with this +-32 table */
+static const uint32_t FDS_SWF[16] = {176400, 131712, 98345, 73431, 54829, 40939, 30568, 22824, 17042, 12725, 9501, 7094, 5297, 3955, 2953, 2205};       /* the sweep: frames end to end, 4 s x 0.7468^(|sweep| - 1), 50 ms at 16 */
+static int8_t mtab[MAXCH][64];
+static uint8_t otab[MAXCH][64];                 /* the pitch multiplier (x 1/64, 8 bits, wraps) at each of the 64 counter values, for the gain in osc.idx (Q4) */
+static void fds_otab(uint32_t c, int32_t g)
+{
+    uint32_t i;
+    for (i = 0; i < 64u; i++) {
+        int32_t t = mtab[c][i] * g, off = t >> 8;
+        if (t > 0 && (t & 255)) off += 2;                   /* the chip's rounding: a positive product with a remainder rounds up, by 2 (a negative one down) */
+        otab[c][i] = (uint8_t)(64 + off);
+    }
+    osc[c].idx = (uint32_t)g;
+}
+static void fds_set(uint32_t c, uint32_t pq, uint32_t vol)
+{
+    const inst_t *in = &chan[c].in;
+    const uint32_t sh = in->duty >> 4, g16 = (uint32_t)FDS_P[in->pan & 15u] * 8u, key = (2u << 16) | (in->wave & 15u) | (in->wf & 15u) << 4 | (in->wc & 15u) << 8 | (in->wt & 15u) << 12 | sh << 20;
+    osc[c].inc = interp32(FDS_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].wav = wtab[c];
+    if (wkey[c] != key) {
+        inst_t m = *in; uint8_t t[64]; uint32_t i;
+        wave_make_s(in, wtab[c], 63, 64);
+        m.wave = (uint8_t)sh; m.wf = m.wc = m.wt = 0; wave_make_s(&m, t, 63, 64);
+        for (i = 0; i < 64u; i++) mtab[c][i] = (int8_t)(((int32_t)t[i] * 2 - 63) * 32 / 63);
+        wkey[c] = key;
+    }
+    osc[c].inc3 = osc[c].inc >> 6; osc[c].inc2 = (osc[c].inc >> 1) * FDS_R2[in->duty & 15u];
+    if (vc[c].trig) { vc[c].trig = 0; osc[c].ph2 = 0; }          /* the modulator starts with the note */
+    osc[c].y1 = 0; osc[c].y2 = 0; osc[c].fbm = 0;
+    if (g16) {
+        const int32_t sw = in->sweep; const uint32_t s = sw < 0 ? (sw < -16 ? 16u : (uint32_t)-sw) : (sw > 16 ? 16u : (uint32_t)sw), top = g16 << 16;
+        uint32_t e = 16384u;                                     /* Q14, how far the gain is from 0 to the set depth */
+        int32_t st = 0;
+        osc[c].fbm = top;
+        if (s) {
+            const uint32_t tf = FDS_SWF[s - 1u], ef = (uint32_t)vc[c].age * (FS / 60u);
+            if (ef < tf) { e = ef * 16384u / tf; st = (int32_t)(top / tf); }
+            if (sw < 0) { e = 16384u - e; st = -st; }
+            else if (ef >= tf) e = 16384u;
+        }
+        osc[c].y1 = (int32_t)((g16 * e) << 2); osc[c].y2 = st;
+    }
+    fds_otab(c, osc[c].y1 >> 16);
+}
 static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
 {
     const inst_t *in = &vc[c].in;
@@ -404,11 +451,12 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         }
         break;
     case KD_MMC5: t = interp(NES_PT, pq); osc[c].inc = K_NES / (t + 1u); osc[c].duty = in->duty & 3u; osc[c].vol = (uint8_t)vol; break;
-    case KD_FDS: case KD_SCC:                           /* FDS: a 6 bit wave, 64 steps like the chip's RAM; SCC: an 8 bit wave; both read live. The FDS also bends its phase by its modulator (pan = depth) */
-        osc[c].inc = interp32(chan[c].kind == KD_FDS ? FDS_INC : SCC_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].alg = chan[c].kind == KD_FDS ? chan[c].in.pan & 3u : 0u;
+    case KD_FDS: fds_set(c, pq, vol); break;
+    case KD_SCC:                                        /* an 8 bit wave, read live */
+        osc[c].inc = interp32(SCC_INC, pq); osc[c].vol = (uint8_t)vol;
         {   const inst_t *wi = &chan[c].in;
-            uint32_t fds = chan[c].kind == KD_FDS, key = ((fds ? 2u : 3u) << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
-            if (wkey[c] != key) { if (fds) wave_make_s(wi, wtab[c], 63, 64); else wave_make_n(wi, wtab[c], 255); wkey[c] = key; }
+            uint32_t key = (3u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
+            if (wkey[c] != key) { wave_make_n(wi, wtab[c], 255); wkey[c] = key; }
             osc[c].wav = wtab[c];
         }
         break;
@@ -1022,17 +1070,24 @@ static void r_mmc5(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)   
         out[2u * i] += acc; out[2u * i + 1u] += acc;
     }
 }
-static void r_fds(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* a 6 bit wave; the modulator (a sine at the note) pushes the wave's phase */
+static void r_fds(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* a 6 bit wave, its pitch multiplied by the modulator's counter (fds_set) */
 {
     uint32_t i, s, k;
     for (i = 0; i < n; i++) {
         int32_t acc = 0;
+        for (k = 0; k < na; k++) {                                   /* the sweep moves the gain a little every frame; the table follows in steps of half a gain unit */
+            uint32_t c = act[k]; int32_t y = osc[c].y1 + osc[c].y2;
+            if (!osc[c].y2) continue;
+            if (y < 0) y = 0; else if (y > (int32_t)osc[c].fbm) y = (int32_t)osc[c].fbm;
+            osc[c].y1 = y;
+            if ((uint32_t)(y >> 16) - osc[c].idx + 7u > 14u) fds_otab(c, y >> 16);
+        }
         for (s = 0; s < OS; s++)
             for (k = 0; k < na; k++) {
-                uint32_t c = act[k], ph;
-                osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc;
-                ph = osc[c].ph + (osc[c].alg ? (uint32_t)((int32_t)SIN_T[osc[c].ph2 >> 22] * (1 << (13u + osc[c].alg))) : 0u);
-                acc += ((int32_t)osc[c].wav[ph >> 26] * 2 - 63) * (int32_t)osc[c].vol;
+                uint32_t c = act[k];
+                osc[c].ph2 += osc[c].inc2;
+                osc[c].ph += osc[c].inc3 * otab[c][osc[c].ph2 >> 26];
+                acc += ((int32_t)osc[c].wav[osc[c].ph >> 26] * 2 - 63) * (int32_t)osc[c].vol;
             }
         out[2u * i] += acc * 3; out[2u * i + 1u] += acc * 3;
     }
@@ -1277,7 +1332,7 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
     default: break;
     }
     if (vc[c].age < 65535u) vc[c].age++;
-    vc[c].bend += (int32_t)in->sweep * 4;
+    if (chan[c].kind != KD_FDS) vc[c].bend += (int32_t)in->sweep * 4;      /* (the FDS uses the sweep for its modulator) */
     if (in->vib_dep) { vc[c].vph = (uint8_t)(vc[c].vph + in->vib_spd * 8u); lfo = (VIB[vc[c].vph >> 3] * (int32_t)in->vib_dep) >> 3; }
     if (in->arp && in->arp <= 8u && vc[c].on) {                  /* the arp: a new chord note every few ticks while the key is down */
         if (++vc[c].arp_t >= ARP_TICKS[in->arp_rate & 3u]) { vc[c].arp_t = 0; vc[c].arp_k++; }

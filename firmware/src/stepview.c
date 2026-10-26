@@ -63,20 +63,14 @@ static void ed_update(uint32_t c, uint32_t base, uint32_t force)
 
 /* DRUMS: a drum channel's page as lanes, a row per drum and a block per step. The black keys pick the drum (the 11: BD SD LT MT HT RS CP CH OH CR RD),
  * the 16 white keys are the steps: the same hit again takes it away, ENV held makes it an accent (brighter, louder). It works while the page plays. */
-static void drum_update(uint32_t c, uint32_t force)
+static void drum_cols(uint32_t c, int32_t xa, int32_t w, int32_t line)     /* both bands over some columns; line = the playhead's x or -1 */
 {
     static const char *const LN[11] = {"BD", "SD", "LT", "MT", "HT", "RS", "CP", "CH", "OH", "CR", "RD"};
-    static uint32_t sig[3];
-    uint32_t cur[3], i, h = 0, b, ln, ps = seq_run && !seq_hold ? seq_step : 99u;
-    for (i = 0; i < SEQ_LEN; i++) h = h * 31u + dstep_hits(&pat[seq_view][c][i]) + 7u * dstep_acc(&pat[seq_view][c][i]) + 3u;
-    cur[0] = h; cur[1] = ed_lane | ps << 8 | c << 16 | (uint32_t)seq_view << 24; cur[2] = 0;
-    if (!force && !memcmp(cur, sig, sizeof cur)) return;
-    memcpy(sig, cur, sizeof cur);
-    if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+    uint32_t b, i, ln;
     for (b = 0; b < 2u; b++) {                                                  /* two bands: six lanes, then five */
         uint32_t first = b * 6u, n = b ? 5u : 6u;
-        cv_begin(240, n * 15u, R_BG);
-        rk_ox = 0;
+        cv_begin((uint32_t)w, n * 15u, R_BG);
+        rk_ox = xa;
         for (ln = first; ln < first + n; ln++) {
             int32_t y = (int32_t)(ln - first) * 15;
             uint32_t sel = ln == ed_lane;
@@ -86,9 +80,28 @@ static void drum_update(uint32_t c, uint32_t force)
                 uint32_t on = dstep_hits(&pat[seq_view][c][i]) >> ln & 1u, ac = dstep_acc(&pat[seq_view][c][i]) >> ln & 1u;
                 rk_rect(rack_x(i), y + 1, 10, 13, on ? (ac ? mix16(DRUM_LC[ln], R_WHITE, 140) : DRUM_LC[ln]) : mix16(sel ? R_SEL : R_BG, DRUM_LC[ln], 56));
                 if (on && ac) rk_rect(rack_x(i), y + 1, 10, 3, R_WHITE);                       /* an accent: a white cap */
-                if (i == ps) rk_rect(rack_x(i) + 4, y, 2, 15, R_WHITE);                          /* the playhead */
             }
         }
-        cv_blit(0, 48u + b * 90u);
+        if (line >= 0) rk_rect(line, 0, 2, (int32_t)(n * 15u), R_WHITE);                        /* the playhead */
+        cv_blit((uint32_t)xa, 48u + b * 90u);
+    }
+}
+static void drum_update(uint32_t c, uint32_t force)       /* the whole page when something changed; only two slices while the playhead moves, as in the rack */
+{
+    static uint32_t sig[3];
+    static int32_t line_d = -1;
+    uint32_t cur[3], i, h = 0;
+    int32_t line = rack_line();
+    for (i = 0; i < SEQ_LEN; i++) h = h * 31u + dstep_hits(&pat[seq_view][c][i]) + 7u * dstep_acc(&pat[seq_view][c][i]) + 3u;
+    cur[0] = h; cur[1] = ed_lane | (seq_run | seq_hold << 1) << 8 | c << 16 | (uint32_t)seq_view << 24; cur[2] = 0;
+    if (force || memcmp(cur, sig, sizeof cur)) {
+        memcpy(sig, cur, sizeof cur);
+        if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+        drum_cols(c, 0, 240, line);
+        line_d = line;
+    } else if (line != line_d) {
+        if (line_d >= 0) drum_cols(c, line_d, 2, -1);
+        if (line >= 0) drum_cols(c, line, 2, line);
+        line_d = line;
     }
 }

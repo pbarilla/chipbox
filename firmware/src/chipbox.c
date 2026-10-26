@@ -143,7 +143,7 @@ static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kin
 static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI && chan[c].kind != KD_SPK && chan[c].kind != KD_ZX; }                       /* the NES triangle has no level control */
 static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_MMC5 || chan[c].kind == KD_ZX; }
 static uint32_t has_buzz(uint32_t c) { return chan[c].kind == KD_S5B || chan[c].kind == KD_FDS || chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM; }                        /* knob 4 on the tone page picks one of four (the 5B's buzz, the Disk System's modulator) */
-static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : chan[c].kind == KD_SID ? 5u : has_wave(c) || has_fm(c) || chan[c].kind == KD_S5B ? 4u : 3u; }       /* the SID has two more: pulse and sync, filter */                  /* pages of knobs */
+static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : chan[c].kind == KD_SID ? 5u : chan[c].kind == KD_FDS ? 5u : has_wave(c) || has_fm(c) || chan[c].kind == KD_S5B ? 4u : 3u; }       /* the SID has two more: pulse and sync, filter */                  /* pages of knobs */
 static uint32_t has_k1(uint32_t c)                                                               /* knob 1 does something on the tone page */
 {
     return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_SID || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B || IS_OPLL(chan[c].kind) || chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC || chan[c].kind == KD_LYNX || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM;
@@ -158,6 +158,12 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         static const uint8_t SMX[3][4] = {{7, 0, 0, 1}, {15, 15, 15, 15}, {15, 15, 7, 15}};
         const uint32_t n = SPN[page == 0u ? 0u : page - 2u][k];
         sid_put(in, n, (uint32_t)clamp_i((int32_t)sid_get(in, n) + d, 0, SMX[page == 0u ? 0u : page - 2u][k]));
+        return;
+    }
+    if (page == 4u && chan[c].kind == KD_FDS) {                 /* the modulator: RATIO and SHAPE share duty, SWEEP is sweep (DEPTH is the tone page's last knob, pan) */
+        if (k == 0u) in->duty = (uint8_t)((in->duty & 0xF0u) | (uint32_t)clamp_i((int32_t)(in->duty & 15u) + d, 0, 15));
+        else if (k == 1u) in->sweep = clamp_i((int32_t)in->sweep + d, -16, 16);
+        else if (k == 2u) in->duty = (uint8_t)((in->duty & 15u) | (uint32_t)clamp_i((int32_t)(in->duty >> 4) + d, 0, 15) << 4);
         return;
     }
     if (page == 3u && chan[c].kind == KD_S5B) {                 /* the noise: PERIOD alone (0 follows the note) */
@@ -191,7 +197,7 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
     else if (k == 1u) in->vol = (uint8_t)clamp_i((int32_t)in->vol + d, 0, 15);
     else if (k == 2u) in->vib_dep = (uint8_t)clamp_i((int32_t)in->vib_dep + d, 0, 15);
     else if (has_pan(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, 2);
-    else if (has_buzz(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_S5B ? 7 : 3);          /* the buzz, the modulator */
+    else if (has_buzz(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_S5B ? 7 : chan[c].kind == KD_FDS ? 15 : 3);          /* the buzz, the modulator */
     else in->sweep = clamp_i((int32_t)in->sweep + d, -16, 16);
 }
 
