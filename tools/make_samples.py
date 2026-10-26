@@ -230,12 +230,21 @@ def stress():                                   # every console, 64 pages: sixte
         for i in range(4):
             pg = sec * 4 + i
             c = CH[prog[i]]
-            if sec == 15:                           # everyone, as chords
-                for j, k in enumerate(["PCE", "N163", "WSG", "OPL", "S5B", "VRC6_SAW", "MD", "VB", "GB_WAV", "AY"]):
-                    p.notes(pg, ch[k], [tone(c, j % 3) + 12 * (1 + j // 3)] + [0] * 15, 95)
-                p.notes(pg, ch["NES_PU"], lead(c, i, 12), 8)
-                p.notes(pg, ch["SMS"], lead(c, i + 2, 0), 8)
-                drums(p, pg, dr, "four")
+            if sec == 15:                           # the ending: the tune is handed on, then thins out to one chord
+                if i == 0:
+                    p.notes(pg, ch["VRC6_SAW"], lead(c, 0, 12), 8); p.notes(pg, ch["PCE"], bass(c[0] - 12, "oct"), 7)
+                    p.notes(pg, ch["AY"], [x if s % 2 == 0 else 0 for s, x in enumerate(arp(c, shift=12))], 4)
+                    drums(p, pg, dr, "rock")
+                elif i == 1:
+                    p.notes(pg, ch["PCE"], lead(c, 1, 12), 8); p.notes(pg, ch["N163"], bass(c[0] - 12, "quarter"), 7)
+                    drums(p, pg, dr, "sparse")
+                elif i == 2:
+                    for j, k in enumerate(["OPL", "VB", "N163"]): p.notes(pg, ch[k], [tone(c, j) + 12] + [0] * 15, 95)
+                    p.notes(pg, ch["GB_WAV"], bass(c[0] - 12, "quarter")[:8] + [0] * 8, 7)
+                else:                               # the last page: the tonic, held, a low root under it
+                    c = CH["Cm"]
+                    for j, k in enumerate(["OPL", "VB", "N163"]): p.notes(pg, ch[k], [tone(c, j) + 12] + [0] * 15, 95)
+                    p.notes(pg, ch["GB_WAV"], [c[0] - 12] + [0] * 15, 95)
                 continue
             L = leads[sec]
             B = basses[sec % len(basses)]
