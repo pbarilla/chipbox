@@ -45,60 +45,62 @@ typedef struct {
     uint8_t arp, arp_rate, arp_dir;             /* arp: 0 off, 1..8 a chord; rate 0..3 (slow to fast); direction 0 up, 1 down, 2 up and down */
 } inst_t;
 #define I(w, d, a, de, s, r, vs, vd, sw, p) {w, d, 0, 0, 0, a, de, s, r, vs, vd, sw, p, 15, 0, 1, 0}
+#define IV(w, d, a, de, s, r, vs, vd, sw, p, v) {w, d, 0, 0, 0, a, de, s, r, vs, vd, sw, p, v, 0, 1, 0}
+/* default levels: vol sets a fresh channel about as loud as any other chip's (A-weighted, tests/level_check.c; melodic and kits about 63 dB) */
 static const inst_t INST_DEF[KINDS] = {
     I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* NES pulse */
     I(0, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* NES triangle */
-    I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* Game Boy pulse */
+    IV(0, 2, 0, 5, 9, 4, 5, 0, 0, 1, 14),            /* Game Boy pulse */
     I(15, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Game Boy wave */
-    I(0, 0, 0, 6, 14, 4, 5, 4, 0, 1),           /* Master System tone */
+    IV(0, 0, 0, 6, 14, 4, 5, 4, 0, 1, 14),           /* Master System tone */
     I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* PC Engine wave: a saw to start with */
-    I(5, 0, 0, 4, 12, 3, 5, 0, 0, 1),           /* Atari TIA: wave = the sound type 0..9 */
-    I(0, 3, 0, 5, 10, 4, 5, 0, 0, 1),           /* VRC6 pulse: duty 0..7 */
-    I(0, 0, 0, 0, 15, 2, 5, 0, 0, 1),           /* VRC6 saw */
+    IV(5, 0, 0, 4, 12, 3, 5, 0, 0, 1, 7),           /* Atari TIA: wave = the sound type 0..9 */
+    IV(0, 3, 0, 5, 10, 4, 5, 0, 0, 1, 14),           /* VRC6 pulse: duty 0..7 */
+    IV(0, 0, 0, 0, 15, 2, 5, 0, 0, 1, 6),           /* VRC6 saw */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* AY: wave = the noise mix 0..15 */
-    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* Mega Drive FM: duty = algorithm 0..7, wave = ratio, wf = index, wc = feedback, wt = index decay */
-    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Virtual Boy: a wave, a triangle to start with */
+    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 13, 0, 1, 0},     /* Mega Drive FM: duty = algorithm 0..7, wave = ratio, wf = index, wc = feedback, wt = index decay */
+    IV(10, 0, 0, 0, 15, 2, 5, 0, 0, 1, 14),          /* Virtual Boy: a wave, a triangle to start with */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),     /* drums: a kit per console */
-    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    I(1, 0, 0, 4, 12, 3, 5, 0, 0, 1),           /* POKEY: wave = the distortion 0..7 */
+    IV(0, 0, 0, 4, 15, 4, 5, 0, 0, 1, 14), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    IV(1, 0, 0, 4, 12, 3, 5, 0, 0, 1, 11),           /* POKEY: wave = the distortion 0..7 */
     I(0, 0, 0, 0, 15, 1, 5, 0, 0, 1),           /* PC speaker: one square, no volume */
-    {1, 0, 10, 0, 3, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* AdLib OPL2: duty = the pair 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay */
-    I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* Namco WSG: a saw to start with */
-    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* Namco 163: a triangle */
+    {1, 0, 10, 0, 3, 0, 6, 12, 3, 5, 0, 0, 1, 14, 0, 1, 0},     /* AdLib OPL2: duty = the pair 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay */
+    IV(5, 0, 0, 0, 12, 2, 5, 0, 0, 1, 12),           /* Namco WSG: a saw to start with */
+    IV(10, 0, 0, 0, 15, 2, 5, 0, 0, 1, 4),          /* Namco 163: a triangle */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 0),           /* Sunsoft 5B: wave = the noise mix, pan = the buzz (0 off) */
-    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), IV(0, 0, 0, 4, 15, 4, 5, 0, 0, 1, 14), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), IV(0, 0, 0, 4, 15, 4, 5, 0, 0, 1, 12), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
     I(0, 2, 0, 5, 9, 4, 5, 0, 0, 1),            /* NES MMC5 pulse */
-    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 0),          /* Famicom Disk wave: a triangle, pan = the modulator's depth (0 off) */
-    I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* Konami SCC: a saw to start with, an 8 bit wave */
+    IV(10, 0, 0, 0, 15, 2, 5, 0, 0, 0, 7),          /* Famicom Disk wave: a triangle, pan = the modulator's depth (0 off) */
+    IV(5, 0, 0, 0, 12, 2, 5, 0, 0, 1, 11),           /* Konami SCC: a saw to start with, an 8 bit wave */
     I(0, 0, 0, 0, 0, 0, 0, 0, 0, 1),            /* MSX Music: wave = the instrument 0..14 (the envelope is set by chan_add) */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    I(0, 0, 0, 0, 0, 0, 0, 0, 0, 1),            /* Konami VRC7: wave = the instrument 0..14 (the envelope is set by chan_add) */
-    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* YM2151: duty = algorithm 0..7, wave = ratio, wf = index, wc = feedback, wt = index decay, pan = left, centre, right */
-    {1, 1, 8, 0, 4, 0, 6, 12, 3, 5, 0, 0, 0, 15, 0, 1, 0},     /* OPL3: duty = connection 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay, pan = the wave 0..7 */
-    I(10, 0, 0, 0, 15, 2, 5, 0, 0, 1),          /* WonderSwan: a 4 bit wave, a triangle to start with; pan = left, centre, right */
+    IV(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 10),            /* Konami VRC7: wave = the instrument 0..14 (the envelope is set by chan_add) */
+    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 14, 0, 1, 0},     /* YM2151: duty = algorithm 0..7, wave = ratio, wf = index, wc = feedback, wt = index decay, pan = left, centre, right */
+    {1, 1, 8, 0, 4, 0, 6, 12, 3, 5, 0, 0, 0, 13, 0, 1, 0},     /* OPL3: duty = connection 0..3, wave = ratio, wf = index, wc = feedback, wt = index decay, pan = the wave 0..7 */
+    IV(10, 0, 0, 0, 15, 2, 5, 0, 0, 1, 12),          /* WonderSwan: a 4 bit wave, a triangle to start with; pan = left, centre, right */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* SAA1099: wave = the noise mix 0..15, pan = left, centre, right */
-    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* VIC-20: one square, the pitch a 7 bit divide */
-    I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* Plus/4 TED: wave = 0 tone, 1 noise */
-    I(1, 0, 0, 4, 12, 3, 5, 0, 0, 1),           /* Atari Lynx: wave = the sound 0..7 (a square, then shift register taps), pan = left, centre, right */
+    IV(0, 0, 0, 5, 12, 3, 5, 0, 0, 1, 10),           /* SAA1099: wave = the noise mix 0..15, pan = left, centre, right */
+    IV(0, 0, 0, 5, 12, 3, 5, 0, 0, 1, 10),           /* VIC-20: one square, the pitch a 7 bit divide */
+    IV(0, 0, 0, 5, 12, 3, 5, 0, 0, 1, 9),           /* Plus/4 TED: wave = 0 tone, 1 noise */
+    IV(1, 0, 0, 4, 12, 3, 5, 0, 0, 1, 10),           /* Atari Lynx: wave = the sound 0..7 (a square, then shift register taps), pan = left, centre, right */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* PC-98 FM (YM2608): like the YM2151 */
+    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 14, 0, 1, 0},     /* PC-98 FM (YM2608): like the YM2151 */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* PC-98 SSG: the AY's tone and noise */
-    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* Neo Geo FM (YM2610) */
+    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 14, 0, 1, 0},     /* Neo Geo FM (YM2610) */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* Neo Geo SSG */
-    I(0, 0, 0, 6, 14, 4, 5, 4, 0, 1),           /* Neo Geo Pocket: a tone, stereo */
-    {1, 0, 10, 0, 3, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* MSX-Audio (YM3526): duty = 0 FM, 1 both play */
-    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 0, 15, 0, 1, 0},     /* Yamaha OPZ: duty = algorithm 0..7, pan = the wave 0..7 */
-    I(0, 0, 0, 3, 14, 3, 5, 0, 0, 0),           /* SN76477: wave = the mixer 0..3, pan = the slow oscillator 0..3 */
-    I(5, 0, 0, 0, 12, 2, 5, 0, 0, 1),           /* Namco C30: a 4 bit wave, stereo */
+    IV(0, 0, 0, 6, 14, 4, 5, 4, 0, 1, 14),           /* Neo Geo Pocket: a tone, stereo */
+    {1, 0, 10, 0, 3, 0, 6, 12, 3, 5, 0, 0, 1, 14, 0, 1, 0},     /* MSX-Audio (YM3526): duty = 0 FM, 1 both play */
+    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 0, 14, 0, 1, 0},     /* Yamaha OPZ: duty = algorithm 0..7, pan = the wave 0..7 */
+    IV(0, 0, 0, 3, 14, 3, 5, 0, 0, 0, 11),           /* SN76477: wave = the mixer 0..3, pan = the slow oscillator 0..3 */
+    IV(5, 0, 0, 0, 12, 2, 5, 0, 0, 1, 12),           /* Namco C30: a 4 bit wave, stereo */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    I(6, 0, 0, 3, 14, 3, 5, 0, 0, 0),           /* MSM5232: wave = the footages 16' 8' 4' 2' as four bits, pan = 5 1/3' and 2 2/3' as two */
+    IV(6, 0, 0, 3, 14, 3, 5, 0, 0, 0, 7),           /* MSM5232: wave = the footages 16' 8' 4' 2' as four bits, pan = 5 1/3' and 2 2/3' as two */
     I(0, 6, 0, 0, 15, 1, 5, 0, 0, 1),           /* ZX Spectrum beeper: duty = the pulse width 0..7, no volume */
-    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 15, 0, 1, 0},     /* YM2203 FM: like the YM2151, one speaker */
+    I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1), IV(0, 0, 0, 4, 15, 4, 5, 0, 0, 1, 14),
+    {1, 4, 9, 0, 4, 0, 6, 12, 3, 5, 0, 0, 1, 14, 0, 1, 0},     /* YM2203 FM: like the YM2151, one speaker */
     I(0, 0, 0, 5, 12, 3, 5, 0, 0, 1),           /* YM2203 SSG */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
-    {3, 8, 0, 8, 0, 0, 8, 12, 7, 5, 0, 0, 1, 15, 0, 1, 0},     /* SID: the settings are nibbles (sid.c SP_*): wave 3 = pulse, 6581; pulse width 8 = the square; cutoff 8, filter off */
+    {3, 8, 0, 8, 0, 0, 8, 12, 7, 5, 0, 0, 1, 10, 0, 1, 0},     /* SID: the settings are nibbles (sid.c SP_*): wave 3 = pulse, 6581; pulse width 8 = the square; cutoff 8, filter off */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
 };
 static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "VB", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "POK", "SPK", "OPL", "WSG", "N16", "5B", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "MM5", "FDS", "SCC", "YM", "DRM", "DRM", "DRM", "DRM", "VR7", "OPM", "OP3", "WS", "DRM", "DRM", "DRM", "DRM", "SAA", "VIC", "TED", "LYN", "DRM", "DRM", "DRM", "DRM", "FM", "SSG", "FM", "SSG", "NGP", "MA", "OPZ", "77", "C30", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "ORG", "ZX", "DRM", "DRM", "FM", "SSG", "DRM", "SID", "DRM"};
@@ -244,19 +246,20 @@ static void post(uint32_t chip, int32_t *out, uint32_t n)
 static const uint8_t NES_DUTY[4] = {0x40, 0x60, 0x78, 0x9F};     /* 8 steps, bit = step */
 static const uint8_t GB_DUTY[4] = {0x01, 0x81, 0x87, 0x7E};
 /* the Game Boy wave: 32 steps of 4 bits made from the shape (a blend of pulse, saw, triangle, sine), twisted, folded and crushed */
-static uint8_t wtab[MAXCH][32];
+static uint8_t wtab[MAXCH][64];                 /* 32 steps; the FDS reads all 64 */
 static uint32_t wkey[MAXCH];
-static void wave_make_n(const inst_t *in, uint8_t *out, int32_t top)       /* top 15: 4 bit; 63: the Virtual Boy's 6 bit */
+static void wave_make_s(const inst_t *in, uint8_t *out, int32_t top, int32_t n)       /* top 15: 4 bit; 63: the Virtual Boy's 6 bit; n steps, 32 or 64 (the FDS) */
 {
-    int32_t i, lv = (top + 1) - (int32_t)(in->wc & 15u) * ((top + 1) / 16), sh = (int32_t)(in->wave & 15u), a = sh / 5, fr = (sh % 5) * 256 / 5;
+    int32_t i, h = n / 2, k = n / 32, lv = (top + 1) - (int32_t)(in->wc & 15u) * ((top + 1) / 16), sh = (int32_t)(in->wave & 15u), a = sh / 5, fr = (sh % 5) * 256 / 5;
     if (a > 2) { a = 2; fr = 256; }
     if (lv < 2) lv = 2;
-    for (i = 0; i < 32; i++) {
-        int32_t ph = (i + (VIB[i] * (int32_t)(in->wt & 15u)) / 238) & 31, v[4], x, g;
-        v[0] = ph < 16 ? 127 : -127;
-        v[1] = -127 + ph * 254 / 31;
-        v[2] = ph < 16 ? -127 + ph * 254 / 15 : 127 - (ph - 16) * 254 / 15;
-        v[3] = VIB[(ph + 24) & 31];                          /* a sine that starts at the bottom, like the others */
+    for (i = 0; i < n; i++) {
+        int32_t vb = n == 32 ? VIB[i] : SIN_T[(i * 16) & 1023] * 127 >> 14, ph, v[4], x, g;
+        ph = (i + (vb * (int32_t)(in->wt & 15u) * k) / 238) & (n - 1);
+        v[0] = ph < h ? 127 : -127;
+        v[1] = -127 + ph * 254 / (n - 1);
+        v[2] = ph < h ? -127 + ph * 254 / (h - 1) : 127 - (ph - h) * 254 / (h - 1);
+        v[3] = n == 32 ? VIB[(ph + 24) & 31] : SIN_T[((ph + 48) * 16) & 1023] * 127 >> 14;      /* a sine that starts at the bottom, like the others */
         if (a == 0 && fr) v[0] = -v[0];                      /* the pulse between pulse and saw is upside down: its fundamental then adds to the saw's instead of cancelling it (a 14 dB hole at 3) */
         x = v[a] + (v[a + 1] - v[a]) * fr / 256;
         g = 256 + (int32_t)(in->wf & 15u) * 64;
@@ -266,6 +269,7 @@ static void wave_make_n(const inst_t *in, uint8_t *out, int32_t top)       /* to
         out[i] = (uint8_t)(x * top / (lv - 1));
     }
 }
+static void wave_make_n(const inst_t *in, uint8_t *out, int32_t top) { wave_make_s(in, out, top, 32); }
 static void wave_make(const inst_t *in, uint8_t *out) { wave_make_n(in, out, 15); }
 static const uint8_t NZ_M[16] = {1, 1, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 16};       /* the noise clock as a multiple of the note: the NOISE knob 0..15 */
 static uint32_t opll_kf(uint32_t note, uint32_t ksr)      /* the chip's key scaling of its envelope rates: x 2^(t / 4), t = 2 block + fnum bit 8 (a quarter of it unless the operator's KSR bit is set), as Q8 */
@@ -294,6 +298,7 @@ static uint32_t fm_gain_att(uint32_t q, uint32_t att)    /* the same with an ext
     return att ? fm_gain(q) * att375(att) >> 16 : fm_gain(q);
 }
 #include "sid.c"
+static const uint8_t S5B_NP[16] = {0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 19, 22, 25, 28, 31};       /* the noise period registers the PERIOD knob picks (0 = follows the note) */
 static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
 {
     const inst_t *in = &vc[c].in;
@@ -399,11 +404,11 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         }
         break;
     case KD_MMC5: t = interp(NES_PT, pq); osc[c].inc = K_NES / (t + 1u); osc[c].duty = in->duty & 3u; osc[c].vol = (uint8_t)vol; break;
-    case KD_FDS: case KD_SCC:                           /* FDS: a 6 bit wave, 32 steps; SCC: an 8 bit wave; both read live. The FDS also bends its phase by its modulator (pan = depth) */
+    case KD_FDS: case KD_SCC:                           /* FDS: a 6 bit wave, 64 steps like the chip's RAM; SCC: an 8 bit wave; both read live. The FDS also bends its phase by its modulator (pan = depth) */
         osc[c].inc = interp32(chan[c].kind == KD_FDS ? FDS_INC : SCC_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].alg = chan[c].kind == KD_FDS ? chan[c].in.pan & 3u : 0u;
         {   const inst_t *wi = &chan[c].in;
             uint32_t fds = chan[c].kind == KD_FDS, key = ((fds ? 2u : 3u) << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
-            if (wkey[c] != key) { wave_make_n(wi, wtab[c], fds ? 63 : 255); wkey[c] = key; }
+            if (wkey[c] != key) { if (fds) wave_make_s(wi, wtab[c], 63, 64); else wave_make_n(wi, wtab[c], 255); wkey[c] = key; }
             osc[c].wav = wtab[c];
         }
         break;
@@ -429,9 +434,14 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
             osc[c].inc2 = (t >> 1) * OPLL_P[n].mm;
         }
         osc[c].idx = (OPLL_P[n].idx >> 6) * (att375(u) >> 6) >> 4; osc[c].fbm = OPLL_FB[OPLL_P[n].fb & 7u];
-        osc[c].alg = OPLL_P[n].ws & 1u; osc[c].duty = OPLL_P[n].ws >> 1 & 1u; osc[c].gain = (uint16_t)fm_gain_att(vol_q, uc); osc[c].vol = (uint8_t)vol;
+        osc[c].alg = OPLL_P[n].ws & 1u; osc[c].duty = OPLL_P[n].ws >> 1 & 1u; osc[c].gain = (uint16_t)fm_gain_att(vol_q, uc); osc[c].wshift = 1; osc[c].vol = (uint8_t)vol;
         break; }
-    case KD_S5B: osc[c].inc = interp32(S5B_INC, pq); osc[c].inc2 = osc[c].inc > 0xA2000000u / NZ_M[chan[c].in.wave & 15u] ? 0xA2000000u : osc[c].inc * NZ_M[chan[c].in.wave & 15u]; osc[c].inc3 = osc[c].inc; osc[c].duty = chan[c].in.wave & 15u; osc[c].alg = chan[c].in.pan & 3u; osc[c].vol = (uint8_t)vol; break;
+    case KD_S5B: {                                      /* PERIOD 0 follows the note; 1..15 is the chip's noise period register (clock / 16 P), whatever the note */
+        const uint32_t np = S5B_NP[chan[c].in.wf & 15u];
+        osc[c].inc = interp32(S5B_INC, pq);
+        osc[c].inc2 = np ? 0xA2000000u / np : osc[c].inc > 0xA2000000u / NZ_M[chan[c].in.wave & 15u] ? 0xA2000000u : osc[c].inc * NZ_M[chan[c].in.wave & 15u];
+        osc[c].inc3 = osc[c].inc; osc[c].duty = chan[c].in.wave & 15u; osc[c].alg = chan[c].in.pan & 7u; osc[c].vol = (uint8_t)vol; break;
+    }
     default: osc[c].inc = K_SMS / interp(SMS_N, pq); osc[c].vol = (uint8_t)vol; break;
     }
 }
@@ -509,7 +519,7 @@ static void r_pce(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
                 if (osc[c].pan != 2u) l += v;
                 if (osc[c].pan != 0u) r += v;
             }
-        out[2u * i] += hpf(&hp_pc[0], l + (l >> 2), B_DC_HP14); out[2u * i + 1u] += hpf(&hp_pc[1], r + (r >> 2), B_DC_HP14);
+        out[2u * i] += hpf(&hp_pc[0], 2 * l + (l >> 1), B_DC_HP14); out[2u * i + 1u] += hpf(&hp_pc[1], 2 * r + (r >> 1), B_DC_HP14);
     }
 }
 static const uint8_t TIA_DAC[16] = {0, 10, 19, 27, 35, 43, 50, 57, 63, 69, 75, 80, 86, 91, 95, 100};       /* the TIA's volume DAC is a resistor network: level = 3 v / (30 + v), not linear (Stella's mixing table) */
@@ -543,11 +553,11 @@ static void r_vrc6(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         out[2u * i] += acc * 144; out[2u * i + 1u] += acc * 144;
     }
 }
-static void r_ay_t(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, const uint8_t *amp8, const uint16_t *amp16)       /* the AY's tone and noise: 0 tone, 1..14 the tone gated by noise (AND, as the chip's mixer does), 15 noise alone */
+static void r_ay_t(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, const uint8_t *amp8, const uint16_t *amp16, uint32_t g)       /* the AY's tone and noise: 0 tone, 1..14 the tone gated by noise (AND, as the chip's mixer does), 15 noise alone */
 {
     uint32_t i, s, k;
     int32_t lv[MAXCH];
-    for (k = 0; k < na; k++) lv[k] = amp16 ? (int32_t)amp16[osc[act[k]].vol & 15u] : 16 * (int32_t)amp8[osc[act[k]].vol & 15u];       /* each voice's level, once a block */
+    for (k = 0; k < na; k++) lv[k] = (amp16 ? (int32_t)amp16[osc[act[k]].vol & 15u] : 16 * (int32_t)amp8[osc[act[k]].vol & 15u]) * (int32_t)g >> 4;       /* each voice's level, once a block */
     for (i = 0; i < n; i++) {
         int32_t acc = 0;
         for (s = 0; s < OS; s++)
@@ -564,7 +574,7 @@ static void r_ay_t(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, co
         out[2u * i] += acc; out[2u * i + 1u] += acc;
     }
 }
-static void r_ay(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na) { r_ay_t(out, n, act, na, 0, AY_AMP); }
+static void r_ay(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na) { r_ay_t(out, n, act, na, 0, AY_AMP, 16u); }
 #define FMOS 2u
 #define FMS(ph, m) SIN_T[(((ph) + (m)) >> 22) & 1023u]       /* a sine at a phase pushed by a modulation */
 #define FMM(x, i) ((uint32_t)(x) * (i) << 2)                  /* a modulator's output times the depth, as a phase */
@@ -651,7 +661,7 @@ static void r_opl(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
                 if (osc[c].alg < 3u) o = opl_wave(FMS(osc[c].ph, FMM(a, osc[c].idx)), osc[c].alg);
                 else o = (a + FMS(osc[c].ph, 0u)) >> 1;
                 { const int32_t d = (int32_t)osc[c].gain - (int32_t)osc[c].rng; osc[c].rng += (uint32_t)(d > 0 ? (d + 31) >> 5 : d >> 5); }      /* rng is free here: the level glides to its target */
-                acc += (o * (int32_t)osc[c].rng) >> 16;
+                { const int32_t x = (o * (int32_t)osc[c].rng) >> 16; acc += osc[c].wshift ? (x * 23) >> 4 : x; }       /* (the OPLL's voices are 3 dB up) */
             }
         out[2u * i] += acc; out[2u * i + 1u] += acc;
     }
@@ -893,7 +903,7 @@ static void r_two(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, uin
     uint32_t k, nf = 0, ns = 0;
     for (k = 0; k < na; k++) { if (chan[act[k]].kind == kfm) a[nf++] = act[k]; else b[ns++] = act[k]; }
     if (nf) r_fm4(out, n, a, nf, 0);
-    if (ns) r_ay_t(out, n, b, ns, 0, YM_AMP);          /* the SSG is a YM2149: 3 dB a step */
+    if (ns) r_ay_t(out, n, b, ns, 0, YM_AMP, 25u);          /* the SSG is a YM2149: 3 dB a step; 4 dB up, to sit with the AY */
 }
 static void r_ngp(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the Neo Geo Pocket's SN76489 twin: tones with a side each */
 {
@@ -989,7 +999,7 @@ static void r_zx(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)     
                 osc[c].ph += osc[c].inc;
                 if (osc[c].vol && (osc[c].ph >> 24) < THR[osc[c].duty & 7u]) bit = 1;
             }
-            acc += bit ? 1600 : -1600;
+            acc += bit ? 1040 : -1040;
         }
         out[2u * i] += acc >> 1; out[2u * i + 1u] += acc >> 1;
     }
@@ -1022,7 +1032,7 @@ static void r_fds(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
                 uint32_t c = act[k], ph;
                 osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc;
                 ph = osc[c].ph + (osc[c].alg ? (uint32_t)((int32_t)SIN_T[osc[c].ph2 >> 22] * (1 << (13u + osc[c].alg))) : 0u);
-                acc += ((int32_t)osc[c].wav[ph >> 27] * 2 - 63) * (int32_t)osc[c].vol;
+                acc += ((int32_t)osc[c].wav[ph >> 26] * 2 - 63) * (int32_t)osc[c].vol;
             }
         out[2u * i] += acc * 3; out[2u * i + 1u] += acc * 3;
     }
@@ -1055,8 +1065,14 @@ static void r_s5b(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
                 if (osc[c].alg) {
                     uint32_t e;
                     if (osc[c].alg == 3u) { e = osc[c].ph3 >> 26; if (e > 31u) e = 63u - e; }         /* the triangle: 32 steps up, 32 down */
-                    else { e = osc[c].ph3 >> 27; if (osc[c].alg == 1u) e = 31u - e; }              /* the saws: 32 steps down or up */
-                    osc[c].ph3 += osc[c].inc3;
+                    else if (osc[c].alg < 3u) { e = osc[c].ph3 >> 27; if (osc[c].alg == 1u) e = 31u - e; }              /* the saws: 32 steps down or up */
+                    else {                                                              /* once, a pluck: 4 down and silent, 5 up and high, 6 down and high, 7 up and silent (the chip's shapes 9, 13, 11, 15) */
+                        const uint32_t p = osc[c].ph3, end = p == 0xFFFFFFFFu;
+                        e = p >> 27;
+                        osc[c].ph3 = end || p + 81000u < p ? 0xFFFFFFFFu : p + 81000u;       /* about 0.3 s, whatever the note */
+                        e = osc[c].alg == 4u ? (end ? 0u : 31u - e) : osc[c].alg == 5u ? (end ? 31u : e) : osc[c].alg == 6u ? (end ? 31u : 31u - e) : (end ? 0u : e);
+                    }
+                    if (osc[c].alg < 4u) osc[c].ph3 += osc[c].inc3;
                     amp = YM32[e * lv / 15u];
                 } else amp = YM_AMP[lv];
                 if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 3) & 1u) << 16));
@@ -1111,7 +1127,7 @@ static const uint8_t DR_LANE_TYPE[11] = {0, 2, 4, 5, 7, 11, 3, 6, 8, 10, 12};   
 static uint32_t dv_dm(uint32_t ms) { uint32_t t = ms * 44u; return t < 2u ? 0u : 65536u - 65536u / t; }        /* decay multiplier per sample, Q16 */
 static void dv_hit(uint32_t c, uint32_t note, uint32_t vel)
 {
-    static const uint8_t WAVE[38] = {1, 2, 0, 3, 2, 3, 2, 0, 0, 2, 2, 0, 1, 3, 2, 1, 1, 3, 0, 0, 0, 0, 1, 2, 2, 2, 3, 2, 2, 0, 0, 0, 2, 1, 0, 2, 2, 2}, BITS[38] = {4, 4, 8, 5, 5, 5, 5, 12, 6, 6, 2, 12, 4, 4, 5, 4, 6, 8, 12, 12, 12, 12, 4, 5, 6, 4, 8, 5, 5, 8, 12, 12, 3, 4, 6, 2, 5, 12};        /* by console: NES GB SMS PCE TIA VRC6 AY MD VB POKEY SPK OPL WSG N163 S5B MMC5 FDS SCC OPLL VRC7 OPM OPL3 WS SAA VIC TED LYNX PC98 NEO NGP OPL1 OPZ SN77 C30 MSM ZX OPN SID */
+    static const uint8_t WAVE[38] = {1, 2, 2, 3, 2, 3, 2, 0, 0, 2, 2, 0, 1, 3, 2, 1, 1, 3, 0, 0, 0, 0, 1, 2, 2, 2, 3, 2, 2, 2, 0, 0, 2, 1, 0, 2, 2, 2}, BITS[38] = {4, 4, 8, 5, 5, 5, 5, 12, 6, 6, 2, 12, 4, 4, 5, 4, 6, 8, 12, 12, 12, 12, 4, 5, 6, 4, 8, 5, 5, 8, 12, 12, 3, 4, 6, 2, 5, 12};        /* by console: NES GB SMS PCE TIA VRC6 AY MD VB POKEY SPK OPL WSG N163 S5B MMC5 FDS SCC OPLL VRC7 OPM OPL3 WS SAA VIC TED LYNX PC98 NEO NGP OPL1 OPZ SN77 C30 MSM ZX OPN SID */
     static const uint16_t MET[6] = {205, 304, 370, 523, 540, 800};
     uint32_t type = note < 13u ? note : note % 12u, kit = DRUM_KIT(chan[c].kind), k, j = 0;
     const drum_t *d = &DRUM[type];
@@ -1123,7 +1139,7 @@ static void dv_hit(uint32_t c, uint32_t note, uint32_t vel)
     memset(v, 0, sizeof *v);
     v->on = 1; v->type = (uint8_t)type; v->wave = WAVE[kit]; v->bits = BITS[kit]; v->filt = d->filt; v->burst = d->burst;
     v->width = (kit == 4u ? (type == 2u || type == 3u ? 5u : 4u) : ((kit == 0u || kit == 1u || kit == 5u || kit == 6u || kit == 14u || kit == 15u) && d->metal == 1u ? 7u : 15u));
-    v->metal = kit == 7u || kit == 20u || kit == 27u || kit == 28u || kit == 31u || kit == 36u ? d->metal : (kit == 2u || kit == 11u || kit == 18u || kit == 19u || kit == 21u || kit == 29u || kit == 30u) ? (d->metal == 1u ? 2u : d->metal) : d->metal == 3u ? 3u : 0u;     /* Mega Drive: six squares; Master System: the Yamaha XOR; the rest make hats from noise */
+    v->metal = kit == 7u || kit == 20u || kit == 27u || kit == 28u || kit == 31u || kit == 36u ? d->metal : (kit == 11u || kit == 18u || kit == 19u || kit == 21u || kit == 30u) ? (d->metal == 1u ? 2u : d->metal) : d->metal == 3u ? 3u : 0u;     /* Mega Drive: six squares; Master System: the Yamaha XOR; the rest make hats from noise */
     v->vel = (int32_t)vel + 1;
     v->f0 = d->f0 * 97392u; v->f1 = d->f1 * 97392u;
     v->pe = d->pd ? 32767 : 0; v->pdm = dv_dm(d->pd);
@@ -1179,8 +1195,8 @@ static void r_drum(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         int32_t acc = 0;
         for (k = 0; k < na; k++) {
             uint32_t c = act[k];
-            const int32_t g = DRUM_KIT(chan[c].kind) == 13u ? 5 : 2;       /* the Namco 163 kit is 8 dB up, with its voices (they are 15 dB up): the others are as they were */
-            for (j = 0; j < DVN; j++) if (dv[c][j].on) acc += ((dv_run(&dv[c][j]) * (int32_t)PCE_AMP[osc[c].vol & 15u] >> 8) * g) >> 1;
+            const int32_t g = DRUM_KIT(chan[c].kind) == 13u ? 28 : 11;       /* Q3: the kits are 2.8 dB up, to sit with the voices; the Namco 163 kit is 8 dB more, with its voices */
+            for (j = 0; j < DVN; j++) if (dv[c][j].on) acc += ((dv_run(&dv[c][j]) * (int32_t)PCE_AMP[osc[c].vol & 15u] >> 8) * g) >> 3;
         }
         out[2u * i] += acc; out[2u * i + 1u] += acc;
     }
@@ -1306,6 +1322,7 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
         awake[chip] = AWAKE;
         vc[c].in = chan[c].in;
         if (IS_DRUM(chan[c].kind)) dv_hit(c, a, b);
+        if (chan[c].kind == KD_S5B) osc[c].ph3 = 0;       /* the envelope starts with the note, as a write to the chip's register 13 does */
         vc[c].on = 1; vc[c].trig = 1; vc[c].age = 0; vc[c].note = (uint8_t)a; vc[c].vel = (uint8_t)b; vc[c].bend = 0; vc[c].vph = 0;
         vc[c].arp_t = 0; vc[c].arp_k = 0; vc[c].arp_off = 0;
         vc[c].stage = ST_ATK; vc[c].env = 0;
