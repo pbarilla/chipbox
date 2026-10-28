@@ -1,33 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
-/* Menus: a list of lines, the SELECT knob scrolls, GLO or HOME goes back. The help list for the view you are on is the first. Included by chipbox.c. */
+/* Menus: a list of lines, the SELECT knob scrolls, GLO or HOME goes back. The manual (manual.c) is the first. Included by chipbox.c. */
 typedef struct { const char *text; uint8_t head; } mline_t;      /* head: a heading, in the chip's colour */
 #define MH(s) {s, 1}
 #define ML(s) {s, 0}
 #define MENU_ROWS 12                            /* 20 px a line */
-static const mline_t HELP_CHIP[] = {
-    MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knobs 1-4 - Adjust Controls"),
-    MH("Buttons"), ML("Keys - Play Notes"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("HOME Hold - Projects"), ML("PLAY - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
-};
-static const mline_t HELP_RACK[] = {
-    MH("Knobs"), ML("Presets - Change Channel"), ML("Select - Tape Shuttle"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("REC EDIT - Delete Notes"), ML("ARP - Note Tails"), ML("SEL Hold - Copy Channel"), ML("OCT+ on + - Add Channel"), ML("EDIT Hold - Remove Channel"), ML("HOME - Next View"), ML("REC - Record"), ML("FX - Punch In"), ML("SEQ - Step Entry"), ML("HOME Hold - Projects"), ML("PLAY - Play From Page"), ML("PLAY Hold - Loop Page"), ML("SAVE - Save"), ML("OCT - Octave"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
-};
-static const mline_t HELP_STEP[] = {
-    MH("Knobs"), ML("Select - Move"), ML("Presets - Change Channel"), ML("Algorithm - Flip Page"),
-    MH("Buttons"), ML("Keys - Set Note"), ML("Knob 2 - Note Length"), ML("EDIT - Clear Note"), ML("PLAY - Loop"), ML("HOME - Done"), ML("GLO + HOME - Menu"),
-};
-static const mline_t HELP_DRUM[] = {
-    MH("Knobs"), ML("Presets - Change Channel"), ML("Algorithm - Flip Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("Black Keys - Pick Drum"), ML("White Keys - Place Hits"), ML("ENV + White Key - Accent"), ML("EDIT - Clear Drum"), ML("PLAY - Loop"), ML("HOME - Done"), ML("GLO + HOME - Menu"),
-};
-static const mline_t HELP_FX[] = {
-    MH("Knobs"), ML("Select - Tape (Hold TAPE)"),
-    MH("Buttons"), ML("Keys - Hold For Effect"), ML("LATCH - Keep Effects On"), ML("FX - Back"), ML("HOME - Back"), ML("PLAY - Play Stop"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
-};
-static const mline_t HELP_SONG[] = {
-    MH("Knobs"), ML("Select - Move Cursor"), ML("Presets - Change Page"), ML("Knob 1 - Tempo"),
-    MH("Buttons"), ML("OCT+ - New Page"), ML("OCT- - Remove Page"), ML("EDIT - Open Page"), ML("EDIT Hold - Copy Page"), ML("HOME - Next View"), ML("FX - Punch In"), ML("PLAY - Play Song"), ML("SAVE - Save"), ML("LFO - Undo"), ML("GLO - Help"), ML("GLO + HOME - Menu"),
-};
 static const mline_t ADD_MENU[] = {                      /* the consoles, in the order of the chips in chips.c; a second list holds each one's channels */
     MH("Add Channel"), ML("NES"), ML("Game Boy"), ML("Master System"), ML("PC Engine"), ML("Atari 2600"), ML("Konami VRC6"), ML("AY-3-8910"), ML("Mega Drive"), ML("Virtual Boy"), ML("Atari 8-bit"), ML("PC Speaker"), ML("AdLib"), ML("Namco WSG"), ML("Namco 163"), ML("Sunsoft 5B"), ML("NES MMC5"), ML("Famicom Disk"), ML("Konami SCC"), ML("MSX Music"), ML("Konami VRC7"), ML("Arcade FM"), ML("Sound Blaster"), ML("WonderSwan"), ML("Sam Coupe"), ML("VIC-20"), ML("Plus/4"), ML("Atari Lynx"), ML("PC-98"), ML("Neo Geo"), ML("Neo Geo Pocket"), ML("MSX-Audio"), ML("Yamaha TX81Z"), ML("SN76477"), ML("Namco System 1"), ML("Korg Poly-800"), ML("ZX Spectrum"), ML("NEC PC-88"), ML("Commodore 64"),
 };
@@ -83,16 +59,27 @@ static const struct { const mline_t *l; uint8_t n, kind[3]; } ADD_SUB[CHIPS] = {
     {ADD_MSM, 3, {KD_MSM, KD_DRUMG, 0}}, {ADD_ZX, 3, {KD_ZX, KD_DRUMG + 1, 0}}, {ADD_OPN, 4, {KD_OPN_FM, KD_OPN_SSG, KD_DRUMH}}, {ADD_SID, 3, {KD_SID, KD_DRUMI, 0}},
 };
 static uint32_t add_console;
-static const mline_t SYSM[] = {MH("Menu"), ML("Factory Reset")};       /* GLO + HOME */
+
 static const mline_t CONF_FACTORY[] = {MH("Factory Reset?"), ML("OCT+ Yes"), ML("OCT- No")};
 static const mline_t COPY_MENU[] = {MH("Copy Channel"), ML("Patch Only"), ML("Patch And Notes"), ML("Cancel")};
-enum { MK_HELP, MK_ADD, MK_ADD2, MK_MENU, MK_FACTORY, MK_COPY };
+enum { MK_MANUAL, MK_ADD, MK_ADD2, MK_MENU, MK_FACTORY, MK_COPY };
 static uint32_t menu_kind;                       /* what the open list is: help, the add-channel list, the menu, a confirm */
 static const mline_t *menu_lines;
 static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     /* menu_pick: a list you choose from (SELECT moves the bar, OCT+ yes) */
 
+#define QS_OK 0xA0u                              /* set.demo (unused before): the top nibble says the low bits are ours */
+#define QS_ALWAYS 1u                             /* quick start at every start */
+#define QS_PICK 2u                               /* the project browser at every start */
+static mline_t SYSM[4] = {MH("Menu"), ML(""), ML(""), ML("Factory Reset")};       /* GLO + HOME */
 static void menu_open(const mline_t *l, uint32_t n) { menu_lines = l; menu_n = n; menu_top = 0; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
 static void menu_open_pick(const mline_t *l, uint32_t n) { menu_open(l, n); menu_pick = 1; menu_sel = 1; }
+static void sys_open(uint32_t fl, uint32_t at)
+{
+    SYSM[1].text = fl & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No";
+    SYSM[2].text = fl & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No";
+    menu_open_pick(SYSM, 4);
+    menu_sel = at;
+}
 static void menu_scroll(int32_t d)
 {
     if (menu_pick) {                            /* the bar moves over the lines that are not headings */
@@ -110,9 +97,11 @@ static void menu_scroll(int32_t d)
     if (top != menu_top) { menu_top = top; menu_dirty = 1; }
 }
 static void add_draw(uint16_t accent);
+static void man_draw(void);
 static void menu_draw(uint16_t accent)
 {
     uint32_t b, r;
+    if (menu_kind == MK_MANUAL) { man_draw(); return; }             /* the manual is drawn by manual.c */
     if (menu_kind == MK_ADD) { add_draw(accent); return; }          /* the Add Channel list is drawn by addmenu.c */
     for (b = 0; b < 3u; b++) {
         cv_begin(240, 80, R_BG);

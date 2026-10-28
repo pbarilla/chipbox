@@ -22,7 +22,7 @@
   "ENV": "",
   "LFO": "undo",
   "EDIT": "clear",
-  "GLO": "help",
+  "GLO": "manual",
   "HOME": "view",
   "SAVE": "",
   "ARP": "tails",
@@ -101,11 +101,11 @@
   {
    "id": "GLO",
    "name": "GLO",
-   "RACK": "Help",
-   "CHIP": "Help",
-   "SONG": "Help",
-   "STEP": "Help",
-   "FX": "Help"
+   "RACK": "Manual",
+   "CHIP": "Manual",
+   "SONG": "Manual",
+   "STEP": "Manual",
+   "FX": "Manual"
   },
   {
    "id": "GLO+HOME",
