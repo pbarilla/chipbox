@@ -2,6 +2,5 @@
   "what": "A ultra-refined Chiptune music editor, featuring over 35 classic chips such as NES, Gameboy, heck even the Sunsoft 5B! Gimmick fans rejoice!",
   "kinds": ["groove", "synth", "drums"],
   "play": "https://ihavenocluewhatimdoing.com/chipbox/play/",
-  "editor": "https://ihavenocluewhatimdoing.com/chipbox/projects/",
-  "site": "https://ihavenocluewhatimdoing.com/chipbox/"
+  "editor": "https://ihavenocluewhatimdoing.com/chipbox/projects/"
 }
