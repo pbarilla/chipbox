@@ -9,6 +9,17 @@
 #define R_BAND(b) (44 + (b) * 57)               /* top of three rows, under the 42 px bar and over the 24 px tab bar; 9 rows show, the list scrolls */
 #define R_ROWS 9u
 #define R_X0 30
+/* A view that is painted again clears the screen first. Closing a window over the same view only clears where the window was (no flash); a full-screen page
+ * (the manual, the add list, the projects) or a changed view clears it all. */
+static uint32_t scr_full = 1, win_restore, view_sig, win_sig;
+static int32_t win_rx, win_ry, win_rw, win_rh;
+static void view_clear(uint16_t bg)
+{
+    if (gfx_dim && !scr_full) return;                   /* painting the view under a window: no clear, the background is the same */
+    if (win_restore && !scr_full && win_rw > 0 && win_sig == view_sig) lcd_fill((uint32_t)win_rx, (uint32_t)win_ry, (uint32_t)win_rw, (uint32_t)win_rh, bg);
+    else lcd_fill(0, 0, 240, 240, bg);
+    scr_full = 0; win_restore = 0; win_rw = 0;
+}
 static uint32_t hdr_force;                      /* set when a whole screen was painted over the top bar */
 static void win_ask(const char *q);
 static uint32_t song_cur, song_top;             /* the song's cursor (a slot; one past the last is the "add" cell) and its first row shown */
@@ -220,9 +231,12 @@ static void rack_update(uint32_t sel, uint32_t force)
     if (sel >= rack_top + R_ROWS) rack_top = sel - (R_ROWS - 1u);
     line = rack_line();
     if (force || rack_inval || seq_view != view_d || (seq_run | seq_hold << 1) != run_d || sel != sel_d || rack_cur != cur_d || rack_top != top_d || chan_n != n_d || rec_on != rec_d) {
-        if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+        if (force) { view_clear(R_BG); hdr_force = 1; }
         rack_inval = 0;
-        rack_cols(sel, 0, 240, line);
+        { const uint32_t gd = gfx_dim;                  /* (a window over the view: the rows fade; the main loop's own dim pass keeps its setting) */
+          if (rack_rm) { gfx_dim = 1; gfx_dim_bg = R_BG; }
+          rack_cols(sel, 0, 240, line);
+          gfx_dim = gd; }
         if (rack_rm) win_ask("Remove channel?");
         view_d = seq_view; run_d = seq_run | seq_hold << 1; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; rec_d = rec_on; line_d = line;
     } else if (line != line_d && !rack_rm) {

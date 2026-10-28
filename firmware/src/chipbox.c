@@ -203,10 +203,11 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
 
 /* ---- the screen */
 static const uint8_t AN_COUNT[CHIPS] = {3, 2, 1, 1, 1, 1, 1, 1, 1};
+static void view_clear(uint16_t bg);
 static void draw_header(const theme_t *t, uint32_t chip)
 {
     (void)chip;
-    lcd_fill(0, 0, 240, 240, t->bg);                /* (the top bar is header.c's) */
+    view_clear(t->bg);                              /* (the top bar is header.c's) */
 }
 /* the waveform a channel plays, 2 periods in w x h */
 enum { G_PULSE, G_TRI, G_SAW, G_SINE };
@@ -285,6 +286,7 @@ static void draw_note(const theme_t *t, uint32_t note)
     text_on(160, 6, 72, &FONT_L, s, t->fg, t->bg, 2);
 }
 #include "rack.c"
+#include "win.c"
 #include "header.c"
 #include "songview.c"
 #include "stepview.c"
@@ -294,12 +296,20 @@ static void draw_note(const theme_t *t, uint32_t note)
 #include "menu.c"
 #include "addmenu.c"
 #include "manual.c"
+#include "tips.c"
 #include "picker.c"
 
 static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms = fm1_ms; return v; }       /* knobs count as being touched */
 #define fm1_enc_take enc_act
 
 #include "boot.c"
+static uint8_t *inst_flag;                      /* set.demo, for app_install_mark (ota.c calls it when an install starts) */
+static const void *inst_set;
+static uint32_t inst_n;
+static void app_install_mark(void)
+{
+    if (inst_flag) { *inst_flag |= QS_INSTALLED; settings_save(inst_set, inst_n); }
+}
 static void app_main(void)
 {
     struct { int8_t oct; uint8_t an[3], proj, demo, unlocked; } set = {0, {AN_HW, AN_HW, 0}, 0, 0, 0};
@@ -313,7 +323,8 @@ static void app_main(void)
     uint8_t rec_hold[27] = {0}, rec_pg[27] = {0}, rec_st[27] = {0}, rec_ch[27] = {0};     /* a recorded note still held: where it went, to set its length when the key comes up */
     uint32_t rec_t0[27] = {0};
     fresh = settings_load(&set, sizeof set) != 0;      /* a new device (or a wipe): no settings yet */
-    if ((set.demo & 0xF0u) != QS_OK) set.demo = QS_OK;                    /* set.demo: quick start on every start, project browser on every start */
+    if ((set.demo & 0xF0u) != QS_OK) set.demo = QS_OK;
+    inst_flag = &set.demo; inst_set = &set; inst_n = sizeof set;                    /* set.demo: quick start on every start, project browser on every start */
     rack_tails = set.an[2] >> 7;                        /* set.an[2]: the boot screen in bits 0-6, note tails in bit 7 */
 #if !defined(CHIPBOX_HOST) || defined(BOOT_DEMO)
     {                                                   /* the next power-on screen in the list; set.an[2] (unused) remembers the last */
@@ -333,6 +344,7 @@ static void app_main(void)
     proj_loaded = proj_load(proj_cur) == 0;
     if (!proj_loaded) { if (proj_cur == 0u) seq_tetris(); else if (proj_cur == 1u) seq_symphony(); else proj_blank(); }
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
+    if (set.demo & QS_INSTALLED) { fresh = 1; set.demo &= (uint8_t)~QS_INSTALLED; dirty = 1; t_change = fm1_ms; }      /* an install started from Chipbox (an update, or another firmware and back) */
     for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) if (proj_exists(k)) fresh = 0;
     start_pick = set.demo & QS_PICK;
     if (fresh || (set.demo & QS_ALWAYS)) { man_open(MC_QUICK, 0); man_lock = 1; }          /* a new device starts on the quick start; the browser waits behind it */
@@ -340,6 +352,17 @@ static void app_main(void)
         if (set.an[k] >= AN_COUNT[k]) set.an[k] = AN_COUNT[k] > 1u ? 1u : 0u;
     set.an[CHIP_NES] = set.an[CHIP_GB] = AN_HW;     /* always the analog stage */
     for (k = 0; k < 2u; k++) analog_mode[k] = set.an[k];
+
+#define FACTORY_RESET() do {                                                            /* the menu's Factory Reset, and MIDI CC 109 (a test) */ \
+        seq_stop(); rec_on = 0; duck_ch = 255; \
+        for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) proj_clear(k);               /* every project goes, the demos stay */ \
+        set.oct = 0; \
+        proj_cur = 0; proj_dirty = 0; proj_loaded = proj_load(0) == 0; undo_reset(); \
+        set.proj = 0; dirty = 1; t_change = fm1_ms; \
+        sel = 0; rack_rm = 0; last_note = 255u; view = 1; \
+        menu_on = 0; rack_force = 1; chip_drawn = ~0u; anim_start(AN_OPEN, 0); \
+        man_open(MC_QUICK, 0); man_lock = 1;                                    /* like a new device */ \
+    } while (0)
 
     for (;;) {
         static uint32_t cc_ms;
@@ -442,11 +465,12 @@ static void app_main(void)
 
         b = fm1_input_edges(&rel);
         home_now = fm1_in.buttons >> BTN_HOME & 1u;     /* HOME: a tap goes between the views, a hold opens the projects */
-        if (home_now && !home_was) { home_t0 = fm1_ms; home_used = 0; }
+        if (home_now && !home_was) { home_t0 = fm1_ms; home_used = tip_on; }      /* HOME with a tip up only closes it */
         sys_req = 0;                                    /* GLO + HOME, either one first: the menu */
         if (!pick_on && home_now && (((b & (1u << BTN_GLO)) != 0u) || (!home_was && (fm1_in.buttons >> BTN_GLO & 1u)))) { home_used = 1; sys_req = 1; b &= ~(1u << BTN_GLO); }
         if (home_now && !home_used && !menu_on && !pick_on && fm1_ms - home_t0 >= 600u) { pick_open(); home_used = 1; }
         home_tap = !home_now && home_was && !home_used;
+        if (home_tap && rack_rm) { rack_rm = 0; rack_inval = 1; home_tap = 0; }          /* HOME closes the remove window */
         home_was = home_now;
         edit_now = fm1_in.buttons >> BTN_EDIT & 1u;
         edit_rel = !edit_now && edit_was;
@@ -480,7 +504,8 @@ static void app_main(void)
                 }
             } else if (b & (1u << BTN_OCT_DOWN)) {
                 if (pick_del) { pick_del = 0; pick_dirty = 1; } else { pick_on = 0; rack_force = 1; chip_drawn = ~0u; }
-            } else if ((b & (1u << BTN_GLO)) || home_tap) { pick_del = 0; pick_on = 0; rack_force = 1; chip_drawn = ~0u; }
+            } else if (home_tap && pick_del) { pick_del = 0; pick_dirty = 1; }                /* HOME closes the delete window */
+            else if ((b & (1u << BTN_GLO)) || home_tap) { pick_del = 0; pick_on = 0; rack_force = 1; chip_drawn = ~0u; }
             fm1_enc_take(ENC_PRESETS); fm1_enc_take(ENC_ALGORITHM);
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
         } else {
@@ -596,17 +621,10 @@ static void app_main(void)
                     if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                 } else if (menu_kind == MK_MENU) {
-                    if (menu_sel == 3u) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
-                    else { set.demo ^= (uint8_t)(menu_sel == 1u ? QS_ALWAYS : QS_PICK); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* a switch: the line says Yes or No */
+                    if (menu_sel == 4u) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
+                    else { set.demo ^= (uint8_t)(menu_sel == 1u ? QS_ALWAYS : menu_sel == 2u ? QS_PICK : QS_NOTIPS); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* a switch: the line says Yes or No */
                 } else if (menu_kind == MK_FACTORY) {
-                    seq_stop(); rec_on = 0; duck_ch = 255;
-                    for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) proj_clear(k);               /* every project goes, the demos stay */
-                    set.oct = 0;
-                    proj_cur = 0; proj_dirty = 0; proj_loaded = proj_load(0) == 0; undo_reset();
-                    set.proj = 0; dirty = 1; t_change = fm1_ms;
-                    sel = 0; rack_rm = 0; last_note = 255u; view = 1;
-                    menu_on = 0; rack_force = 1; chip_drawn = ~0u; anim_start(AN_OPEN, 0);
-                    man_open(MC_QUICK, 0); man_lock = 1;               /* like a new device */
+                    FACTORY_RESET();
                 }
             } else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind == MK_ADD2) { add_open(add_console); }       /* back to the consoles */
             else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind != MK_MANUAL) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
@@ -733,6 +751,7 @@ static void app_main(void)
             if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (proj_cur >= PROJ_DEMOS && proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 108u) { fx_apply(d2 == 0u ? 0u : d2 <= FXN ? fx_held | FXB(d2 - 1u) : d2 <= 2u * FXN ? fx_held & ~FXB(d2 - 1u - FXN) : fx_held); if (d2 && d2 <= FXN) anim_fx(d2 - 1u); continue; }     /* test: pad d2-1 on; d2 17..32: pad off; 0: all off */
             if ((st & 0xF0u) == 0xB0u && d1 == 106u) { if (chan_add(d2) >= 0) proj_edited(); continue; }              /* test: add a channel of kind d2 */
+            if ((st & 0xF0u) == 0xB0u && d1 == 109u) { if (d2 == 1u) FACTORY_RESET(); continue; }                   /* test: Factory Reset */
             if ((st & 0xF0u) == 0xB0u && d1 == 107u) { if (chan_n) { seq_stop(); chan_remove(chan_n - 1u); proj_edited(); } continue; }     /* test: remove the last channel */
             if ((st & 0xF0u) == 0xB0u && d1 == 105u && d2 < PROJ_SLOTS) { proj_open(d2); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; continue; }
             if ((st & 0xF0u) == 0x90u && d2) { if (mt < chan_n) chip_note(mt, d1, d2); }
@@ -775,14 +794,33 @@ static void app_main(void)
         if ((pick_on && pick_del) || rack_rm) { fm1_led_key(BTN_OCT_DOWN, 1); fm1_led_key(BTN_OCT_UP, 1); }     /* yes or no */
 
         cpu = cpu_max / (58u * FM1_TICKS_PER_US);     /* percent of the 5.8 ms block */
-        if (fm1_ms - cc_ms >= 500u) { cc_ms = fm1_ms; midi_send(0xB0, 100, cpu > 127u ? 127u : cpu); midi_send(0xB0, 101, proj_cur | (proj_dirty ? 0x10u : 0u) | (proj_loaded ? 0x20u : 0u)); }
+        if (fm1_ms - cc_ms >= 500u) { cc_ms = fm1_ms; midi_send(0xB0, 100, cpu > 127u ? 127u : cpu); midi_send(0xB0, 101, proj_cur | (proj_dirty ? 0x10u : 0u) | (proj_loaded ? 0x20u : 0u) | (menu_on && menu_kind == MK_MANUAL && man_lock ? 0x40u : 0u)); }
         if (an_kind == AN_CRIT && act_ms >= an_t0) an_end = 0;           /* touched: the critter goes */
-        if (!anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
+        if (!anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && !tip_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
             anim_start(AN_CRIT, crit_n++ % 6u); crit_next = fm1_ms + 15000u;
         }
+        if (tip_on) {                                   /* a tip is up: a touch, a timeout, or anything starting closes it */
+            if (act_ms >= tip_t0 || menu_on || pick_on || seq_run || fx_layer) { tip_on = 0; rack_force = 1; chip_drawn = ~0u; }
+            else if (fm1_ms - tip_t0 >= TIP_EVERY) { tip_open(); tip_redo = 1; }          /* the next tip, in the same window */
+        } else if (!(set.demo & QS_NOTIPS) && fm1_ms - act_ms > TIP_IDLE && !seq_run && quiet() && !menu_on && !pick_on && !fx_layer && !rec_on && !rack_rm && !anim_on() && add_aud_c < 0 && !start_pick) tip_open();
         add_aud_tick(); add_info_tick();
+        {   static uint32_t win_was;                    /* a window just closed: the view under it is painted again only where the window was */
+            uint32_t wu = tip_on || (menu_on && menu_kind != MK_MANUAL && menu_kind != MK_ADD);
+            win_restore = win_was && !wu; win_was = wu;
+            view_sig = view | (uint32_t)fx_layer << 2 | (view == 0u ? sel << 4 | chip_page << 12 : 0u);
+        }
+        {   static uint32_t dim_done;                   /* a window is up: the view is painted once more, faded, then the window goes on top */
+            if (tip_redo) { dim_done = 0; tip_redo = 0; }
+            const uint32_t dimw = tip_on || (menu_on && (menu_kind == MK_MENU || menu_kind == MK_COPY || menu_kind == MK_FACTORY));
+            const uint32_t m0 = menu_on, t0 = tip_on, dpass = dimw && !dim_done;
+            uint32_t pass;
+            if (!dimw) dim_done = 0;
+        for (pass = dpass ? 0u : 1u; pass < 2u; pass++) {
+        if (pass == 0u) { menu_on = 0; tip_on = 0; gfx_dim = 1; gfx_dim_bg = view == 0u && sel < chan_n ? t->bg : R_BG; rack_force = 1; chip_drawn = ~0u; redraw = 1; ch_drawn = 99; }
+        else { menu_on = m0; tip_on = t0; gfx_dim = 0; if (dpass) dim_done = 1; }
         if (pick_on) { if (pick_dirty) { pick_draw(); pick_dirty = 0; } }
         else if (menu_on) { if (menu_dirty) { menu_draw(t->acc); menu_dirty = 0; }      /* (the three bands cover the whole screen: no clear first, that was the flash) */ }
+        else if (tip_on) { if (tip_dirty) { tip_draw(); tip_dirty = 0; } }          /* the window stays; the view under it waits */
         else if (fx_layer) {
             if (rack_force) { fx_view_force = 1; hdr_force = 1; rack_force = 0; }
             fx_view_update(); hdr_update(view, sel, t, ch_chip, last_note);
@@ -797,6 +835,8 @@ static void app_main(void)
             }
             if (redraw || ch_drawn != sel) { chip_panels(t, sel, chip_page); ch_drawn = (uint8_t)sel; }
             hdr_update(0, sel, t, ch_chip, last_note);
+        }
+        }
         }
 
         if (proj_dirty && proj_cur >= PROJ_DEMOS && !seq_run && !pick_on && add_aud_c < 0 && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */

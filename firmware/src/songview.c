@@ -50,7 +50,7 @@ static void sg_update(uint32_t force)
     if (row >= song_top + SG_ROWS) song_top = row - SG_ROWS + 1u;
     if (force || rack_inval || song_cur != cur_d || song_len != len_d || seq_slot != slot_d || seq_run != run_d || song_top != top_d || seq_loop != loop_d) {
         uint32_t b;
-        if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+        if (force) { view_clear(R_BG); hdr_force = 1; }
         rack_inval = 0;
         for (b = 0; b < 2u; b++) sg_band(b);
         cur_d = song_cur; len_d = song_len; slot_d = seq_slot; run_d = seq_run; top_d = song_top; loop_d = seq_loop;

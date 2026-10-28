@@ -18,23 +18,25 @@ static void pick_scan(void)
 static void pick_open(void) { pick_scan(); pick_sel = proj_cur; pick_del = 0; pick_on = 1; pick_dirty = 1; pick_fresh = 1; }
 static void pick_draw(void)
 {
+    scr_full = 1;
     uint32_t row, col, r, c;
     if (pick_fresh) { lcd_fill(0, 0, 240, 240, R_BG); pick_fresh = 0; }       /* (only when it opens: a clear on every move flashes) */
+    gfx_dim = pick_del; gfx_dim_bg = R_BG;                      /* a delete window: the tiles fade */
     for (row = 0; row < 4u; row++) {
-        cv_begin(240, 58, R_BG);
+        cv_begin(240, 52, R_BG);
         rk_ox = 0;
         for (col = 0; col < 3u; col++) {
             uint32_t s = row * 3u + col;
             int32_t x = 7 + (int32_t)col * 79;
             char num[4];
             fmt_u(num, s - PROJ_DEMOS + 1u);                    /* 1 to 10; the first two tiles are the demos */
-            rk_rect(x, 3, 70, 52, pick_have[s] ? RGB(30, 30, 40) : RGB(22, 22, 28));
+            rk_rect(x, 3, 70, 46, pick_have[s] ? RGB(30, 30, 40) : RGB(22, 22, 28));
             if (s >= PROJ_DEMOS) cv_text(x + 5, 5, &FONT_S, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
             else cv_text(x + 5, 5, &FONT_S, s ? "DEMO 2" : "DEMO 1", RGB(235, 235, 240));
             if (pick_have[s] && pick_nch[s]) {                          /* a row a channel, a block a step: the rows share the height, 16 channels or 2 */
-                int32_t rh = 27 / (int32_t)pick_nch[s], y0;
+                int32_t rh = 21 / (int32_t)pick_nch[s], y0;
                 if (rh > 6) rh = 6;
-                y0 = 25 + (27 - rh * (int32_t)pick_nch[s]) / 2;
+                y0 = 23 + (21 - rh * (int32_t)pick_nch[s]) / 2;
                 for (r = 0; r < pick_nch[s]; r++) {
                     uint16_t on = THEME[pick_chips[s][r]].acc;
                     for (c = 0; c < 16u; c++)
@@ -48,11 +50,16 @@ static void pick_draw(void)
             }
             if (s == pick_sel) {
                 uint16_t f = pick_del ? RGB(235, 64, 52) : R_WHITE;
-                rk_rect(x - 3, 0, 76, 3, f); rk_rect(x - 3, 55, 76, 3, f);
-                rk_rect(x - 3, 3, 3, 52, f); rk_rect(x + 70, 3, 3, 52, f);
+                rk_rect(x - 3, 0, 76, 3, f); rk_rect(x - 3, 49, 76, 3, f);
+                rk_rect(x - 3, 3, 3, 46, f); rk_rect(x + 70, 3, 3, 46, f);
             }
         }
-        cv_blit(0, row * 58u + 4u);
+        cv_blit(0, row * 52u + 4u);
     }
+    cv_begin(240, 24, R_BG);                                    /* the confirm button */
+    cv_rect(8, 0, 224, 1, RGB(60, 60, 74));
+    cv_text(8, 6, &FONT_S, "HOME  Open", RGB(150, 150, 164));
+    cv_blit(0, 216);
+    gfx_dim = 0;
     if (pick_del) win_ask("Delete project?");
 }

@@ -690,13 +690,18 @@ static void nav_draw(uint32_t view)
 
 static void win_ask(const char *q)               /* a window: the question, OCT+ yes (green), OCT- no (red) */
 {
-    int32_t i;
-    cv_begin(176, 96, RGB(22, 20, 26));
-    for (i = 0; i < 2; i++) { cv_rect(i, 0, 176 - 2 * i, 2, RGB(235, 64, 52)); cv_rect(i, 94, 176 - 2 * i, 2, RGB(235, 64, 52)); cv_rect(0, i, 2, 96 - 2 * i, RGB(235, 64, 52)); cv_rect(174, i, 2, 96 - 2 * i, RGB(235, 64, 52)); }
-    cv_text((176 - text_w(&FONT_S, q)) / 2, 11, &FONT_S, q, R_WHITE);
-    cv_rect(14, 38, 148, 22, RGB(24, 70, 40)); cv_text(24, 41, &FONT_S, "OCT+  Yes", RGB(130, 235, 150));
-    cv_rect(14, 66, 148, 22, RGB(80, 26, 22)); cv_text(24, 69, &FONT_S, "OCT-  No", RGB(245, 130, 120));
-    cv_blit(32, 100);
+    const int32_t w = 216, h = 134, x = 12, y0 = 52;
+    uint32_t b;
+    win_shadow(x, y0, w, h);
+    for (b = 0; b * 80u < (uint32_t)h; b++) {
+        win_band(b, w, h);
+        win_chrome(w, h, "Confirm", RGB(235, 64, 52));
+        mT((w - text_w(&FONT_S, q)) / 2, 30, q, R_WHITE);
+        mR(14, 56, w - 28, 22, RGB(24, 70, 40)); mT(24, 59, "OCT+  Yes", RGB(130, 235, 150));
+        mR(14, 82, w - 28, 22, RGB(80, 26, 22)); mT(24, 85, "OCT-  No", RGB(245, 130, 120));
+        win_foot(w, h, 0);
+        cv_blit(x, y0 + b * 80u);
+    }
 }
 static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t chip, uint32_t last_note)
 {

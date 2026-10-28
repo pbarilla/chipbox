@@ -85,53 +85,8 @@ static int32_t man_k = 13, man_x0 = 16, man_y0 = 34;      /* the picture's scale
 #define MPX(v) (man_x0 + (((v) - 30) * man_k) / 64)
 #define MPY(v) (man_y0 + (((v) - 82) * man_k) / 64)
 #define MZ(n) (((n) * man_k + 6) / 13)
-#define M_ACC RGB(240, 170, 50)
 
 static uint32_t man_ch, man_pg, man_toc, man_lock;        /* man_lock: the quick start at power-on: its pages only */
-static int32_t man_off;                                 /* the band being drawn */
-
-static void mR(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t c) { cv_rect(x, y - man_off, w, h, c); }
-static void mT(int32_t x, int32_t y, const char *s, uint16_t c) { cv_text(x, y - man_off, &FONT_S, s, c); }
-static void mRing(int32_t x1, int32_t y1, int32_t x2, int32_t y2)
-{
-    mR(x1, y1, x2 - x1, 2, M_ACC); mR(x1, y2 - 2, x2 - x1, 2, M_ACC); mR(x1, y1, 2, y2 - y1, M_ACC); mR(x2 - 2, y1, 2, y2 - y1, M_ACC);
-}
-static int32_t mLines(int32_t x, int32_t y, const char *s, int32_t maxw)       /* wrapped on spaces, 17 px a line; returns the next y */
-{
-    const char *ls = s, *le = s, *p = s;
-    char t[64];
-    for (;;) {
-        const char *we;
-        uint32_t n;
-        while (*p == ' ') p++;
-        we = p;
-        while (*we && *we != ' ') we++;
-        if (we == p) break;
-        n = (uint32_t)(we - ls);
-        if (n > 63u) n = 63u;
-        memcpy(t, ls, n); t[n] = 0;
-        if (le != ls && text_w(&FONT_S, t) > maxw) {
-            n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0;
-            mT(x, y, t, RGB(225, 225, 232)); y += 17;
-            ls = p;
-        }
-        le = we; p = we;
-    }
-    if (le != ls) { uint32_t n = (uint32_t)(le - ls); memcpy(t, ls, n); t[n] = 0; mT(x, y, t, RGB(225, 225, 232)); y += 17; }
-    return y;
-}
-static void mWords(int32_t x, int32_t y, const char *s, int32_t maxw)       /* "\n" starts a new line */
-{
-    char seg[192];
-    for (;;) {
-        uint32_t n = 0;
-        while (s[n] && s[n] != '\n' && n < 191u) n++;
-        memcpy(seg, s, n); seg[n] = 0;
-        y = mLines(x, y, seg, maxw);
-        if (s[n] != '\n') break;
-        s += n + 1u;
-    }
-}
 static void man_panel(uint32_t ring)
 {
     uint32_t i;
@@ -156,6 +111,7 @@ static void man_num(char *d, uint32_t a, uint32_t b)         /* "a/b", both unde
 }
 static void man_draw(void)
 {
+    scr_full = 1;
     uint32_t b, i;
     char nb[8];
     const mchap_t *c = &MCH[man_ch];
@@ -168,14 +124,15 @@ static void man_draw(void)
             mR(0, 0, 240, 26, RGB(60, 60, 78));
             mT(8, 4, "Manual", RGB(255, 255, 255));
             for (i = 0; i < MCHN; i++) {
-                int32_t y = 30 + (int32_t)i * 22;
+                int32_t y = 30 + (int32_t)i * 20;
                 char cn[4];
-                if (i == man_ch) mR(0, y, 240, 21, R_SEL);
-                mR(8, y + 3, 4, 15, MCH[i].col);
-                mT(20, y + 2, MCH[i].name, i == man_ch ? RGB(255, 255, 255) : RGB(180, 180, 195));
+                if (i == man_ch) mR(0, y, 240, 19, R_SEL);
+                mR(8, y + 2, 4, 14, MCH[i].col);
+                mT(20, y + 1, MCH[i].name, i == man_ch ? RGB(255, 255, 255) : RGB(180, 180, 195));
                 cn[0] = (char)('0' + MCH[i].n / 10u); cn[1] = (char)('0' + MCH[i].n % 10u); cn[2] = 0;
-                mT(214, y + 2, MCH[i].n >= 10u ? cn : cn + 1, RGB(110, 110, 125));
+                mT(214, y + 1, MCH[i].n >= 10u ? cn : cn + 1, RGB(110, 110, 125));
             }
+            mR(8, 215, 224, 1, RGB(60, 60, 74)); mT(8, 220, "OCT+  Open", RGB(150, 150, 164));          /* the confirm button */
         } else {
             mR(0, 0, 240, 26, c->col);
             mT(8, 4, c->name, R_BG);
@@ -184,7 +141,7 @@ static void man_draw(void)
                 uint32_t r, q;
                 mWords(8, 32, p->text, 224);
                 mR(46, 54, (QR_N + 8) * 4, (QR_N + 8) * 4, RGB(255, 255, 255));
-                for (r = 0; r < QR_N; r++) for (q = 0; q < QR_N; q++) if (QR_ROW[r] >> (QR_N - 1u - q) & 1u) mR(46 + 16 + (int32_t)q * 4, 54 + 16 + (int32_t)r * 4, 4, 4, RGB(0, 0, 0));
+                for (r = 0; r < QR_N; r++) for (q = 0; q < QR_N; q++) if (QR_ROW[QR_GUIDE][r] >> (QR_N - 1u - q) & 1u) mR(46 + 16 + (int32_t)q * 4, 54 + 16 + (int32_t)r * 4, 4, 4, RGB(0, 0, 0));
             } else if (p->ring & M_NOPANEL) mWords(8, 70, p->text, 224);
             else {
                 int32_t ty = 142;

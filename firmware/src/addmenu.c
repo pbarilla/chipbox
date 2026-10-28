@@ -162,7 +162,7 @@ static uint32_t add_place(uint32_t chip)        /* the bar on a console, the lis
     for (;;) {                                  /* scroll down until it fits above the strip */
         y = 22u;
         for (i = add_top; i <= add_cur; i++) y += (add_row[i] & 0x80u) ? 17u : 19u;
-        if (y <= 166u || add_top >= add_cur) break;
+        if (y <= 148u || add_top >= add_cur) break;
         add_top++;
     }
     add_dirty = 1;
@@ -357,7 +357,7 @@ static void add_body(uint16_t accent)
         add_tag(x0, 4, ADD_MODE[add_mode], accent);
         cv_text(x0 + tw + 6, 2, &FONT_S, "<K1>", RGB(110, 110, 124));
     }
-    for (i = add_top; i < add_rows && y < 166; i++) {
+    for (i = add_top; i < add_rows && y + ((add_row[i] & 0x80u) ? 17 : 19) <= 148; i++) {
         if (add_row[i] & 0x80u) {
             const char *h = add_head[add_row[i] & 0x7Fu];
             cv_text(8, y + 1, &FONT_S, h, RGB(150, 150, 164));
@@ -373,6 +373,7 @@ static void add_body(uint16_t accent)
             y += 19;
         }
     }
+    cv_rect(0, 148, 240, 20, R_BG); cv_text(8, 152, &FONT_S, "OCT+  Pick", RGB(150, 150, 164));          /* the confirm button */
     cv_rect(0, 168, 240, 72, t->bg); cv_rect(0, 168, 240, 2, t->acc);
     {
         add_icon(cur, 8, 180, 2, t->bg);
@@ -389,6 +390,7 @@ static void add_body(uint16_t accent)
 static void add_draw(uint16_t accent)
 {
     uint32_t b;
+    scr_full = 1;
     for (b = 0; b < 3u; b++) {
         cv_begin(240, 80, R_BG);
         cv_oy = -(int32_t)b * 80;

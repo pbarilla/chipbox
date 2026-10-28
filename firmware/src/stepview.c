@@ -12,7 +12,7 @@ static void ed_update(uint32_t c, uint32_t base, uint32_t force)
     cur[0] = h; cur[1] = ed_cur | ps << 8 | c << 16 | (uint32_t)seq_view << 24; cur[2] = fm1_in.notes; cur[3] = base;
     if (!force && !memcmp(cur, sig, sizeof cur)) return;
     memcpy(sig, cur, sizeof cur);
-    if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+    if (force) { view_clear(R_BG); hdr_force = 1; }
     cn = pat[seq_view][c][ed_cur].note;
     cv_begin(240, 88, R_BG);                                                     /* the 16 blocks: two rows of eight */
     for (i = 0; i < SEQ_LEN; i++) {
@@ -96,7 +96,7 @@ static void drum_update(uint32_t c, uint32_t force)       /* the whole page when
     cur[0] = h; cur[1] = ed_lane | (seq_run | seq_hold << 1) << 8 | c << 16 | (uint32_t)seq_view << 24; cur[2] = 0;
     if (force || memcmp(cur, sig, sizeof cur)) {
         memcpy(sig, cur, sizeof cur);
-        if (force) { lcd_fill(0, 0, 240, 240, R_BG); hdr_force = 1; }
+        if (force) { view_clear(R_BG); hdr_force = 1; }
         drum_cols(c, 0, 240, line);
         line_d = line;
     } else if (line != line_d) {

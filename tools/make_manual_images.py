@@ -98,7 +98,7 @@ def shot(n):
 # (name, controls ringed, screen, keys lit orange, crop to the top)
 JOBS = [
     ("basics-projects", [], "b_picker", (), True), ("basics-pages", [], "b_rack", (), True), ("basics-song", [], "b_song", (), True),
-    ("s1-hold-home", ["HOME"], "b_picker", (), True), ("s1-select", ["SELECT"], "m_picker_sel", (), True), ("s1-open", ["HOME"], "m_rack_blank", (), True),
+    ("s0-quick", ["HOME"], "m_quick", (), True), ("s1-hold-home", ["HOME"], "b_picker", (), True), ("s1-select", ["SELECT"], "m_picker_sel", (), True), ("s1-open", ["HOME"], "m_rack_blank", (), True),
     ("s1-delete", ["EDIT"], "m_delete", (), True), ("s1-menu", ["GLO", "HOME"], "m_menu", (), True),
     ("s2-rack", ["HOME"], "m_rack_blank2", (), True), ("s2-presets", ["PRESETS"], "m_rack_blank2", (), True), ("s2-octplus", ["OCT+"], "m_add_list", (), True),
     ("s2-scroll", ["SELECT", "PRESETS"], "m_add_list2", (), True), ("s2-added", [], "m_four", (), True),
@@ -123,7 +123,7 @@ JOBS = [
     ("a-sd", [], "am_sd", (3, 7, 12, 14, 21, 26), False), ("a-bd", [], "am_bd", (1, 0, 4, 18, 19), False),
     ("a-play", ["PLAY"], "am_play", (), True), ("a-song", ["HOME"], "am_song", (), True), ("a-song2", ["OCT+", "PRESETS"], "am_song2", (), True),
     ("a-copy", ["EDIT"], "am_copy", (), True), ("a-bar3", [], "am_bar3", (), False), ("a-bar4", [], "am_bar4", (), False), ("a-final", ["PLAY"], "am_final", (), True),
-    ("x-fx", ["FX"], "x_fx", (), True), ("x-tape", [], "x_tape", (), False), ("x-glo", ["GLO"], "m_help", (), True),
+    ("x-fx", ["FX"], "x_fx", (), True), ("x-tape", [], "x_tape", (), False), ("x-glo", ["GLO"], "m_manual", (), True),
 ]
 
 

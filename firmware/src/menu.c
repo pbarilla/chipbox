@@ -70,14 +70,17 @@ static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     
 #define QS_OK 0xA0u                              /* set.demo (unused before): the top nibble says the low bits are ours */
 #define QS_ALWAYS 1u                             /* quick start at every start */
 #define QS_PICK 2u                               /* the project browser at every start */
-static mline_t SYSM[4] = {MH("Menu"), ML(""), ML(""), ML("Factory Reset")};       /* GLO + HOME */
+#define QS_NOTIPS 4u                             /* tips off (a new device has them on) */
+#define QS_INSTALLED 8u                          /* an install started from here: the next boot of Chipbox is a fresh one (if there are no projects) */
+static mline_t SYSM[5] = {MH("Menu"), ML(""), ML(""), ML(""), ML("Factory Reset")};       /* GLO + HOME */
 static void menu_open(const mline_t *l, uint32_t n) { menu_lines = l; menu_n = n; menu_top = 0; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
 static void menu_open_pick(const mline_t *l, uint32_t n) { menu_open(l, n); menu_pick = 1; menu_sel = 1; }
 static void sys_open(uint32_t fl, uint32_t at)
 {
     SYSM[1].text = fl & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No";
     SYSM[2].text = fl & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No";
-    menu_open_pick(SYSM, 4);
+    SYSM[3].text = fl & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes";
+    menu_open_pick(SYSM, 5);
     menu_sel = at;
 }
 static void menu_scroll(int32_t d)
@@ -98,26 +101,28 @@ static void menu_scroll(int32_t d)
 }
 static void add_draw(uint16_t accent);
 static void man_draw(void);
+static void menu_win(void)                      /* a pick list as a window: the heading is the title, the bar is the choice, the confirm button at the bottom */
+{
+    const int32_t w = 232, h = 156, x = 4, y0 = 42;
+    const uint16_t col = menu_kind == MK_FACTORY ? RGB(235, 64, 52) : M_ACC;
+    const char *hint = menu_kind == MK_ADD2 ? "OCT+  Add" : menu_pick ? "OCT+  Select" : 0;
+    uint32_t b, i;
+    win_shadow(x, y0, w, h);
+    for (b = 0; b * 80u < (uint32_t)h; b++) {
+        win_band(b, w, h);
+        win_chrome(w, h, menu_lines[0].text, col);
+        for (i = 1; i < menu_n && i < 5u; i++) {
+            int32_t y = 29 + ((int32_t)i - 1) * 24;
+            if (menu_pick && i == menu_sel) { mR(4, y - 3, w - 8, 22, R_SEL); mR(4, y - 3, 3, 22, col); }
+            mT(14, y, menu_lines[i].text, menu_pick && i == menu_sel ? R_WHITE : RGB(200, 200, 210));
+        }
+        win_foot(w, h, hint);
+        cv_blit(x, y0 + b * 80u);
+    }
+}
 static void menu_draw(uint16_t accent)
 {
-    uint32_t b, r;
     if (menu_kind == MK_MANUAL) { man_draw(); return; }             /* the manual is drawn by manual.c */
     if (menu_kind == MK_ADD) { add_draw(accent); return; }          /* the Add Channel list is drawn by addmenu.c */
-    for (b = 0; b < 3u; b++) {
-        cv_begin(240, 80, R_BG);
-        for (r = 0; r < 4u; r++) {
-            uint32_t i = menu_top + b * 4u + r;
-            if (i >= menu_n) break;
-            if (menu_pick && i == menu_sel) cv_rect(0, (int32_t)r * 20, 240, 20, R_SEL);
-            cv_text(8, (int32_t)r * 20 + 2, &FONT_S, menu_lines[i].text, menu_lines[i].head ? accent : RGB(230, 230, 235));
-            if (menu_kind == MK_ADD && i >= 1u && i <= CHIPS) {      /* the consoles: each chip's logo at the right */
-                static const uint8_t LN[CHIPS] = {4, 3, 7, 7, 3, 4, 6, 6, 3, 5, 4, 6, 3, 4, 2, 4, 6, 3, 6, 4, 6, 6, 5, 7, 4, 4, 5, 6, 6, 5, 5, 6, 7, 3, 7, 3, 6, 4};
-                uint32_t ch = i - 1u;
-                ico_logo(ch, 240 - 14 - ((int32_t)LN[ch] * 8 + 8), (int32_t)r * 20 + 3);
-            }
-        }
-        if (menu_n > MENU_ROWS)                 /* a thin bar at the right edge: where you are in the list */
-            cv_rect(237, (int32_t)(240u * menu_top / menu_n) - (int32_t)b * 80, 3, (int32_t)(240u * MENU_ROWS / menu_n), RGB(90, 90, 100));
-        cv_blit(0, b * 80u);
-    }
+    menu_win();
 }

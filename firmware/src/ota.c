@@ -40,6 +40,9 @@ static int ota_fread(uint32_t off, void *p, uint32_t n);
 static void ota_show(uint32_t step, int32_t code);
 static void ota_commit(const uint8_t *parm);
 #ifdef OTA_PROJ_IO
+static void app_install_mark(void);             /* the app notes that an install is about to replace it (chipbox.c) */
+#endif
+#ifdef OTA_PROJ_IO
 static void proj_io(uint32_t cmd, const uint8_t *body, uint32_t n);     /* the app's (projio.c): projects over SysEx */
 #endif
 
@@ -367,6 +370,9 @@ static int ota_session(void)
         ota_show(9, rc);
         return rc;
     }
+#ifdef OTA_PROJ_IO
+    app_install_mark();
+#endif
     /* 5./7. UPDATA_PARM (update_mode_api_v2 layout), flash copy first */
     for (i = 0; i < sizeof parm; i++)
         parm[i] = 0;

@@ -69,13 +69,34 @@ static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
         cv_px[i] = swap16(bg);
 }
 
-static void cv_blit(uint32_t x, uint32_t y) { lcd_blit(x, y, cv_w, cv_h, cv_px); }
+/* A window is up: what the view draws under it fades towards the view's background (so the background itself stays as it is). */
+static uint32_t gfx_dim;
+static uint16_t gfx_dim_bg;
+#define GFX_DIM_K 100                           /* of 256: how much of a colour's distance from the background stays */
+static void gfx_dim_run(uint16_t *p, uint32_t n)
+{
+    const int32_t br = gfx_dim_bg >> 11, bg = gfx_dim_bg >> 5 & 63, bb = gfx_dim_bg & 31;
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        const uint32_t c = (uint32_t)(p[i] >> 8 | p[i] << 8) & 0xFFFFu;
+        int32_t r = (int32_t)(c >> 11), g = (int32_t)(c >> 5 & 63u), b = (int32_t)(c & 31u);
+        r = br + (r - br) * GFX_DIM_K / 256; g = bg + (g - bg) * GFX_DIM_K / 256; b = bb + (b - bb) * GFX_DIM_K / 256;
+        p[i] = swap16((uint32_t)(r << 11 | g << 5 | b));
+    }
+}
+static void cv_blit(uint32_t x, uint32_t y)
+{
+    if (gfx_dim) gfx_dim_run(cv_px, cv_w * cv_h);
+    lcd_blit(x, y, cv_w, cv_h, cv_px);
+}
 
 /* canvas rows r0 .. cv_h-1 only, to screen row y + r0 */
 static void cv_blit_from(uint32_t x, uint32_t y, uint32_t r0)
 {
-    if (r0 < cv_h)
+    if (r0 < cv_h) {
+        if (gfx_dim) gfx_dim_run(cv_px + r0 * cv_w, (cv_h - r0) * cv_w);
         lcd_blit(x, y + r0, cv_w, cv_h - r0, cv_px + r0 * cv_w);
+    }
 }
 
 static inline void cv_pset(int32_t x, int32_t y, uint16_t c)
