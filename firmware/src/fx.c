@@ -4,7 +4,9 @@
  *   pitch effects (dive, wobble, tape stop) are one offset for every voice, moved at the 60 Hz tick
  *   the tape pad hands SELECT to the tape dial and lets the pitch follow the speed; beat repeat steers the sequencer
  * The main loop calls fx_apply with the pads that are held; one writer on each side. */
-enum { FX_TAPE, FX_R8, FX_R16, FX_R32, FX_LPF, FX_HPF, FX_ECHO, FX_VERB, FX_CRUSH, FX_DECI, FX_GATE, FX_DIVE, FX_WOB, FX_SOLO, FX_KILL, FX_LATCH, FXN };
+/* Pads 1-8 are the brothers' shared punch-in effects (the same on Chipbox, Smileyface and Drumlab, and the ones that travel over Bluetooth, bit n = pad n + 1);
+ * 9-15 are Chipbox's own; 16 is the latch. */
+enum { FX_TAPE, FX_R16, FX_LPF, FX_HPF, FX_ECHO, FX_VERB, FX_CRUSH, FX_GATE, FX_R8, FX_R32, FX_DECI, FX_DIVE, FX_WOB, FX_SOLO, FX_KILL, FX_LATCH, FXN };
 #define FXB(i) (1u << (i))
 #define ECHO_MAX 22050u                         /* half a second of echo: at slow tempos it is cut short */
 
@@ -32,7 +34,7 @@ static void fx_press(uint32_t i)                /* main loop: a pad went down */
         if (seq_run) { uint32_t c; seq_rate = 0; seq_hold = 1; for (c = 0; c < chan_n; c++) ev_push(EV_OFF, c, 0, 0); }
         break;
     case FX_R8: case FX_R16: case FX_R32:
-        if (seq_run && !seq_hold) { rpt_step = seq_step; rpt_page = seq_pat; rpt_cnt = 0; fx_rpt = RPT[i - FX_R8]; }
+        if (seq_run && !seq_hold) { rpt_step = seq_step; rpt_page = seq_pat; rpt_cnt = 0; fx_rpt = i == FX_R8 ? RPT[0] : i == FX_R16 ? RPT[1] : RPT[2]; }
         break;
     default: break;
     }

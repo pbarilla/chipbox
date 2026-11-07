@@ -62,7 +62,7 @@ static uint32_t add_console;
 
 static const mline_t CONF_FACTORY[] = {MH("Factory Reset?"), ML("OCT+ Yes"), ML("OCT- No")};
 static const mline_t COPY_MENU[] = {MH("Copy Channel"), ML("Patch Only"), ML("Patch And Notes"), ML("Cancel")};
-enum { MK_MANUAL, MK_ADD, MK_ADD2, MK_MENU, MK_FACTORY, MK_COPY };
+enum { MK_MANUAL, MK_ADD, MK_ADD2, MK_MENU, MK_FACTORY, MK_COPY, MK_BT };
 static uint32_t menu_kind;                       /* what the open list is: help, the add-channel list, the menu, a confirm */
 static const mline_t *menu_lines;
 static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     /* menu_pick: a list you choose from (SELECT moves the bar, OCT+ yes) */
@@ -72,15 +72,27 @@ static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     
 #define QS_PICK 2u                               /* the project browser at every start */
 #define QS_NOTIPS 4u                             /* tips off (a new device has them on) */
 #define QS_INSTALLED 8u                          /* an install started from here: the next boot of Chipbox is a fresh one (if there are no projects) */
-static mline_t SYSM[5] = {MH("Menu"), ML(""), ML(""), ML(""), ML("Factory Reset")};       /* GLO + HOME */
+static mline_t SYSM[7] = {MH("Menu"), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Factory Reset")};
+static mline_t BTM[8] = {MH("Bluetooth"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Demo: Load")};            /* the Bluetooth page: Sync, Status, Sidechain, Patterns, Punch-in FX, Key */
+static void bt_texts(void)
+{
+    static const char *const MODE[3] = {"Sync: Off", "Sync: Lead", "Sync: Follow"};
+    static const char *const STAT[3][3] = {{"Status: Off", "Status: Off", "Status: Off"}, {"Status: Ready", "Status: Ready", "Status: Leading"}, {"Status: Searching", "Status: Linked", "Status: In sync"}};
+    BTM[1].text = MODE[brothers_mode % 3u]; BTM[2].text = STAT[brothers_mode % 3u][brothers_link() % 3u];
+    BTM[3].text = bt_side ? "Sidechain: On" : "Sidechain: Off"; BTM[4].text = bt_patsync ? "Patterns: On" : "Patterns: Off";
+    BTM[5].text = bt_fxsync ? "Punch-in FX: On" : "Punch-in FX: Off"; BTM[6].text = bt_key ? "Key: On" : "Key: Off";
+}       /* GLO + HOME */
 static void menu_open(const mline_t *l, uint32_t n) { menu_lines = l; menu_n = n; menu_top = 0; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
 static void menu_open_pick(const mline_t *l, uint32_t n) { menu_open(l, n); menu_pick = 1; menu_sel = 1; }
+static void bt_open(uint32_t at) { bt_texts(); menu_open_pick(BTM, 8); menu_sel = at; menu_kind = MK_BT; }
 static void sys_open(uint32_t fl, uint32_t at)
 {
     SYSM[1].text = fl & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No";
     SYSM[2].text = fl & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No";
     SYSM[3].text = fl & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes";
-    menu_open_pick(SYSM, 5);
+    SYSM[4].text = clk_mode == 1u ? "MIDI Clock: Send" : clk_mode == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off";
+    SYSM[5].text = "Bluetooth";
+    menu_open_pick(SYSM, 7);
     menu_sel = at;
 }
 static void menu_scroll(int32_t d)
@@ -103,7 +115,7 @@ static void add_draw(uint16_t accent);
 static void man_draw(void);
 static void menu_win(void)                      /* a pick list as a window: the heading is the title, the bar is the choice, the confirm button at the bottom */
 {
-    const int32_t w = 232, h = 156, x = 4, y0 = 42;
+    const int32_t w = 232, h = menu_kind == MK_BT ? 200 : menu_kind == MK_MENU ? 190 : 156, x = 4, y0 = menu_kind == MK_BT ? 34 : menu_kind == MK_MENU ? 38 : 42;      /* the menu has one more line than the others */
     const uint16_t col = menu_kind == MK_FACTORY ? RGB(235, 64, 52) : M_ACC;
     const char *hint = menu_kind == MK_ADD2 ? "OCT+  Add" : menu_pick ? "OCT+  Select" : 0;
     uint32_t b, i;
@@ -111,9 +123,9 @@ static void menu_win(void)                      /* a pick list as a window: the 
     for (b = 0; b * 80u < (uint32_t)h; b++) {
         win_band(b, w, h);
         win_chrome(w, h, menu_lines[0].text, col);
-        for (i = 1; i < menu_n && i < 5u; i++) {
-            int32_t y = 29 + ((int32_t)i - 1) * 24;
-            if (menu_pick && i == menu_sel) { mR(4, y - 3, w - 8, 22, R_SEL); mR(4, y - 3, 3, 22, col); }
+        for (i = 1; i < menu_n && i < (menu_kind == MK_BT ? 8u : menu_kind == MK_MENU ? 7u : 5u); i++) {
+            int32_t pitch = menu_kind == MK_MENU || menu_kind == MK_BT ? 21 : 24, y = 29 + ((int32_t)i - 1) * pitch;
+            if (menu_pick && i == menu_sel) { mR(4, y - 3, w - 8, pitch - 2, R_SEL); mR(4, y - 3, 3, pitch - 2, col); }
             mT(14, y, menu_lines[i].text, menu_pick && i == menu_sel ? R_WHITE : RGB(200, 200, 210));
         }
         win_foot(w, h, hint);

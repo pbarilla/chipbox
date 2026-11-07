@@ -43,7 +43,7 @@
 <main>
   <nav><a href="../">Home</a><a href="../manual/">Tutorials</a><a href="../projects/">Projects</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
   <h1><a href="../">Chipbox</a><span class="tag">MANUAL</span></h1>
-  <div class="toc"><a href="#views">Views</a><a href="#channels">Channels</a><a href="#rack">Rack</a><a href="#notes">Writing notes</a><a href="#patch">Chip screen</a><a href="#consoles">Consoles</a><a href="#drums">Drums</a><a href="#song">Song</a><a href="#projects">Projects</a><a href="#undo">Undo</a><a href="#fx">Effects</a><a href="#limits">Numbers</a><a href="#rescue">Rescue</a></div>
+  <div class="toc"><a href="#views">Views</a><a href="#channels">Channels</a><a href="#rack">Rack</a><a href="#notes">Writing notes</a><a href="#patch">Chip screen</a><a href="#consoles">Consoles</a><a href="#drums">Drums</a><a href="#song">Song</a><a href="#projects">Projects</a><a href="#undo">Undo</a><a href="#fx">Effects</a><a href="#limits">Numbers</a><a href="#bluetooth">Bluetooth</a><a href="#rescue">Rescue</a></div>
 
   <section class="step" id="views">
     <h2><b>1</b>The main views</h2>
@@ -235,7 +235,8 @@
   <section class="step" id="fx">
     <h2><b>11</b>Effects</h2>
     <div class="item"><div class="t"><div><code>FX</code> turns the 16 white keys into effects pads.</div></div><div class="pic"><img src="../manual/img/pn-x-fx.png" alt="x-fx"></div></div>
-    <div class="block"><table><tr><th>Pad</th><th>What it does</th></tr><tr><td><code>TAPE</code></td><td>Controls the tape with <code>SELECT</code>.</td></tr><tr><td><code>RPT</code> (three pads)</td><td>Repeats the current step every eighth, sixteenth or thirty-second note.</td></tr><tr><td><code>LPF</code></td><td>Low-pass filter.</td></tr><tr><td><code>HPF</code></td><td>High-pass filter.</td></tr><tr><td><code>ECHO</code></td><td>Tape echo.</td></tr><tr><td><code>VERB</code></td><td>Reverb.</td></tr><tr><td><code>CRSH</code></td><td>Reduces the number of levels.</td></tr><tr><td><code>DECI</code></td><td>Reduces the sample rate.</td></tr><tr><td><code>GATE</code></td><td>Chops the sound every sixteenth note.</td></tr><tr><td><code>DIVE</code></td><td>Drops the pitch an octave.</td></tr><tr><td><code>WOB</code></td><td>Wobbles the pitch.</td></tr><tr><td><code>SOLO</code></td><td>Plays only the selected channel.</td></tr><tr><td><code>KILL</code></td><td>Silences everything.</td></tr><tr><td><code>HOLD</code></td><td>Keeps pads on after you let go.</td></tr></table></div>
+    <div class="block"><table><tr><th>Pad</th><th>Effect</th><th>What it does</th></tr><tr><td>1</td><td><code>TAPE</code> (shared)</td><td>Controls the tape with <code>SELECT</code>.</td></tr><tr><td>2</td><td><code>RPT</code> (shared)</td><td>Repeats the current step every sixteenth note.</td></tr><tr><td>3</td><td><code>LPF</code> (shared)</td><td>Low-pass filter.</td></tr><tr><td>4</td><td><code>HPF</code> (shared)</td><td>High-pass filter.</td></tr><tr><td>5</td><td><code>ECHO</code> (shared)</td><td>Tape echo.</td></tr><tr><td>6</td><td><code>VERB</code> (shared)</td><td>Reverb.</td></tr><tr><td>7</td><td><code>CRSH</code> (shared)</td><td>Reduces the number of levels.</td></tr><tr><td>8</td><td><code>GATE</code> (shared)</td><td>Chops the sound at the sixteenth notes.</td></tr><tr><td>9</td><td><code>RPT</code></td><td>Repeats the current step every eighth note.</td></tr><tr><td>10</td><td><code>RPT</code></td><td>Repeats the current step every thirty-second note.</td></tr><tr><td>11</td><td><code>DECI</code></td><td>Drops the sample rate.</td></tr><tr><td>12</td><td><code>DIVE</code></td><td>The pitch dives an octave.</td></tr><tr><td>13</td><td><code>WOB</code></td><td>A slow pitch wobble.</td></tr><tr><td>14</td><td><code>SOLO</code></td><td>Plays the channel you are on, alone.</td></tr><tr><td>15</td><td><code>KILL</code></td><td>Silences everything.</td></tr><tr><td>16</td><td><code>HOLD</code></td><td>The latch: tap a pad to keep it on, tap it again to turn it off.</td></tr></table></div>
+    <div class="item"><div class="t"><div>Pads 1 to 8 are the same on Chipbox, Smileyface and Drumlab, and they are the ones that travel over Bluetooth. Pads 9 to 15 only exist on Chipbox and don't travel.</div></div></div>
   </section>
 
   <section class="step" id="limits">
@@ -243,8 +244,23 @@
     <div class="block"><table><tr><th></th><th></th></tr><tr><td>Channels</td><td>16</td></tr><tr><td>Steps in a page</td><td>16</td></tr><tr><td>Pages</td><td>64</td></tr><tr><td>Slots in a song</td><td>128</td></tr><tr><td>Projects</td><td>10, and two demos</td></tr><tr><td>Undo</td><td>6 changes</td></tr><tr><td>Notes in a project</td><td>About 2000</td></tr><tr><td>Tempo</td><td>40 to 240 bpm</td></tr></table></div>
   </section>
 
+  <section class="step" id="bluetooth">
+    <h2><b>13</b>Bluetooth sync</h2>
+    <div class="item"><div class="t"><div>Chipbox, Smileyface and Drumlab can play together over Bluetooth. One leads, the others follow. No cables, no pairing.</div></div></div>
+    <div class="item"><div class="t"><div>Hit <code>GLO</code> + <code>HOME</code> and pick <b>Bluetooth</b>. On the leader, set <b>Sync</b> to Lead. On the others, set it to Follow. <code>OCT+</code> changes it.</div></div></div>
+    <div class="item"><div class="t"><div>The status line says <b>Searching</b> while it looks for a leader, <b>Linked</b> when it hears one, and <b>In sync</b> once it is playing along.</div></div></div>
+    <div class="item"><div class="t"><div>Hit <code>PLAY</code> on the leader. The followers start at the next bar and take its tempo. Stop the leader and they stop.</div></div></div>
+    <div class="item"><div class="t"><div><b>Sidechain</b>: the leader tells the followers where its kicks are. The followers duck on every one, so the notes pump against the beat. Chipbox ducks its notes and leaves its own drums alone.</div></div></div>
+    <div class="item"><div class="t"><div><b>Patterns</b>: when the leader changes pattern, a following Chipbox moves to that page when the one it plays ends. It plays the page round and round. The leader's swing comes with it where there is a swing to follow.</div></div></div>
+    <div class="item"><div class="t"><div><b>Punch-in FX</b>: hold one of pads 1 to 8 on the leader and every follower does it too: TAPE, RPT, LPF, HPF, ECHO, VERB, CRSH and GATE. Pads 9 to 15 are different on each FM-1 and don't travel.</div></div></div>
+    <div class="item"><div class="t"><div><b>Key</b>: Chipbox works out the key of what it plays and tells the others. A following Chipbox moves its notes to the nearest note of the leader's key, so nothing clashes. This one only does something when the leader has notes. A leading Drumlab has none.</div></div></div>
+    <div class="item"><div class="t"><div><b>Demo</b> loads a locked project to play along with the other two: D minor, 124 BPM, two pages. Nothing in it is saved. Open any project to leave it.</div></div></div>
+    <div class="item"><div class="t"><div>Any brother can lead, but only one at a time. Sync and the switches are remembered when you turn it off and on again.</div></div></div>
+    <div class="item"><div class="t"><div>Before you install a new firmware, set Sync to Off. While the radio runs, the FM-1 can stop answering the installer.</div></div></div>
+  </section>
+
   <section class="step" id="rescue">
-    <h2><b>13</b>Updates and rescue</h2>
+    <h2><b>14</b>Updates and rescue</h2>
     <div class="item"><div class="t"><div>Install and update firmware with the <a href="../install.html">install page</a>.</div></div></div>
     <div class="item"><div class="t"><div>If your FM-1 gets bricked or stuck in a weird place, hold <code>OCT-</code> while plugging it in. The <a href="../install.html">install page</a> will fix it from there.</div></div></div>
   </section>

@@ -54,7 +54,7 @@ static const mpage_t MP_DRUM[] = {
 };
 static const mpage_t MP_FX[] = {
     {"Punch in", M_FX, "Press FX to turn the punch-in layer on. Press FX or HOME to leave it."},
-    {"Pads", M_KEYS, "Press a white key to punch in an effect. Hold the key for as long as you want it."},
+    {"Pads", M_KEYS, "Press a white key to punch in an effect. Hold the key for as long as you want it. Pads 1 to 8 are the same on Smileyface and Drumlab."},
     {"Tape", M_SELECT, "Hold the TAPE pad and turn SELECT to speed the song up or slow it down."},
 };
 static const mpage_t MP_PROJ[] = {
@@ -63,7 +63,7 @@ static const mpage_t MP_PROJ[] = {
     {"Save", M_SAVE, "Press SAVE to save your project. Stop editing for two seconds and it saves by itself."},
 };
 static const mpage_t MP_MENU[] = {
-    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together to open the menu. Set what happens at start-up, or Factory Reset."},
+    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together to open the menu. Set what happens at start-up, the MIDI clock, Bluetooth sync with the other brothers, or Factory Reset."},
     {"Note tails", M_ARP, "Press ARP to turn the note tails in the rack on or off."},
     {"Moving around", M_SELECT | M_PRESETS, "Turn SELECT to turn the pages. Turn PRESETS to jump to another chapter."},
     {"Contents", M_GLO | M_HOME, "Press GLO to see the contents. Press HOME to leave the manual."},

@@ -23,6 +23,7 @@ ota-FM-1_9XX, is resumed).
 """
 import argparse
 import queue
+import threading
 import re
 import sys
 import time
@@ -214,6 +215,27 @@ def pair_output(name, outs):
 
 # --------------------------------------------------------------- updater ---
 
+def timed(fn, secs):
+    """fn() with a time limit: CoreMIDI calls on a port that is going away can block for good, and the installer must not wait on them.
+    Returns fn's value, or None if it took longer than secs (the call is left behind on a daemon thread) or raised."""
+    box = []
+    done = threading.Event()
+
+    def go():
+        try:
+            box.append(fn())
+        except Exception:
+            box.append(None)
+        done.set()
+
+    threading.Thread(target=go, daemon=True).start()
+    return box[0] if done.wait(secs) and box else None
+
+
+def close_link(link):
+    timed(link.close, 3.0)
+
+
 class Device:
     def __init__(self, link, ident, name):
         self.link, self.id, self.name = link, ident, name
@@ -256,14 +278,13 @@ class Updater:
             out = pair_output(name, outs)
             if not out:
                 continue
-            try:
-                link = self.backend.open(name, out)
-            except Exception:
+            link = timed(lambda: self.backend.open(name, out), 5.0)
+            if link is None:
                 continue
-            ident = handshake(link, 2)
+            ident = timed(lambda: handshake(link, 2), 6.0)
             if ident and (want is None or want(ident)):
                 return Device(link, ident, name)
-            link.close()
+            close_link(link)
         return None
 
     def wait_for(self, want, secs):
@@ -292,7 +313,7 @@ class Updater:
             fl, addr, n = r
             last = time.monotonic()
             if addr in (FINISH_CHECK, FINISH_WRITE):
-                link.send(response(addr, b"success\0"))
+                timed(lambda: link.send(response(addr, b"success\0")), 3.0)      # (the FM-1 resets on this: a send to a port that is going away can block for good)
                 if addr == finish:
                     return served, True, False
                 continue
@@ -311,7 +332,7 @@ class Updater:
         time.sleep(DELAY["start"])
         served, finished, lost = self.serve(dev.link, image, FINISH_CHECK, DELAY["idle_check"],
                                             lambda k, end: step("check", k))
-        dev.link.close()
+        close_link(dev.link)
         if not finished:
             raise InstallError("lost" if lost else "stopped",
                                f"the FM-1 {'was disconnected' if lost else 'stopped answering'} after "
@@ -331,7 +352,7 @@ class Updater:
         time.sleep(DELAY["start"])
         served, finished, lost = self.serve(ota.link, image, FINISH_WRITE, DELAY["idle_write"],
                                             lambda k, end: step("write", min(99, end * 100 // len(image))))
-        ota.link.close()
+        close_link(ota.link)
         if not finished:
             raise InstallError("lost" if lost else "stopped",
                                f"the loader {'was disconnected' if lost else 'stopped answering'} after "
@@ -341,12 +362,14 @@ class Updater:
     def verify(self, product, step):
         step("reboot")
         time.sleep(DELAY["reboot"])
-        back = self.wait_for(lambda i: not i.loader, DELAY["wait_reboot"])
+        back = self.wait_for(lambda i: not i.loader and i.text == product, DELAY["wait_reboot"])      # (with several FM-1s plugged in, the first one to answer is not always this one)
         if not back:
+            other = self.wait_for(lambda i: not i.loader, 8.0)
+            if other:
+                close_link(other.link)
+                raise InstallError("mismatch", f"written, but no FM-1 reports {product} (this one says {other.id.text})")
             raise InstallError("noreturn", "the FM-1 did not come back: power-cycle it")
-        back.link.close()
-        if back.id.text != product:
-            raise InstallError("mismatch", f"written, but the FM-1 reports {back.id.text} (expected {product})")
+        close_link(back.link)
         step("done", back.id.text)
         return back.id.text
 
@@ -485,10 +508,24 @@ def run(a, backend, out, ask):
         print("cancelled", file=out)
         return 1
     prog = Progress(out)
-    try:
-        up.install(dev, image, product, prog)
-    finally:
-        prog.end()
+    for attempt in range(1, 4):                 # a stalled request or a dropped reply is not the end: look for the FM-1 again (it may be waiting in update mode) and carry on
+        try:
+            up.install(dev, image, product, prog)
+            return 0
+        except InstallError as e:
+            prog.end()
+            if e.code not in ("stopped", "lost", "noloader") or attempt == 3:
+                raise
+            print(f"{e}\ntrying again ({attempt + 1} of 3)...", file=out, flush=True)
+            time.sleep(6.0)
+            dev = up.find()
+            if not dev:
+                dev = up.wait_for(lambda i: True, 30.0)
+            if not dev:
+                raise
+            print(f"device:  {dev.id.text}  ({dev.name})" + ("  in update mode: the write will be finished" if dev.id.loader else ""), file=out, flush=True)
+        finally:
+            prog.end()
     return 0
 
 

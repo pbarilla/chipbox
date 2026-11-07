@@ -96,6 +96,8 @@ static int st_read(uint32_t off, void *dst, uint32_t n)
 
 static uint8_t recovery_active;
 #define OTA_IDENTITY (recovery_active ? "FM-1_000" : FELUCCA_ID)
+#define APP_OTA_HIT 1                               /* (the app only: ota.c notes when the installer talks; the update loader does not define this) */
+static volatile uint32_t ota_hit_ms;            /* when the installer last sent a request: the main loop switches the Bluetooth radio off while it does */
 #include "ota.c"
 static void recovery_poll(void);
 static uint32_t ota_now_ms(void) { return fm1_ms; }
@@ -121,14 +123,20 @@ static int ota_prog(uint32_t off, const void *p, uint32_t n)
 static int ota_fread(uint32_t off, void *p, uint32_t n) { return st_read(off, p, n); }
 static void ota_show(uint32_t step, int32_t code)
 {
-    static const char *const STEP[] = {"", "PACKAGE", "CHECK HEAD", "LOADER", "CONFIRM", "RESTART"};
+    static const char *const STEP[] = {"", "READING THE PACKAGE", "CHECKING IT", "PREPARING", "ALMOST THERE", "RESTARTING"};
+    uint32_t i;
     if (recovery_active) return;
     lcd_fill(0, 0, 240, 240, C_BLACK);
-    draw_text_box(0, 92, 240, &FONT_S, "UPDATE", C_WHITE, 1);
-    if (step < 9u)
-        draw_text_box(0, 124, 240, &FONT_S, STEP[step < 6u ? step : 0], C_WHITE, 1);
-    else
-        draw_text_box(0, 124, 240, &FONT_S, code == 1 ? "DRY RUN OK" : "FAILED", C_WHITE, 1);
+    if (step < 9u) {                                            /* an update is under way: the screen says so, and it stays up as far into the restart as the display keeps it */
+        draw_text_box(0, 70, 240, &FONT_S, "UPDATING", C_WHITE, 1);
+        draw_text_box(0, 96, 240, &FONT_S, "PLEASE WAIT", C_WHITE, 1);
+        draw_text_box(0, 118, 240, &FONT_S, "DO NOT UNPLUG", C_WHITE, 1);
+        draw_text_box(0, 160, 240, &FONT_S, STEP[step < 6u ? step : 0], C_WHITE, 1);
+        for (i = 0; i < 5u; i++) lcd_fill((int)(40 + i * 32), 186, 28, 8, i < step ? C_WHITE : 0x2104u);      /* five steps */
+    } else {
+        draw_text_box(0, 92, 240, &FONT_S, code == 1 ? "TEST RUN" : "UPDATE DID NOT FINISH", C_WHITE, 1);
+        draw_text_box(0, 124, 240, &FONT_S, code == 1 ? "ALL FINE" : "TRY AGAIN", C_WHITE, 1);
+    }
 }
 static void ota_commit(const uint8_t *parm)
 {
@@ -199,7 +207,13 @@ static int midi_get(uint8_t *st, uint8_t *d1, uint8_t *d2)   /* 1: a message (st
     *d2 = (uint8_t)(pk >> 24);
     return 1;
 }
-static void midi_send(uint32_t st, uint32_t d1, uint32_t d2)   /* from the main loop only */
+static void midi_send(uint32_t st, uint32_t d1, uint32_t d2)   /* from the main loop only: the audio ISR is held off while it writes the ring */
+{
+    uint32_t f = irq_save();
+    midi_out_event((st >> 4) | st << 8 | (d1 & 0x7Fu) << 16 | (d2 & 0x7Fu) << 24);
+    irq_restore(f);
+}
+static void midi_isr_send(uint32_t st, uint32_t d1, uint32_t d2)   /* from the audio ISR only (the MIDI clock): the main loop's midi_send keeps out of its way */
 {
     midi_out_event((st >> 4) | st << 8 | (d1 & 0x7Fu) << 16 | (d2 & 0x7Fu) << 24);
 }
@@ -268,6 +282,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
 extern void isr_alnk0(void);
 
 /* ---- the main loop's duties: watchdog, USB, the installer's update request, the MASTER knob */
+static volatile uint8_t ota_back;                /* an install session ended without committing: its message is on the screen */
 static void platform_poll(void)
 {
     static int32_t knob_avg = 512 * 16;
@@ -277,8 +292,11 @@ static void platform_poll(void)
     ota_service();
     if (usb.ota_req) {
         usb.ota_req = 0;
-        if (flash_ok)
+        ota_hit_ms = fm1_ms | 1u;
+        if (flash_ok) {
             ota_session();                      /* returns only if nothing was committed */
+            ota_back = 1;                       /* it drew UPDATE / FAILED over the whole screen: the app repaints everything */
+        }
     }
     if (usb.uboot_req) {
         fm1_audio_stop();

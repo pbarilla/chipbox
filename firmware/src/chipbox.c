@@ -18,12 +18,57 @@
 #ifndef CHIPBOX_HOST
 #define OTA_PROJ_IO
 #endif
+#include <stdint.h>
+#ifdef FELUCCA_ID                                            /* firmware/ble/ble.c: the brothers' Bluetooth link, its own unit */
+extern volatile uint8_t brothers_mode;                      /* 0 off, 1 lead, 2 follow */
+extern void brothers_set(uint32_t mode);
+extern void brothers_poll(void);
+extern uint32_t brothers_link(void);
+extern void brothers_lead_tick(uint32_t off, uint32_t per);
+extern uint32_t brothers_bpm(void);
+extern void brothers_lead_set(uint32_t pat, uint32_t kick, uint32_t fx, uint32_t scale, uint32_t swing);
+extern uint32_t brothers_pat(void);
+extern uint32_t brothers_fx(void);
+extern uint32_t brothers_scale(void);
+extern uint32_t brothers_detect(const uint8_t *notes, uint32_t n);
+extern uint32_t brothers_snap(uint32_t note, uint32_t scale);
+extern uint32_t brothers_duck(uint32_t depth);
+extern void brothers_lead_run(uint32_t run);
+#else
+static uint8_t brothers_mode;
+static void brothers_set(uint32_t mode) { brothers_mode = (uint8_t)mode; }
+static void brothers_poll(void) {}
+static uint32_t brothers_link(void) { return 0; }
+static void brothers_lead_tick(uint32_t off, uint32_t per) { (void)off; (void)per; }
+static uint32_t brothers_bpm(void) { return 0; }
+static void brothers_lead_set(uint32_t pat, uint32_t kick, uint32_t fx, uint32_t scale, uint32_t swing) { (void)pat; (void)kick; (void)fx; (void)scale; (void)swing; }
+static uint32_t brothers_pat(void) { return 0xFFu; }
+static uint32_t brothers_fx(void) { return 0u; }
+static uint32_t brothers_scale(void) { return 0u; }
+static uint32_t brothers_detect(const uint8_t *notes, uint32_t n) { (void)notes; (void)n; return 0u; }
+static uint32_t brothers_snap(uint32_t note, uint32_t scale) { (void)scale; return note; }
+static uint32_t brothers_duck(uint32_t depth) { (void)depth; return 256u; }
+static void brothers_lead_run(uint32_t run) { (void)run; }
+#endif
+static uint8_t btq[32];                                      /* the brothers' link's clock / start / stop, in order, for the main loop (as USB MIDI's) */
+static volatile uint8_t btq_w, btq_r;
+void bt_rt(uint32_t st) { if ((uint8_t)(btq_w - btq_r) < 32u) btq[btq_w++ & 31u] = (uint8_t)st; }
+static int bt_get(uint8_t *st, uint8_t *d1, uint8_t *d2)
+{
+    if (btq_r == btq_w) return 0;
+    *st = btq[btq_r++ & 31u]; *d1 = 0x55u; *d2 = 0;
+    return 1;
+}
 #include "platform.c"
 #ifdef CHIPBOX_HOST
 #define FM1_TICKS_PER_US 24u
 static uint32_t fm1_ticks(void) { return 0; }
 #endif
 #include "chips.c"
+static uint32_t bt_fx_cur;                                   /* the leader's punch-in pads we hold for it */
+/* the brothers' shared punch-in effects are pads 1-8, bit n = pad n + 1: stop, repeat, low-pass, high-pass, echo, reverb, crush, gate */
+static uint32_t fx_to_shared(uint32_t m) { return m & 0xFFu; }
+static uint32_t fx_from_shared(uint32_t s) { return s & 0xFFu; }
 static int add_aud_c = -1;                      /* the Add Channel audition's channel on loan (addmenu.c); -1 none */
 #include "proj.c"
 #include "projio.c"
@@ -313,6 +358,7 @@ static void app_install_mark(void)
 static void app_main(void)
 {
     struct { int8_t oct; uint8_t an[3], proj, demo, unlocked; } set = {0, {AN_HW, AN_HW, 0}, 0, 0, 0};
+#define bt_pack() do { set.unlocked = (uint8_t)((clk_mode & 3u) | (brothers_mode & 3u) << 2 | bt_side << 4 | bt_patsync << 5 | bt_fxsync << 6 | bt_key << 7); dirty = 1; t_change = fm1_ms; } while (0)       /* the settings byte: MIDI clock, Bluetooth mode, sidechain, patterns */
     uint32_t prev = 0, k, t_change = 0, dirty = 0, note_drawn = ~0u, chip_drawn = ~0u;
     uint32_t last_note = 255u, view = 1, rack_force = 1, chip_page = 0, sel = 0;     /* view: 0 the chip, 1 the rack, 2 the song; sel: the channel (in the rack, one past the last is "add") */
     uint32_t home_was = 0, home_t0 = 0, home_used = 0, home_now, home_tap, edit_was = 0, edit_t0 = 0, edit_now, edit_used = 0, edit_rel, edit_clr = 255u;
@@ -324,6 +370,8 @@ static void app_main(void)
     uint32_t rec_t0[27] = {0};
     fresh = settings_load(&set, sizeof set) != 0;      /* a new device (or a wipe): no settings yet */
     if ((set.demo & 0xF0u) != QS_OK) set.demo = QS_OK;
+    clk_mode = (set.unlocked & 3u) <= 2u ? (uint8_t)(set.unlocked & 3u) : 0u;       /* the settings byte `unlocked` (never used before): bits 0-1 the MIDI clock, 2-3 the Bluetooth sync mode, 4 sidechain, 5 follow patterns */
+    bt_side = set.unlocked >> 4 & 1u; bt_patsync = set.unlocked >> 5 & 1u; bt_fxsync = set.unlocked >> 6 & 1u; bt_key = set.unlocked >> 7 & 1u;
     inst_flag = &set.demo; inst_set = &set; inst_n = sizeof set;                    /* set.demo: quick start on every start, project browser on every start */
     rack_tails = set.an[2] >> 7;                        /* set.an[2]: the boot screen in bits 0-6, note tails in bit 7 */
 #if !defined(CHIPBOX_HOST) || defined(BOOT_DEMO)
@@ -411,7 +459,7 @@ static void app_main(void)
                 for (p = 0; p < FXN; p++) if (now >> p & 1u) { if (p == FX_TAPE) anim_tape(); else anim_fx(p); }
                 if (!mask && fx_held) { /* all let go: the animation finishes by itself */ }
                 else if (mask && (fx_held & ~mask)) { for (p = 0; p < FXN; p++) if (mask >> p & 1u) { an_arg = p; break; } }
-                fx_apply(mask);
+                fx_apply(mask | bt_fx_cur);
             }
             down = up = 0;
         }
@@ -525,7 +573,8 @@ static void app_main(void)
             else if (view) man_open(MC_RACK, rack_rm ? 2u : sel >= chan_n ? 1u : rec_on ? 6u : seq_run ? 4u : 0u);
             else man_open(MC_CHIP, chip_page ? 1u : 0u);
         } else if (home_tap) {
-            if (menu_on) menu_on = 0;
+            if (menu_on && menu_kind == MK_BT) sys_open(set.demo, 5);                                  /* back from the Bluetooth page to the menu */
+            else if (menu_on) menu_on = 0;
             else if (fx_layer) { fx_layer = 0; fx_off(); anim_start(AN_VIEW, view); }       /* HOME leaves the punch-in layer first */
             else if (view == 3u) { view = 1; anim_start(AN_VIEW, 1u); }
             else { view = view == 1u ? (chan_n ? 0u : 2u) : view == 0u ? 2u : 1u; anim_start(AN_VIEW, view); }       /* HOME: the rack, the chip, the song, the rack ... */
@@ -621,8 +670,19 @@ static void app_main(void)
                     if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                 } else if (menu_kind == MK_MENU) {
-                    if (menu_sel == 4u) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
+                    if (menu_sel == 5u) bt_open(1);                                                                               /* the Bluetooth page */
+                    else if (menu_sel == 6u) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
+                    else if (menu_sel == 4u) { clk_mode = (uint8_t)((clk_mode + 1u) % 3u); bt_pack(); if (clk_mode != 2u) ext_on = 0; dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* off, send, follow */
                     else { set.demo ^= (uint8_t)(menu_sel == 1u ? QS_ALWAYS : menu_sel == 2u ? QS_PICK : QS_NOTIPS); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* a switch: the line says Yes or No */
+                } else if (menu_kind == MK_BT) {                                    /* Sync, (Status), Sidechain, Patterns */
+                    if (menu_sel == 1u) brothers_set(((uint32_t)brothers_mode + 1u) % 3u);
+                    else if (menu_sel == 3u) bt_side ^= 1u;
+                    else if (menu_sel == 4u) bt_patsync ^= 1u;
+                    else if (menu_sel == 5u) bt_fxsync ^= 1u;
+                    else if (menu_sel == 6u) bt_key ^= 1u;
+                    if (menu_sel == 7u) {                                   /* Demo: the locked project (it is a demo slot: nothing is saved) */
+                        seq_stop(); seq_bt_demo(); proj_cur = 0; proj_dirty = 0; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; menu_on = 0;
+                    } else { bt_pack(); bt_open(menu_sel); }
                 } else if (menu_kind == MK_FACTORY) {
                     FACTORY_RESET();
                 }
@@ -740,13 +800,64 @@ static void app_main(void)
         }
         }
         }
-        while (midi_get(&st, &d1, &d2)) {
+        if (ext_on && fm1_ms - ext_ms > 400u) ext_on = 0;                       /* the outside clock stopped */
+        { static uint32_t paused;                                                                                                        /* the installer is talking: the Bluetooth radio goes quiet (it makes the FM-1 miss requests), and comes back 20 s after */
+          if (ota_hit_ms && brothers_mode && !paused) { paused = brothers_mode; brothers_set(0); }
+          if (paused && fm1_ms - ota_hit_ms > 20000u) { brothers_set(paused); paused = 0; ota_hit_ms = 0; } }
+        if (ota_back) { ota_back = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; menu_dirty = 1; }          /* the installer gave up and left its message on the screen: paint it all again */
+        { static uint8_t bt_booted; if (!bt_booted && fm1_ms > 1500u) { bt_booted = 1; if ((set.unlocked >> 2 & 3u) && (set.unlocked >> 2 & 3u) <= 2u) brothers_set(set.unlocked >> 2 & 3u); } }      /* the mode it was left in */
+        brothers_poll();                                                        /* a follower: the leader's packets into clock ticks */
+        if (brothers_mode == 1u) {                                              /* the leader: its pattern and where the kicks are (the drums' first lane) */
+            uint32_t km = 0, s2, t2;
+            for (t2 = 0; t2 < chan_n; t2++) if (IS_DRUM(chan[t2].kind)) for (s2 = 0; s2 < 16u; s2++) if (dstep_hits(&pat[seq_pat][t2][s2]) & 1u) km |= 1u << s2;
+            {                                                                   /* the key of what plays, every third of a second; the punch-in pads held, as the brothers' effects */
+                static uint32_t sc_ms, sc_val;
+                if (fm1_ms - sc_ms > 300u) {
+                    uint8_t nt[64];
+                    uint32_t nn = 0, t3, s3;
+                    sc_ms = fm1_ms;
+                    for (t3 = 0; t3 < chan_n; t3++) if (!IS_DRUM(chan[t3].kind)) for (s3 = 0; s3 < 16u && nn < 64u; s3++) if (pat[seq_pat][t3][s3].note) nt[nn++] = pat[seq_pat][t3][s3].note;
+                    sc_val = brothers_detect(nt, nn);
+                }
+                brothers_lead_set(seq_pat, km, fx_to_shared(fx_held), sc_val, 0);
+            }
+        } else if (brothers_mode == 2u && bt_patsync && seq_run && seq_loop == 1u) {                   /* a follower: the leader's pattern, at the end of this one */
+            uint32_t p = brothers_pat();
+            if (p != 0xFFu && p != bt_last) { bt_last = (uint8_t)p; if (p < page_n && p != seq_pat) { seq_next = (uint8_t)p; seq_view = (uint8_t)p; } }
+        } else if (brothers_mode != 2u) bt_last = 0xFFu;
+        bt_scale = (uint8_t)(brothers_mode == 2u && bt_key ? brothers_scale() : 0u);                    /* a follower with Key on: the leader's key */
+        { uint32_t want = brothers_mode == 2u && bt_fxsync ? fx_from_shared(brothers_fx()) : 0u; bt_fx_cur = want; if (!fx_layer && fx_held != want) fx_apply(want); }       /* the leader's punch-in pads, held as ours */
+        if (menu_on && menu_kind == MK_BT) { static uint32_t bt_ms; if (fm1_ms - bt_ms > 300u) { bt_ms = fm1_ms; bt_texts(); menu_dirty = 1; } }
+        while (midi_get(&st, &d1, &d2) || bt_get(&st, &d1, &d2)) {
             uint32_t mt = st & 0xFu;                         /* MIDI channel n plays channel n */
+            if (st >= 0xF8u) {                              /* real time: the clock and the transport (only when MIDI Clock is Follow; from the brothers' link, when it follows) */
+                if (d1 == 0x55u ? brothers_mode != 2u : clk_mode != 2u) continue;
+                if (st == 0xF8u) {
+                    ext_ms = fm1_ms;
+                    if (!ext_on) { ext_reset = 1; ext_n = 0; ext_t0 = fm1_ms; ext_on = 1; }
+                    ext_in++;
+                    if (d1 == 0x55u) { uint32_t nb = brothers_bpm(); if (nb >= 30u && nb <= 255u) seq_bpm = nb; }     /* the leader says its tempo exactly */
+                    else if (++ext_n >= 24u) {                    /* a quarter note: the tempo, from the spacing of the ticks */
+                        uint32_t dt = fm1_ms - ext_t0;
+                        ext_n = 0; ext_t0 = fm1_ms;
+                        if (dt >= 250u && dt <= 1500u) { uint32_t nb = 60000u / dt; seq_bpm = nb > seq_bpm + 4u || nb + 4u < seq_bpm ? nb : (seq_bpm * 3u + nb + 2u) / 4u; }      /* a new tempo at once, small drift smoothed */
+                    }
+                } else if (st == 0xFAu || (st == 0xFBu && !seq_run)) {             /* start, continue: as a tap on PLAY */
+                    uint32_t s = 0;
+                    if (seq_run) seq_stop();
+                    while (s < song_len && song[s] != seq_view) s++;
+                    if (d1 == 0x55u && bt_patsync) { uint32_t p = brothers_pat(); if (p != 0xFFu && p < page_n) seq_view = (uint8_t)p; seq_play(0, 1); }                       /* following the leader's patterns: round one page */
+                    else if (view == 2u) seq_play(song_cur < song_len ? song_cur : 0u, 0); else if (s < song_len) seq_play(s, 0); else seq_play(0, 1);
+                    anim_start(AN_PLAY, 0);
+                } else if (st == 0xFCu && seq_run) { seq_stop(); rec_on = 0; duck_ch = 255; anim_start(AN_PAUSE, 0); }
+                continue;
+            }
             if ((st & 0xF0u) == 0xC0u) {                    /* program change: pick the channel */
                 if (chan_n) { if (sel < chan_n) chip_off(sel); sel = d1 % chan_n; last_note = 255u; rack_inval = 1; }
                 continue;
             }
             if ((st & 0xF0u) == 0xB0u && d1 == 102u) { if (d2 >= 64u) seq_play(0, 0); else if (seq_run) seq_stop(); continue; }
+            if ((st & 0xF0u) == 0xB0u && d1 == 119u) { seq_stop(); seq_bt_demo(); proj_cur = 0; proj_dirty = 0; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; menu_on = 0; continue; }       /* test: the Bluetooth demo */
             if ((st & 0xF0u) == 0xB0u && d1 == 103u) { seq_bpm = d2 * 2u; proj_edited(); continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (proj_cur >= PROJ_DEMOS && proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 108u) { fx_apply(d2 == 0u ? 0u : d2 <= FXN ? fx_held | FXB(d2 - 1u) : d2 <= 2u * FXN ? fx_held & ~FXB(d2 - 1u - FXN) : fx_held); if (d2 && d2 <= FXN) anim_fx(d2 - 1u); continue; }     /* test: pad d2-1 on; d2 17..32: pad off; 0: all off */

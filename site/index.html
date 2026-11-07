@@ -28,6 +28,13 @@
   ul { padding-left:20px; margin:0 0 12px; }
   li { margin:4px 0; }
   ol { padding-left:22px; }
+  .bros { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin:6px 0 0; }
+  .bro { display:block; padding:14px 16px; background:var(--panel); border:2px solid #2a2a36; border-radius:8px; color:var(--ink); text-decoration:none; }
+  .bro b { display:block; font-size:16px; letter-spacing:.14em; text-transform:uppercase; }
+  .bro span { color:var(--dim); font-size:14px; }
+  .bro.me { border-color:var(--red); } .bro.me b { color:var(--red); }
+  a.bro:hover { border-color:var(--ink); }
+  @media (max-width:700px) { .bros { grid-template-columns:1fr; } }
   code, pre { font:inherit; background:var(--panel); }
   code { padding:1px 6px; }
   pre { padding:14px 16px; overflow-x:auto; margin:8px 0 14px; }
@@ -93,6 +100,14 @@
   <p>Kind of repeat that a few times until you have something that sounds rad!</p>
   <p>wanna make a new song? hold HOME, select an empty project, and hit OCT+. Wanna go back to the other project? hold HOME, and select the previous, then hit OCT+.</p>
   <p>want help on any page? hit GLO! stands for 'Get Lots Of help' i guess? i dunno whatever hahaha.</p>
+
+  <h2>The three brothers</h2>
+  <div class="bros">
+    <div class="bro me"><b>Chipbox</b><span>This one. Chiptune tracker. Over 35 sound chips.</span></div>
+    <a class="bro" href="../smileyface/"><b>Smileyface</b><span>An acid bass line.</span></a>
+    <a class="bro" href="../drumlab/"><b>Drumlab</b><span>Drums, and a PO-32.</span></a>
+  </div>
+  <p style="margin-top:14px">They get along: over Bluetooth one of them leads and the others follow. Tempo, kicks, patterns and effects. <a href="../drumlab/manual/sync/">Here's how</a>.</p>
 
   <h2 id="install">Install</h2>
   <p><a href="install.html">install it from your browser</a>.</p>

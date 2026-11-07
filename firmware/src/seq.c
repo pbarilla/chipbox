@@ -28,6 +28,13 @@ static volatile uint32_t seq_ticks;             /* clock ticks since play: a rec
 static volatile uint8_t seq_run, seq_pat, seq_next = 255, seq_step, seq_sub, seq_slot, seq_loop, seq_follow;     /* seq_loop: one page round and round; seq_follow: the rack shows the page that plays */
 static uint8_t seq_view;                        /* the page the screen shows and the keys write; the player follows it at the end of the loop */
 static uint32_t seq_left, seq_frac;             /* samples to the next tick, and the fraction a tick keeps */
+/* MIDI clock (Menu > MIDI Clock; the settings byte `unlocked`): 0 off, 1 send, 2 follow. Our ticks are the MIDI clock's own, 24 a quarter note and 6 a step.
+ * Send: each tick in the audio ISR is a clock byte; play and stop send start and stop. Follow: the main loop counts the outside ticks (ext_in) and the audio
+ * ISR plays one tick for each, so the tempo is theirs; no tick for 0.4 s and our own clock is back. */
+static volatile uint8_t clk_mode, ext_on, ext_reset;
+static uint8_t bt_side, bt_patsync, bt_fxsync, bt_key, bt_scale, bt_last = 0xFFu;      /* Bluetooth sync, as a follower: the sidechain; following the leader's pattern (menu > Bluetooth) */
+static volatile uint32_t ext_in;
+static uint32_t ext_seen, ext_ms, ext_n, ext_t0;
 static struct { uint8_t on, gate; } tr[MAXCH];
 
 static uint32_t seq_period(void)                /* samples in one tick at the tempo, the remainder carried so the tempo is exact */
@@ -62,7 +69,7 @@ static void seq_clock(void)                     /* one tick, in the audio ISR */
             if (IS_DRUM(chan[t].kind)) { if (dstep_hits(s)) seq_drums_fire(t, s); continue; }
             if (!s->note) continue;
             tr[t].on = 1; tr[t].gate = s->gate < fx_rpt ? s->gate : (uint8_t)(fx_rpt > 1u ? fx_rpt - 1u : 1u);
-            ev_do(EV_ON, t, s->note, s->vel);
+            ev_do(EV_ON, t, bt_scale ? brothers_snap(s->note, bt_scale) : s->note, s->vel);
         }
         if (++rpt_cnt >= fx_rpt) rpt_cnt = 0;
     }
@@ -72,7 +79,7 @@ static void seq_clock(void)                     /* one tick, in the audio ISR */
             if (IS_DRUM(chan[t].kind)) { if (dstep_hits(s)) seq_drums_fire(t, s); continue; }
             if (!s->note) continue;
             tr[t].on = 1; tr[t].gate = s->gate;
-            ev_do(EV_ON, t, s->note, s->vel);
+            ev_do(EV_ON, t, bt_scale ? brothers_snap(s->note, bt_scale) : s->note, s->vel);
         }
     }
     if (++seq_sub >= SEQ_PPS) {
@@ -118,7 +125,8 @@ static void seq_back(void)                      /* one tick backwards: crossing 
         ev_do(EV_ON, t, s->note, s->vel);
     }
 }
-static void seq_tick(void) { if (seq_rate < 0) seq_back(); else seq_clock(); }
+static uint32_t seq_off;                         /* the sample of this render the tick is on (chips.c sets it): the brothers' leader timestamps by it */
+static void seq_tick(void) { if (clk_mode == 1u && seq_rate > 0) midi_isr_send(0xF8u, 0, 0); if (brothers_mode == 1u && seq_rate > 0) brothers_lead_tick(seq_off, 60000000u / (seq_bpm < 40u ? 40u : seq_bpm > 240u ? 240u : seq_bpm) * (seq_rate == 1 ? 2u : 1u) / (seq_rate == 3 ? 2u : 1u)); if (seq_rate < 0) seq_back(); else seq_clock(); }
 
 /* ---- the main loop's side */
 static void seq_play(uint32_t slot, uint32_t loop)      /* the song from a slot; loop 1: the page on show round and round; loop 2: that page once */
@@ -133,12 +141,17 @@ static void seq_play(uint32_t slot, uint32_t loop)      /* the song from a slot;
         seq_pat = song[seq_slot] < page_n ? song[seq_slot] : 0;
         seq_view = seq_pat; seq_follow = 1;
     }
+    ext_reset = 1;                                  /* an outside clock: the next tick is the first step */
+    if (clk_mode == 1u) midi_send(0xFAu, 0, 0);
+    if (brothers_mode == 1u) brothers_lead_run(1);
     seq_run = 1;
 }
 static void seq_stop(void)
 {
-    uint32_t t;
+    uint32_t t, was = seq_run;
     seq_run = 0; seq_rate = 0; seq_hold = 0;
+    if (was && clk_mode == 1u) midi_send(0xFCu, 0, 0);
+    if (was && brothers_mode == 1u) brothers_lead_run(0);
     for (t = 0; t < chan_n; t++) ev_push(EV_OFF, t, 0, 0);
 }
 static void seq_shuttle(int32_t d)              /* SELECT turned: the tape dial moves, from a stop it starts the tape */
@@ -150,7 +163,10 @@ static void seq_shuttle(int32_t d)              /* SELECT turned: the tape dial 
     if (!seq_run) {                             /* from a stop: the page on show, from where the playhead is */
         memset(tr, 0, sizeof tr);
         seq_left = seq_frac = 0; seq_next = 255; seq_loop = 1; seq_pat = seq_view; seq_follow = 0;
-        seq_hold = 1; seq_rate = 0; seq_run = 1;
+        seq_hold = 1; seq_rate = 0;
+        if (clk_mode == 1u) midi_send(0xFAu, 0, 0);
+        if (brothers_mode == 1u) brothers_lead_run(1);
+        seq_run = 1;
     }
     seq_rate = (int8_t)r;
     if (r == 0) { uint32_t t; seq_hold = 1; for (t = 0; t < chan_n; t++) ev_push(EV_OFF, t, 0, 0); }       /* paused: the notes let go */
@@ -245,6 +261,25 @@ static int chan_add(uint32_t kind);
 static void fm_set(uint32_t c, uint32_t alg, uint32_t ratio, uint32_t index, uint32_t fb, uint32_t decay)      /* an FM channel's operators */
 {
     chan[c].in.duty = (uint8_t)alg; chan[c].in.wave = (uint8_t)ratio; chan[c].in.wf = (uint8_t)index; chan[c].in.wc = (uint8_t)fb; chan[c].in.wt = (uint8_t)decay;
+}
+
+/* THE BLUETOOTH DEMO: a locked project to play with all three brothers (D minor, 124 BPM): page 1 the groove, page 2 the lift. Drum kicks on the first lane, so the sidechain pumps. */
+static void seq_bt_demo(void)
+{
+    static const uint8_t BASS[2][16] = {{38, 0, 0, 38, 0, 0, 41, 0, 38, 0, 0, 43, 0, 0, 41, 0}, {46, 0, 0, 46, 0, 0, 45, 0, 43, 0, 0, 41, 0, 41, 43, 0}};
+    static const uint8_t LEAD[2][16] = {{62, 0, 65, 0, 69, 0, 65, 0, 62, 0, 65, 0, 67, 0, 65, 0}, {70, 0, 74, 0, 77, 0, 74, 0, 69, 0, 72, 0, 76, 0, 72, 0}};
+    uint32_t p, s;
+    seq_clear();
+    chan_add(KD_DRUM0); chan_add(KD_NES_TRI); chan_add(KD_NES_PU);
+    chan[2].in.duty = 1; chan[2].in.vol = 8;
+    seq_bpm = 124; page_n = 2; song_len = 1; song[0] = 0;
+    for (p = 0; p < 2u; p++)
+        for (s = 0; s < 16u; s++) {
+            uint32_t hit = (s % 4u == 0u ? 1u : 0u) | (s == 4u || s == 12u ? 2u : 0u) | (s % 4u == 2u ? 128u : 0u);          /* a drum step: bit 0 kick, 1 snare, 7 closed hat */
+            if (hit) seq_put(p, 0, s, hit, 0, s == 0u ? 1u : 0u);
+            if (BASS[p][s]) seq_put(p, 1, s, BASS[p][s], 127, 9);
+            if (LEAD[p][s]) seq_put(p, 2, s, LEAD[p][s], 100, 9);
+        }
 }
 
 /* Korobeiniki (the Russian folk song, public domain; the Tetris tune): eight bars, one page each, in A minor. The first project of a new device */

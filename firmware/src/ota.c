@@ -171,6 +171,9 @@ static uint32_t ota_take(void)
 static void ota_service(void)
 {
     uint32_t d = ota_take();
+#ifdef APP_OTA_HIT
+    if (d) ota_hit_ms = ota_now_ms() | 1u;
+#endif
     if (d == 7u && ota_dec[2] == 0x11)
         ota_reply_identity();
 #ifdef OTA_PROJ_IO

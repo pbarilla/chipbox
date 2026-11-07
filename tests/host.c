@@ -124,10 +124,14 @@ static int midi_get(uint8_t *st, uint8_t *d1, uint8_t *d2)
 }
 #ifdef CHIPBOX_WEB
 static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { (void)st; (void)d1; (void)d2; }
+static void midi_isr_send(uint32_t st, uint32_t d1, uint32_t d2) { (void)st; (void)d1; (void)d2; }
 #else
 static void midi_send(uint32_t st, uint32_t d1, uint32_t d2) { printf("%6u ms  MIDI out %02X %u %u\n", fm1_ms, st, d1, d2); }
+static void midi_isr_send(uint32_t st, uint32_t d1, uint32_t d2) { midi_send(st, d1, d2); }
 #endif
 
+static volatile uint32_t ota_hit_ms;
+static volatile uint8_t ota_back;                                   /* (the device: an install session ended and left its message on the screen) */
 static void app_audio(int32_t *out, uint32_t n);
 static void app_main(void);
 

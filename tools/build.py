@@ -38,6 +38,8 @@ LOADER_LOAD = 0x01C0A800
 LOADER_NAME = b"usb_hid_ota.bin"    # the file name the SPL looks for
 DOCKER_IMAGE = os.environ.get("JIELI_DOCKER_IMAGE", "debian:bookworm-slim")
 CFLAGS = ["-Os", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function"]
+BLE_FLAGS = ["-Os", "-ffunction-sections", "-fno-builtin", "-Wall", "-Wno-unused-function", "-Ifirmware/ble/chip", "-Ifirmware/ble/stack",   # felucca-bsp's headers, not firmware/hal's
+             '-DBLE_DEVICE_NAME="FM-1 Chipbox"']
 LINE = re.compile(r"^\s*([0-9a-f]+):\s+((?:[0-9a-f]{2} )+)\s*\t(.*)$")
 
 # SDK files of AC79NN_SDK_V1.2.1_2023-12-13 (the tested version)
@@ -155,11 +157,12 @@ def build_app():
     cmds = [("cc", "-c", FW / "crt0.S", "-o", OUT / "crt0.o"),
             ("cc", "-c", FW / "hal" / "fm1_vec.S", "-o", OUT / "fm1_vec.o"),
             ("cc", "-c", FW / "hal" / "fm1_isr.S", "-o", OUT / "fm1_isr.o"),
-            ("cc", *flags, "-c", FW / "src" / "chipbox.c", "-o", OUT / "chipbox.o")]
+            ("cc", *flags, "-c", FW / "src" / "chipbox.c", "-o", OUT / "chipbox.o"),
+            ("cc", *BLE_FLAGS, "-c", FW / "ble" / "ble.c", "-o", OUT / "ble.o")]      # the radio: its own unit, the app only (the update loader has none of it)
     tc_all(*cmds)
     elf = OUT / "chipbox.elf"
     tc("pi32v2/bin/ld", "--gc-sections", "-e", "_start", "-T", FW / "app.ld", OUT / "crt0.o", OUT / "fm1_vec.o",
-       OUT / "fm1_isr.o", OUT / "chipbox.o", "-o", elf)
+       OUT / "fm1_isr.o", OUT / "chipbox.o", OUT / "ble.o", "-o", elf)
     for sect in ("text.bin", "data.bin", "ramtext.bin"):
         (OUT / sect).unlink(missing_ok=True)
     *_, syms, dis, rt = tc_all(("common/bin/objcopy", "-O", "binary", "-j", ".text", elf, OUT / "text.bin"),

@@ -3,7 +3,7 @@
  * A pad lights while its key is held; each effect has its own animation in the top bar. Included by chipbox.c after header.c. */
 static const uint8_t FX_KEY[FXN] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};     /* the white keys, F3 up */
 static const uint8_t FX_GRP[FXN] = {0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 5, 7, 7};              /* tape, repeat, filter, echo + reverb, lo-fi, gate + solo, pitch, kill + latch */
-static const char *const FX_NAME[FXN] = {"TAPE", "RPT", "RPT", "RPT", "LPF", "HPF", "ECHO", "VERB", "CRSH", "DECI", "GATE", "DIVE", "WOB", "SOLO", "KILL", "HOLD"};
+static const char *const FX_NAME[FXN] = {"TAPE", "RPT", "LPF", "HPF", "ECHO", "VERB", "CRSH", "GATE", "RPT", "RPT", "DECI", "DIVE", "WOB", "SOLO", "KILL", "HOLD"};
 static uint32_t fx_layer, fx_view_force, fx_raw, fx_tog, fx_lat;       /* fx_raw: keys down; fx_tog, fx_lat: the pads switched on and the latch mode */
 static void fx_off(void) { fx_raw = fx_tog = fx_lat = 0; fx_apply(0); }
 

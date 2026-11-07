@@ -1440,7 +1440,7 @@ static void chip_render(int32_t *out, uint32_t n)
 {
     static int32_t mix[2u * 256u];
     static uint8_t act[MAXCH], actd[MAXCH];
-    uint32_t i = 0, chip, k, na, nd;
+    uint32_t i = 0, chip, k, na, nd, duck = brothers_mode == 2u && bt_side ? brothers_duck(190u) : 256u;
     if (chan_lock) return;
     if (!booted) { for (chip = 0; chip < CHIPS; chip++) chip_clear(chip); booted = 1; }
     while (ev_r != ev_w) {
@@ -1449,7 +1449,14 @@ static void chip_render(int32_t *out, uint32_t n)
     }
     while (i < n) {
         uint32_t run;
-        while (seq_run && !seq_hold && !seq_left) { seq_tick(); seq_left = seq_period(); }
+        if ((clk_mode == 2u || brothers_mode == 2u) && ext_on) {                 /* an outside clock moves the steps: one tick for each of theirs */
+            if (ext_reset) { ext_reset = 0; ext_seen = ext_in; }
+            while (seq_run && !seq_hold && ext_seen != ext_in) { ext_seen++; seq_tick(); }
+            seq_left = 0x40000000u;                     /* so the block is not cut at our own tick */
+        } else {
+            if (seq_left > 0x20000000u) seq_left = 0;   /* the outside clock went: our own is back */
+            while (seq_run && !seq_hold && !seq_left) { seq_off = i; seq_tick(); seq_left = seq_period(); }
+        }
         run = n - i < tick_left ? n - i : tick_left;
         if (seq_run && !seq_hold && run > seq_left) run = seq_left;
         if (run > 256u) run = 256u;
@@ -1497,6 +1504,7 @@ static void chip_render(int32_t *out, uint32_t n)
             default: r_sms(mix, run, act, na); break;
             }
             post(chip, mix, run);
+            if (duck < 256u) for (k = 0; k < 2u * run; k++) mix[k] = ((mix[k] >> 4) * (int32_t)duck) >> 4;      /* the sidechain: the notes duck, the drum kit does not */
             if (nd) r_drum(mix, run, actd, nd);                 /* the console's drum kit, past its analog stage */
             for (k = 0; k < 2u * run; k++) out[2u * i + k] += mix[k];
         }
