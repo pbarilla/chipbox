@@ -73,7 +73,7 @@ static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     
 #define QS_NOTIPS 4u                             /* tips off (a new device has them on) */
 #define QS_INSTALLED 8u                          /* an install started from here: the next boot of Chipbox is a fresh one (if there are no projects) */
 static mline_t SYSM[7] = {MH("Menu"), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Factory Reset")};
-static mline_t BTM[8] = {MH("Bluetooth"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Demo: Load")};            /* the Bluetooth page: Sync, Status, Sidechain, Patterns, Punch-in FX, Key */
+static mline_t BTM[8] = {MH("Brothers Link"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Demo: Load")};            /* the Bluetooth page: Sync, Status, Sidechain, Patterns, Punch-in FX, Key */
 static void bt_texts(void)
 {
     static const char *const MODE[3] = {"Sync: Off", "Sync: Lead", "Sync: Follow"};
@@ -91,7 +91,7 @@ static void sys_open(uint32_t fl, uint32_t at)
     SYSM[2].text = fl & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No";
     SYSM[3].text = fl & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes";
     SYSM[4].text = clk_mode == 1u ? "MIDI Clock: Send" : clk_mode == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off";
-    SYSM[5].text = "Bluetooth";
+    SYSM[5].text = "Brothers Link";
     menu_open_pick(SYSM, 7);
     menu_sel = at;
 }
