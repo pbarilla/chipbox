@@ -34,11 +34,15 @@
   input[type=file] { display:none; }
   body.busy button, body.busy .btn, body.busy select { opacity:.4; pointer-events:none; }
 </style>
+<link rel="stylesheet" href="../css/gb.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 </head>
 <body>
 <main>
-  <nav><a href="../">Home</a><a href="../manual/">Tutorials</a><a href="../guide/">Manual</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
   <h1><a href="../">Chipbox</a><span class="tag">PROJECTS</span></h1>
+  <nav class="gbnav" aria-label="Pages"><a class="hot" href="../install.html">Install</a><a href="../play/">Play online</a><a href="../manual/">Tutorials</a><a href="../guide/">Manual</a><a href="../projects/" aria-current="page">Projects</a><a href="../cheatsheet/">Cheat sheet</a><a href="https://github.com/pbarilla/chipbox/releases/latest">Download</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
+
+
   <p><button id="connect">Connect the FM-1</button></p>
   <progress id="bar" max="100" value="0"></progress>
   <p id="status"></p>

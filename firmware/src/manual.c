@@ -19,19 +19,23 @@ static const mpage_t MP_QUICK[] = {
     {"", M_GLO | M_HOME | M_SMALL, "To see this quick start every time, or to adjust other settings, press GLO and HOME."},
     {"", M_NOPANEL, "I hope you make some really cool stuff! Have fun!"},
 };
+enum { MRP_PICK, MRP_ADD, MRP_LIST, MRP_REMOVE, MRP_PAGES, MRP_PLAY, MRP_TAPE, MRP_REC, MRP_SEQ, MRP_TAILS, MRP_COPY };      /* GLO opens one of these by what you are doing */
 static const mpage_t MP_RACK[] = {
-    {"Pick a channel", M_PRESETS, "Turn PRESETS to pick a channel. Press a key to write a note on the playhead's step."},
-    {"Add a channel", M_PRESETS | M_OCTU, "Turn PRESETS down to the + row. Press OCT+ to add a channel, then turn SELECT to pick a console."},
+    {"Pick a channel", M_PRESETS | M_KEYS | M_SMALL, "Turn PRESETS to pick a channel. Press a key to play it. When stopped or paused, a key also writes a note on the playhead's step."},
+    {"Add a channel", M_PRESETS | M_OCTU | M_SMALL, "Turn PRESETS to the + row. Press OCT+. Pick a console with SELECT and press OCT+. Pick a channel and press OCT+ to add it."},
+    {"Console list", M_K1 | M_SEL | M_KEYS | M_SMALL, "Turn KNOB 1 to group the consoles by type, year, maker or country. Press SEL for a card. Press a key to hear a console."},
     {"Remove a channel", M_EDIT | M_OCTU | M_OCTD, "Hold EDIT on a channel to remove it. Press OCT+ for yes or OCT- for no."},
     {"Pages", M_ALGO, "Turn ALGORITHM to flip through your pages. Add new pages in the song."},
     {"Play", M_PLAY | M_K1, "Tap PLAY to play on from this page. Hold PLAY to loop it. Turn KNOB 1 to change the tempo."},
     {"Tape", M_SELECT, "Turn SELECT right to play on and left to play backwards. Leave it in the middle to pause."},
     {"Record", M_REC | M_KEYS, "Press REC, then play the keys as the page loops. Hold EDIT to delete notes as they pass."},
+    {"Step entry", M_SEQ, "Press SEQ to enter notes one at a time. On a drum channel it opens the drum lanes."},
+    {"Note tails", M_ARP, "Press ARP to turn the note tails on or off."},
     {"Copy and undo", M_SEL | M_LFO, "Hold SEL on a channel to copy it. Press LFO to undo your last change."},
 };
 static const mpage_t MP_CHIP[] = {
     {"Knobs", M_KNOBS, "Turn KNOB 1 to 4 to change the sound. Watch the screen to see what each one does."},
-    {"More knobs", M_ALGO, "Turn ALGORITHM to reach the next page of knobs: tone, then envelope, then arp."},
+    {"More knobs", M_ALGO, "Turn ALGORITHM to reach the next page of knobs. Tone, envelope and arp come first. Some chips have more."},
     {"Channel", M_PRESETS, "Turn PRESETS to hear another channel's sound. Press HOME to go on to the song."},
     {"Keys", M_KEYS | M_OCTD | M_OCTU, "Press the keys to try the sound. Press OCT- or OCT+ to move up or down an octave."},
 };
@@ -43,9 +47,10 @@ static const mpage_t MP_SONG[] = {
     {"Play", M_PLAY | M_K1, "Press PLAY to play the song in order. Turn KNOB 1 to change the tempo."},
 };
 static const mpage_t MP_STEP[] = {
-    {"Step entry", M_SEQ | M_HOME, "Press SEQ to enter notes one at a time. Press HOME to go back to the rack when you are done."},
+    {"Step entry", M_HOME, "Press HOME to go back to the rack when you are done."},
     {"Notes", M_KEYS | M_SELECT, "Press a key to write a note and move on. Turn SELECT to skip a step and leave a rest."},
     {"Length", M_K2 | M_EDIT, "Turn KNOB 2 to make a note longer. Press EDIT to clear the note under the cursor."},
+    {"Channel and page", M_PRESETS | M_ALGO, "Turn PRESETS to pick another channel. Turn ALGORITHM to flip through your pages."},
 };
 static const mpage_t MP_DRUM[] = {
     {"Pick a drum", M_KEYS, "Press a black key to pick a drum and hear it. Turn PRESETS to pick another channel."},
@@ -54,17 +59,26 @@ static const mpage_t MP_DRUM[] = {
 };
 static const mpage_t MP_FX[] = {
     {"Punch in", M_FX, "Press FX to turn the punch-in layer on. Press FX or HOME to leave it."},
-    {"Pads", M_KEYS, "Press a white key to punch in an effect. Hold the key for as long as you want it. Pads 1 to 8 are the same on Smileyface and Drumlab."},
-    {"Tape", M_SELECT, "Hold the TAPE pad and turn SELECT to speed the song up or slow it down."},
+    {"Pads", M_KEYS, "Press a white key to punch in an effect. Hold the key for as long as you want it."},
+    {"Shared pads", M_KEYS | M_SMALL, "Pads 1 to 8 are the same on Smileyface and Drumlab, and sync over Bluetooth. Pads 9 to 15 are only on Chipbox."},
+    {"Latch", M_KEYS | M_SMALL, "Pad 16 is the latch. With it on, tap a pad to keep it on, and tap it again to let it go."},
+    {"Tape", M_SELECT | M_KEYS | M_SMALL, "Hold the TAPE pad to stop the song like a tape. Turn SELECT right to bring it back, or left to play it backwards."},
 };
 static const mpage_t MP_PROJ[] = {
     {"Open", M_HOME | M_SELECT, "Hold HOME to open the projects. Turn SELECT to pick one, then press HOME to open it."},
-    {"Copy and clear", M_SEL | M_EDIT, "Hold SEL on a project to copy it. Hold EDIT on a project to clear it."},
-    {"Save", M_SAVE, "Press SAVE to save your project. Stop editing for two seconds and it saves by itself."},
+    {"Leave", M_OCTD | M_GLO | M_SMALL, "Press OCT- or GLO to close the projects. Pick an empty tile to start a new project."},
+    {"Demos", M_SEL | M_SMALL, "The first two projects are demos. They are locked and never save. Hold SEL on one to copy it into a free slot."},
+    {"Copy and clear", M_SEL | M_EDIT | M_SMALL, "Hold SEL on a project to copy it into a free slot. Hold EDIT on one to clear it. The demos stay."},
+    {"Save", M_SAVE | M_SMALL, "Press SAVE to save your project. Stop the music and leave it alone for two seconds and it saves by itself."},
 };
 static const mpage_t MP_MENU[] = {
-    {"Menu", M_GLO | M_HOME, "Press GLO and HOME together to open the menu. Set what happens at start-up, the MIDI clock, Bluetooth sync with the other brothers, or Factory Reset."},
-    {"Note tails", M_ARP, "Press ARP to turn the note tails in the rack on or off."},
+    {"Menu", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together to open the menu. Turn SELECT to pick a line. Press OCT+ to change it."},
+    {"Switches", M_OCTU | M_SMALL, "Quick Start Always and Projects At Start act when you switch on. Show Tips turns the tips on or off."},
+    {"MIDI Clock", M_OCTU | M_SMALL, "Press OCT+ to cycle Off, Send and Follow. Send gives the clock to other gear. Follow takes tempo, start and stop from it."},
+    {"Bluetooth", M_OCTU | M_SMALL, "Set Sync to Lead on one FM-1 and Follow on the others. Press OCT+ to change it. Sync is Off every time you switch on."},
+    {"Bluetooth options", M_OCTU | M_SMALL, "Sidechain ducks to the leader's kicks. Patterns follows its page. Punch-in FX copies its pads 1 to 8. Key moves your notes to its key."},
+    {"Bluetooth demo", M_OCTU | M_SMALL, "Demo: Load opens a locked song to play along with the others. Nothing in it is saved."},
+    {"Factory Reset", M_OCTU | M_SMALL, "Pick Factory Reset and press OCT+ to confirm. Your projects go and the quick start comes back. The demos stay."},
     {"Moving around", M_SELECT | M_PRESETS, "Turn SELECT to turn the pages. Turn PRESETS to jump to another chapter."},
     {"Contents", M_GLO | M_HOME, "Press GLO to see the contents. Press HOME to leave the manual."},
 };
@@ -148,7 +162,7 @@ static void man_draw(void)
                 man_k = p->ring & M_SMALL ? 7 : 13; man_x0 = p->ring & M_SMALL ? 64 : 16; man_y0 = p->ring & M_SMALL ? 34 : 34;
                 man_panel(p->ring);
                 if (p->ring & M_SMALL) ty = 88;
-                if (p->topic[0]) { mT(8, 120, p->topic, M_ACC); }
+                if (p->topic[0]) { if (p->ring & M_SMALL) { mT(8, 84, p->topic, M_ACC); ty = 104; } else mT(8, 120, p->topic, M_ACC); }
                 else if (!(p->ring & M_SMALL)) ty = 120;
                 mWords(8, ty, p->text, 224);
                 man_k = 13; man_x0 = 16;

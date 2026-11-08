@@ -15,6 +15,7 @@
 #define FS 44100u
 #define PROJ_INST 17u
 #define PROJ_EV 6u
+#include "engine_stubs.h"
 #include "chips.c"
 
 typedef struct { double b0, b1, b2, a1, a2, z1, z2; } bq_t;

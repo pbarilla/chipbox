@@ -56,14 +56,17 @@
   :focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
   @media (prefers-reduced-motion: reduce) { .btnface, .keyface { transition:none; } }
 </style>
+<link rel="stylesheet" href="../css/gb.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 </head>
 <body>
 <main>
 <header>
   <h1><a href="../">Chipbox</a><span class="tag">PLAY ONLINE</span></h1>
-
-  <nav><a href="../">Home</a><a href="../install.html">Install</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
 </header>
+  <nav class="gbnav" aria-label="Pages"><a class="hot" href="../install.html">Install</a><a href="../play/" aria-current="page">Play online</a><a href="../manual/">Tutorials</a><a href="../guide/">Manual</a><a href="../projects/">Projects</a><a href="../cheatsheet/">Cheat sheet</a><a href="https://github.com/pbarilla/chipbox/releases/latest">Download</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
+
+
 
 <div class="devicebox">
   <div class="device" id="device">

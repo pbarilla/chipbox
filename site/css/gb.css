@@ -1,0 +1,108 @@
+/* Chipbox site: the look. Game Boy box art / Virtual Boy sunset. Linked after each page's own style, so it wins.
+   Press Start 2P (OFL, see ../fonts/OFL.txt). */
+@font-face { font-family: "PS2P"; src: url(../fonts/PressStart2P.ttf) format("truetype"); font-display: swap; }
+:root { --gb-ink:#f6f0ff; --gb-dim:#c9b3ea; --gb-gold:#ffe34d; --gb-mag:#a02358; --gb-px:"PS2P", ui-monospace, monospace; }
+html { background:#12062c; }
+body { background:linear-gradient(180deg,#12062c 0%,#2a0d5e 30%,#7a1a86 55%,#c8236a 75%,#f0502c 92%,#ffb320 100%) fixed !important; color:var(--gb-ink); min-height:100vh; position:relative; }
+/* the floor and the scan lines sit behind the page, never over pictures */
+body::before { content:""; position:fixed; left:-20%; right:-20%; bottom:0; height:46vh; z-index:0; pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(255,200,60,.5) 0 2px,transparent 2px 70px),repeating-linear-gradient(0deg,rgba(255,200,60,.5) 0 2px,transparent 2px 46px);
+  transform:perspective(380px) rotateX(62deg); transform-origin:50% 100%;
+  -webkit-mask-image:linear-gradient(0deg,#000 0%,transparent 90%); mask-image:linear-gradient(0deg,#000 0%,transparent 90%); }
+body::after { content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.20) 0 1px,transparent 1px 3px),radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(0,0,0,.45) 100%); }
+main { position:relative; z-index:1; }
+
+/* inner pages: the text sits on a dark sheet */
+body:not(.home) main { background:rgba(14,6,36,.86); border:2px solid rgba(255,255,255,.12); border-radius:14px; margin:28px auto 56px; box-shadow:0 20px 50px rgba(0,0,0,.5); }
+body:not(.home) h1 { font-family:var(--gb-px); font-weight:400; font-size:28px; line-height:1.3; color:#fff; text-shadow:3px 3px 0 #ff2a8a,6px 6px 0 #27d3ff; letter-spacing:.02em; }
+body:not(.home) h2 { font-family:var(--gb-px); font-weight:400; font-size:13px; line-height:1.5; color:var(--gb-gold); text-shadow:0 0 10px #ff2a8a; letter-spacing:.06em; }
+body:not(.home) .tag { font-family:var(--gb-px); font-size:9px; border-radius:999px; }
+.btn, button { font-family:var(--gb-px) !important; font-size:10px !important; font-weight:400 !important; letter-spacing:.06em; border-radius:999px !important; border:0 !important;
+  background:linear-gradient(#cfcdc4,#a9a7a0) !important; color:#2b2a35 !important; box-shadow:0 4px 0 #5d5b66,0 6px 10px rgba(0,0,0,.4),inset 0 1px 0 #fff8 !important; text-transform:uppercase; }
+.btn:hover, button:hover:not(:disabled) { background:linear-gradient(#e2e0d8,#bcbab2) !important; }
+.btn:active, button:active:not(:disabled) { transform:translateY(4px); box-shadow:0 0 0 #000 !important; }
+.btn.alt { background:linear-gradient(#cfcdc4,#a9a7a0) !important; }
+.btn:first-child:not(.alt), .btn.hot { background:linear-gradient(#e0407e,#a02358) !important; color:#fff !important; box-shadow:0 4px 0 #5a1233,0 6px 10px rgba(0,0,0,.4),inset 0 1px 0 #fff6 !important; }
+button:disabled { opacity:.4; }
+.btns { gap:12px 14px; }
+@media print { html, body { background:#fff !important; } body::before, body::after { display:none; } body:not(.home) main { background:none; border:0; box-shadow:none; } }
+
+/* ---- the home page */
+.home main { max-width:1040px; margin:0 auto; padding:48px 20px 90px; }
+.home .top { position:relative; }
+.home .sun { position:absolute; right:-10px; top:-10px; width:250px; height:250px; z-index:0; }
+.home h1 { position:relative; font:400 46px/1.15 var(--gb-px); margin:0 0 14px; color:#fff; text-shadow:3px 3px 0 #ff2a8a,6px 6px 0 #27d3ff,9px 9px 14px rgba(0,0,0,.5); letter-spacing:.02em; }
+.home .lead { position:relative; font-size:19px; max-width:30em; margin:0 0 6px; text-shadow:0 2px 0 rgba(0,0,0,.4); }
+.home h2 { font:400 14px/1.4 var(--gb-px); color:var(--gb-gold); margin:72px 0 22px; letter-spacing:.08em; text-shadow:0 0 10px #ff2a8a,2px 2px 0 #7a1a86; text-transform:uppercase; }
+.shots { display:grid; grid-template-columns:repeat(3,1fr); gap:26px 22px; margin-top:44px; }
+.shots figure { margin:0; }
+.shots img { display:block; width:100%; height:auto; image-rendering:pixelated; box-shadow:0 0 0 3px #0008,0 0 28px rgba(255,60,160,.35),0 10px 20px #0006; background:#000; }
+.shots figcaption { margin-top:14px; font:400 9px/1 var(--gb-px); color:var(--gb-dim); text-align:center; letter-spacing:.1em; }
+.sheet { background:rgba(14,6,36,.84); border:2px solid rgba(255,255,255,.12); border-radius:14px; padding:6px 26px 26px; margin-top:64px; box-shadow:0 20px 50px rgba(0,0,0,.45); }
+.sheet h2 { margin-top:34px; }
+.sheet a { color:#46aaff; } .sheet code { background:#2a1650; color:#fff; padding:1px 6px; }
+.sheet footer { margin-top:40px; color:var(--gb-dim); font-size:14px; }
+
+/* ---- the boxes */
+.shelf { display:grid; grid-template-columns:repeat(3,240px); gap:44px 34px; justify-content:center; margin-bottom:54px; }
+.box { position:relative; display:block; width:240px; height:340px; text-decoration:none; transition:transform .15s; }
+.box svg { display:block; filter:drop-shadow(0 14px 10px rgba(0,0,0,.55)); }
+.box:hover { transform:translateY(-8px) rotate(-1.5deg); }
+.box .shot { position:absolute; left:142px; top:174px; width:90px; height:90px; padding:5px; background:#14131a; border-radius:3px; box-shadow:0 3px 0 #0006,0 0 0 2px #fff6; transform:rotate(4deg); display:block; }
+.box .shot img { display:block; width:80px; height:80px; image-rendering:pixelated; }
+.box .badge { position:absolute; right:-10px; top:-12px; width:54px; height:54px; border-radius:50%; background:#e8402a; color:#fff; font:400 8px/54px var(--gb-px); text-align:center; transform:rotate(12deg); box-shadow:0 3px 0 #0004; }
+.box.me::after { content:"YOU ARE HERE"; position:absolute; left:0; right:0; bottom:-26px; text-align:center; font:400 8px/1 var(--gb-px); color:var(--gb-gold); }
+.chips { display:grid; grid-template-columns:repeat(4,1fr); gap:38px 18px; margin-top:10px; }
+.chip { text-align:center; }
+.chip svg { display:block; width:100%; height:auto; filter:drop-shadow(0 14px 10px rgba(0,0,0,.55)); transition:transform .15s; }
+.chip:nth-child(odd) svg { transform:rotate(-1.2deg); } .chip:nth-child(even) svg { transform:rotate(1deg); }
+.chip:hover svg { transform:translateY(-8px) rotate(0); }
+.chip b { display:block; margin-top:14px; font:400 9px/1.5 var(--gb-px); letter-spacing:.06em; color:#fff; }
+.chip .ch { display:block; font-size:13px; color:var(--gb-dim); margin-top:2px; }
+.chip .docs { display:block; font-size:12px; color:var(--gb-dim); margin-top:4px; line-height:1.4; }
+.chip .docs a { color:#9fd8ff; }
+@media (max-width:900px) { .shelf { grid-template-columns:240px; } .chips { grid-template-columns:repeat(2,1fr); } .shots { grid-template-columns:1fr 1fr; } .home .sun { opacity:.5; } }
+@media (max-width:560px) { .home h1 { font-size:32px; } .shots { grid-template-columns:1fr; } .home .sun { width:180px; height:180px; } }
+
+/* base for the home page (the inner pages bring their own) */
+.home { margin:0; font:16px/1.55 ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+.home *, .home *::before, .home *::after { box-sizing:border-box; }
+.home a { color:#9fd8ff; }
+.home .note { position:relative; margin:34px auto 0; max-width:640px; text-align:center; text-shadow:0 2px 0 rgba(0,0,0,.45); }
+.home .note a { color:var(--gb-gold); }
+.home p { margin:0 0 12px; } .home ul { padding-left:20px; margin:0 0 12px; } .home li { margin:4px 0; }
+body:not(.home) h1 .tag { text-shadow:none; vertical-align:middle; margin-left:12px; }
+body:not(.home) h1 a { color:inherit; text-decoration:none; }
+
+/* tutorials as boxes */
+.tuts { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,260px)); gap:34px 30px; justify-content:center; margin:30px 0 10px; }
+.tut { display:block; text-decoration:none; text-align:center; color:var(--gb-ink); }
+.tut svg { display:block; width:100%; height:auto; filter:drop-shadow(0 14px 10px rgba(0,0,0,.55)); transition:transform .15s; }
+.tut:nth-child(odd) svg { transform:rotate(-1.2deg); } .tut:nth-child(even) svg { transform:rotate(1deg); }
+.tut:hover svg { transform:translateY(-8px) rotate(0); }
+.tut b { display:block; margin-top:14px; font:400 11px/1.5 var(--gb-px); }
+.tut span.d { display:block; margin-top:6px; font-size:14px; color:var(--gb-dim); line-height:1.4; }
+
+/* the menu: one for every page (tools/gbnav.py) */
+.gbnav { position:relative; display:flex; flex-wrap:wrap; gap:12px; margin:22px 0 26px; font-size:inherit; }
+.home .gbnav { margin-top:26px; max-width:660px; }
+.gbnav a { display:inline-block; padding:12px 18px 11px; border-radius:999px; text-decoration:none !important; font:400 10px/1 var(--gb-px) !important; letter-spacing:.06em; text-transform:uppercase;
+  background:linear-gradient(#cfcdc4,#a9a7a0); color:#2b2a35 !important; box-shadow:0 4px 0 #5d5b66,0 6px 10px rgba(0,0,0,.4),inset 0 1px 0 #fff8; }
+.gbnav a:hover { background:linear-gradient(#e2e0d8,#bcbab2); }
+.gbnav a:active { transform:translateY(4px); box-shadow:0 0 0 #000; }
+.gbnav a.hot { background:linear-gradient(#e0407e,#a02358); color:#fff !important; box-shadow:0 4px 0 #5a1233,0 6px 10px rgba(0,0,0,.4),inset 0 1px 0 #fff6; }
+.gbnav a[aria-current="page"] { background:linear-gradient(#2a1650,#3a2070); color:var(--gb-gold) !important; box-shadow:inset 0 3px 6px #000a,0 0 0 2px var(--gb-gold); transform:translateY(2px); }
+@media print { .gbnav { display:none; } }
+
+.devicebox { overflow-x:auto; }
+
+/* the manual's contents: smaller pills of the same kind; the page glides to a section */
+.toc { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 30px; }
+.toc a { display:inline-block; padding:9px 14px 8px; border-radius:999px; text-decoration:none !important; font:400 8px/1 var(--gb-px) !important; letter-spacing:.06em; text-transform:uppercase;
+  background:linear-gradient(#cfcdc4,#a9a7a0); color:#2b2a35 !important; box-shadow:0 3px 0 #5d5b66,0 4px 8px rgba(0,0,0,.4),inset 0 1px 0 #fff8; }
+.toc a:hover { background:linear-gradient(#e2e0d8,#bcbab2); }
+.toc a:active { transform:translateY(3px); box-shadow:0 0 0 #000; }
+.step { scroll-margin-top:18px; }
+@media (prefers-reduced-motion:no-preference) { html { scroll-behavior:smooth; } }
+@media print { .toc { display:none; } }

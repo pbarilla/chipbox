@@ -33,22 +33,22 @@
   @media (prefers-reduced-motion:reduce) { .slow { animation:none; } }
   @media (max-width:760px) { h1 { font-size:34px; } .pic, .block { margin-left:0; } }
 </style>
+<link rel="stylesheet" href="../css/gb.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 </head>
 <body>
 <main>
-  <nav><a href="../">Home</a><a href="../guide/">Manual</a><a href="../projects/">Projects</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
   <h1><a href="../">Chipbox</a><span class="tag">TUTORIALS</span></h1>
+  <nav class="gbnav" aria-label="Pages"><a class="hot" href="../install.html">Install</a><a href="../play/">Play online</a><a href="../manual/" aria-current="page">Tutorials</a><a href="../guide/">Manual</a><a href="../projects/">Projects</a><a href="../cheatsheet/">Cheat sheet</a><a href="https://github.com/pbarilla/chipbox/releases/latest">Download</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
+
+
   
 
-  <section class="step">
-    <h2><b>1</b><a href="tetris/">Tetris</a></h2>
-    <div class="item"><div class="t"><div>Four channels, seven pages, the theme everyone knows (Korobeiniki for you nerds). Start here</div></div></div>
-  </section>
-
-  <section class="step">
-    <h2><b>2</b><a href="amen/">Amen Break</a></h2>
-    <div class="item"><div class="t"><div>The most famous drum break there is, on the drum lanes. Four bars</div></div></div>
-  </section>
+  <div class="tuts">
+    <a class="tut" href="tetris/"><span data-box="tetris"></span><b>Tetris</b><span class="d">Four channels, seven pages, the theme everyone knows (Korobeiniki for you nerds). Start here</span></a>
+    <a class="tut" href="amen/"><span data-box="amen"></span><b>Amen Break</b><span class="d">The most famous drum break there is, on the drum lanes. Four bars</span></a>
+  </div>
+  <script src="../js/boxes.js"></script>
 </main>
 </body>
 </html>

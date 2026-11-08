@@ -38,11 +38,15 @@
   table th { color:var(--dim); font-weight:400; white-space:nowrap; }
   .toc { display:flex; flex-wrap:wrap; gap:6px 18px; margin:0 0 30px; }
 </style>
+<link rel="stylesheet" href="../css/gb.css">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
 </head>
 <body>
 <main>
-  <nav><a href="../">Home</a><a href="../manual/">Tutorials</a><a href="../projects/">Projects</a><a href="../play/">Play online</a><a href="../cheatsheet/">Cheat sheet</a><a href="../install.html">Install</a></nav>
   <h1><a href="../">Chipbox</a><span class="tag">MANUAL</span></h1>
+  <nav class="gbnav" aria-label="Pages"><a class="hot" href="../install.html">Install</a><a href="../play/">Play online</a><a href="../manual/">Tutorials</a><a href="../guide/" aria-current="page">Manual</a><a href="../projects/">Projects</a><a href="../cheatsheet/">Cheat sheet</a><a href="https://github.com/pbarilla/chipbox/releases/latest">Download</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
+
+
   <div class="toc"><a href="#views">Views</a><a href="#channels">Channels</a><a href="#rack">Rack</a><a href="#notes">Writing notes</a><a href="#patch">Chip screen</a><a href="#consoles">Consoles</a><a href="#drums">Drums</a><a href="#song">Song</a><a href="#projects">Projects</a><a href="#undo">Undo</a><a href="#fx">Effects</a><a href="#limits">Numbers</a><a href="#bluetooth">Bluetooth</a><a href="#rescue">Rescue</a></div>
 
   <section class="step" id="views">
@@ -235,7 +239,7 @@
   <section class="step" id="fx">
     <h2><b>11</b>Effects</h2>
     <div class="item"><div class="t"><div><code>FX</code> turns the 16 white keys into effects pads.</div></div><div class="pic"><img src="../manual/img/pn-x-fx.png" alt="x-fx"></div></div>
-    <div class="block"><table><tr><th>Pad</th><th>Effect</th><th>What it does</th></tr><tr><td>1</td><td><code>TAPE</code> (shared)</td><td>Controls the tape with <code>SELECT</code>.</td></tr><tr><td>2</td><td><code>RPT</code> (shared)</td><td>Repeats the current step every sixteenth note.</td></tr><tr><td>3</td><td><code>LPF</code> (shared)</td><td>Low-pass filter.</td></tr><tr><td>4</td><td><code>HPF</code> (shared)</td><td>High-pass filter.</td></tr><tr><td>5</td><td><code>ECHO</code> (shared)</td><td>Tape echo.</td></tr><tr><td>6</td><td><code>VERB</code> (shared)</td><td>Reverb.</td></tr><tr><td>7</td><td><code>CRSH</code> (shared)</td><td>Reduces the number of levels.</td></tr><tr><td>8</td><td><code>GATE</code> (shared)</td><td>Chops the sound at the sixteenth notes.</td></tr><tr><td>9</td><td><code>RPT</code></td><td>Repeats the current step every eighth note.</td></tr><tr><td>10</td><td><code>RPT</code></td><td>Repeats the current step every thirty-second note.</td></tr><tr><td>11</td><td><code>DECI</code></td><td>Drops the sample rate.</td></tr><tr><td>12</td><td><code>DIVE</code></td><td>The pitch dives an octave.</td></tr><tr><td>13</td><td><code>WOB</code></td><td>A slow pitch wobble.</td></tr><tr><td>14</td><td><code>SOLO</code></td><td>Plays the channel you are on, alone.</td></tr><tr><td>15</td><td><code>KILL</code></td><td>Silences everything.</td></tr><tr><td>16</td><td><code>HOLD</code></td><td>The latch: tap a pad to keep it on, tap it again to turn it off.</td></tr></table></div>
+    <div class="block"><table><tr><th>Pad</th><th>Effect</th><th>What it does</th></tr><tr><td>1</td><td><code>TAPE</code> (shared)</td><td>Controls the tape with <code>SELECT</code>.</td></tr><tr><td>2</td><td><code>RPT</code> (shared)</td><td>Repeats the current step every sixteenth note.</td></tr><tr><td>3</td><td><code>LPF</code> (shared)</td><td>Low-pass filter.</td></tr><tr><td>4</td><td><code>HPF</code> (shared)</td><td>High-pass filter.</td></tr><tr><td>5</td><td><code>ECHO</code> (shared)</td><td>Tape echo.</td></tr><tr><td>6</td><td><code>VERB</code> (shared)</td><td>Reverb.</td></tr><tr><td>7</td><td><code>CRSH</code> (shared)</td><td>Reduces the number of levels.</td></tr><tr><td>8</td><td><code>GATE</code> (shared)</td><td>Chops the sound at the sixteenth notes.</td></tr><tr><td>9</td><td><code>RPT</code></td><td>Repeats the current step every eighth note.</td></tr><tr><td>10</td><td><code>RPT</code></td><td>Repeats the current step every thirty-second note.</td></tr><tr><td>11</td><td><code>DECI</code></td><td>Drops the sample rate.</td></tr><tr><td>12</td><td><code>DIVE</code></td><td>The pitch dives an octave.</td></tr><tr><td>13</td><td><code>WOB</code></td><td>A slow pitch wobble.</td></tr><tr><td>14</td><td><code>SOLO</code></td><td>Plays the channel you are on, alone.</td></tr><tr><td>15</td><td><code>KILL</code></td><td>Silences everything.</td></tr><tr><td>16</td><td><code>LATCH</code></td><td>The latch: tap a pad to keep it on, tap it again to turn it off.</td></tr></table></div>
     <div class="item"><div class="t"><div>Pads 1 to 8 are the same on Chipbox, Smileyface and Drumlab, and they are the ones that travel over Bluetooth. Pads 9 to 15 only exist on Chipbox and don't travel.</div></div></div>
   </section>
 

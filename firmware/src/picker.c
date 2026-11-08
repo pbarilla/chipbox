@@ -28,8 +28,9 @@ static void pick_draw(void)
         for (col = 0; col < 3u; col++) {
             uint32_t s = row * 3u + col;
             int32_t x = 7 + (int32_t)col * 79;
-            char num[4];
-            fmt_u(num, s - PROJ_DEMOS + 1u);                    /* 1 to 10; the first two tiles are the demos */
+            char num[12];
+            if (s >= PROJ_DEMOS) fmt_u(num, s - PROJ_DEMOS + 1u);       /* 1 to 10; the first two tiles are the demos (and have no number: it would be -1, 10 digits) */
+            else num[0] = 0;
             rk_rect(x, 3, 70, 46, pick_have[s] ? RGB(30, 30, 40) : RGB(22, 22, 28));
             if (s >= PROJ_DEMOS) cv_text(x + 5, 5, &FONT_S, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
             else cv_text(x + 5, 5, &FONT_S, s ? "DEMO 2" : "DEMO 1", RGB(235, 235, 240));

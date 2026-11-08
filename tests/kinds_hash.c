@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #define FS 44100u
+#include "engine_stubs.h"
 #include CHIPS_C
 static int32_t blk[512];
 int main(void)

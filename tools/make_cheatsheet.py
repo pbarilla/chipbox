@@ -4,6 +4,8 @@
 workflow runs it on every deploy, so a release brings it up to date. Prints well (A4, landscape).
    python3 tools/make_cheatsheet.py [--version X.Y.Z]   (without it: site/firmware/latest.json, or "dev")"""
 import html, json, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from gbnav import fix as _fix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..")
@@ -109,12 +111,13 @@ def main():
     .none { color:#aaa; } .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   }
 </style>
+<link rel="stylesheet" href="../css/gb.css">
 </head>
 <body>
 <main>
   <header>
-    <h1>Chipbox<span class="tag">CHEAT SHEET</span></h1>
-    <span class="v">v@@VERSION@@</span>
+    <h1><a href="../">Chipbox</a><span class="tag">CHEAT SHEET</span></h1>
+    @@VSPAN@@
     <nav><a href="../">Home</a><a href="../manual/">Tutorials</a><a href="../guide/">Manual</a><a href="../play/">Play online</a></nav>
   </header>
   @@PANEL@@
@@ -130,11 +133,11 @@ def main():
 </body>
 </html>
 '''
-    for k, v in (('VERSION', html.escape(version())), ('PANEL', panel(d['short'])), ('HEADS', ''.join('<th>%s</th>' % v for v in views)), ('ROWS', ''.join(rows)), ('PADS', pads), ('TIPS', tips)):
+    for k, v in (('VSPAN', '' if version() == 'dev' else '<span class="v">v%s</span>' % html.escape(version())), ('PANEL', panel(d['short'])), ('HEADS', ''.join('<th>%s</th>' % v for v in views)), ('ROWS', ''.join(rows)), ('PADS', pads), ('TIPS', tips)):
         page = page.replace('@@%s@@' % k, v)
     out = os.path.join(ROOT, "site", "cheatsheet")
     os.makedirs(out, exist_ok=True)
-    open(os.path.join(out, "index.html"), "w").write(page)
+    open(os.path.join(out, "index.html"), "w").write(_fix(page, "../", "cheatsheet"))
     print("wrote site/cheatsheet/index.html", version())
 
 

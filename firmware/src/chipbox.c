@@ -570,7 +570,7 @@ static void app_main(void)
             else if (view == 2u) man_open(MC_SONG, seq_run ? 4u : 0u);                                  /* the page for what you are doing: playing, adding a channel, the knobs' second page ... */
             else if (view == 3u && sel < chan_n && IS_DRUM(chan[sel].kind)) man_open(MC_DRUM, 0);
             else if (view == 3u) man_open(MC_STEP, 0);
-            else if (view) man_open(MC_RACK, rack_rm ? 2u : sel >= chan_n ? 1u : rec_on ? 6u : seq_run ? 4u : 0u);
+            else if (view) man_open(MC_RACK, rack_rm ? MRP_REMOVE : sel >= chan_n ? MRP_ADD : rec_on ? MRP_REC : seq_run ? MRP_PLAY : MRP_PICK);
             else man_open(MC_CHIP, chip_page ? 1u : 0u);
         } else if (home_tap) {
             if (menu_on && menu_kind == MK_BT) sys_open(set.demo, 5);                                  /* back from the Bluetooth page to the menu */
@@ -805,7 +805,6 @@ static void app_main(void)
           if (ota_hit_ms && brothers_mode && !paused) { paused = brothers_mode; brothers_set(0); }
           if (paused && fm1_ms - ota_hit_ms > 20000u) { brothers_set(paused); paused = 0; ota_hit_ms = 0; } }
         if (ota_back) { ota_back = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; menu_dirty = 1; }          /* the installer gave up and left its message on the screen: paint it all again */
-        { static uint8_t bt_booted; if (!bt_booted && fm1_ms > 1500u) { bt_booted = 1; if ((set.unlocked >> 2 & 3u) && (set.unlocked >> 2 & 3u) <= 2u) brothers_set(set.unlocked >> 2 & 3u); } }      /* the mode it was left in */
         brothers_poll();                                                        /* a follower: the leader's packets into clock ticks */
         if (brothers_mode == 1u) {                                              /* the leader: its pattern and where the kicks are (the drums' first lane) */
             uint32_t km = 0, s2, t2;

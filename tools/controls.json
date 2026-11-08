@@ -210,27 +210,27 @@
  ],
  "pads": [
   "TAPE",
-  "RPT",
-  "RPT",
-  "RPT",
+  "R16",
   "LPF",
   "HPF",
   "ECHO",
   "VERB",
-  "CRSH",
-  "DECI",
+  "CRUSH",
   "GATE",
+  "R8",
+  "R32",
+  "DECI",
   "DIVE",
   "WOB",
   "SOLO",
   "KILL",
-  "HOLD"
+  "LATCH"
  ],
  "tips": [
   "REC, then SELECT left once: half speed, easier to play in",
   "EDIT while recording wipes the notes the line passes",
   "TAPE pad: the song pauses, SELECT is the tape dial",
-  "HOLD pad: tap pads to keep them on, tap HOLD to clear",
+  "LATCH pad: with it on, a tap holds a pad and the next tap lets it go",
   "Drums: add them under any console. SEQ opens the 11 lanes: a black key picks the drum, the white keys place it on the 16 steps, the same hit again takes it away, ENV held makes it an accent",
   "Hold SEL on a channel to copy it, or on a project in the project list"
  ]

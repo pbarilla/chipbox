@@ -3,7 +3,7 @@
  * A pad lights while its key is held; each effect has its own animation in the top bar. Included by chipbox.c after header.c. */
 static const uint8_t FX_KEY[FXN] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};     /* the white keys, F3 up */
 static const uint8_t FX_GRP[FXN] = {0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 5, 7, 7};              /* tape, repeat, filter, echo + reverb, lo-fi, gate + solo, pitch, kill + latch */
-static const char *const FX_NAME[FXN] = {"TAPE", "RPT", "LPF", "HPF", "ECHO", "VERB", "CRSH", "GATE", "RPT", "RPT", "DECI", "DIVE", "WOB", "SOLO", "KILL", "HOLD"};
+static const char *const FX_NAME[FXN] = {"TAPE", "RPT", "LPF", "HPF", "ECHO", "VERB", "CRSH", "GATE", "RPT", "RPT", "DECI", "DIVE", "WOB", "SOLO", "KILL", "LATCH"};
 static uint32_t fx_layer, fx_view_force, fx_raw, fx_tog, fx_lat;       /* fx_raw: keys down; fx_tog, fx_lat: the pads switched on and the latch mode */
 static void fx_off(void) { fx_raw = fx_tog = fx_lat = 0; fx_apply(0); }
 
@@ -120,8 +120,14 @@ static void fx_view_draw(void)
             uint16_t c = sg_color(FX_GRP[i]);
             cv_rect(x, y, 57, 38, on ? c : mix16(R_BG, c, 46));
             cv_rect(x, y, 57, 3, c);
-            fx_icon(i, x + 5, y + 14, on ? R_BG : mix16(R_BG, c, 230));
-            cv_text(x + 25, y + 16, &FONT_S, FX_NAME[i], on ? R_BG : mix16(R_BG, c, 200));
+            int32_t tw = text_w(&FONT_S, FX_NAME[i]);
+            if (tw > 36) {                                                    /* a long name (LATCH) goes under its picture */
+                fx_icon(i, x + 20, y + 8, on ? R_BG : mix16(R_BG, c, 230));
+                cv_text(x + (57 - tw) / 2, y + 24, &FONT_S, FX_NAME[i], on ? R_BG : mix16(R_BG, c, 200));
+            } else {
+                fx_icon(i, x + 5, y + 14, on ? R_BG : mix16(R_BG, c, 230));
+                cv_text(x + 25, y + 16, &FONT_S, FX_NAME[i], on ? R_BG : mix16(R_BG, c, 200));
+            }
         }
         cv_blit(0, 48u + b * 82u);
     }
