@@ -248,11 +248,15 @@ static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t
     }
     b = proj_newest(slot, &h);
     if (b < 0 || pf_read(proj_base(slot, (uint32_t)b) + PROJ_HDR, proj_buf, h.len)) return;
-    if (h.len < 7u || (proj_buf[0] != 2u && proj_buf[0] != 3u) || proj_buf[4] > MAXCH) return;
+    if (h.len < 7u || proj_buf[0] < 2u || proj_buf[0] > 5u || proj_buf[4] > MAXCH) return;
     isz = proj_buf[0] == 2u ? 14u : PROJ_INST;
     *nch = proj_buf[4];
-    for (c = 0; c < *nch; c++) chips[c] = proj_buf[5u + c * (1u + isz)] < KINDS ? KIND_CHIP[proj_buf[5u + c * (1u + isz)]] : 0u;
-    n = 5u + *nch * (1u + isz);
+    for (c = 0, n = 5u; c < *nch; c++) {                    /* (version 4 and later: a length byte and extra bytes follow each channel's sound) */
+        if (n + 1u + isz > h.len) { *nch = 0; return; }
+        chips[c] = proj_buf[n] < KINDS ? KIND_CHIP[proj_buf[n]] : 0u;
+        n += 1u + isz;
+        if (proj_buf[0] >= 4u) { if (n >= h.len) { *nch = 0; return; } n += 1u + proj_buf[n]; }
+    }
     if (h.len < n + 2u) { *nch = 0; return; }
     ev = (uint32_t)proj_buf[n] | (uint32_t)proj_buf[n + 1u] << 8;
     n += 2u;
