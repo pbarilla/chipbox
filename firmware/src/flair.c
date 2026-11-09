@@ -23,7 +23,7 @@ static void flair_frame(uint32_t kind, uint32_t ms, uint32_t arg, const theme_t 
         ico_floppy(x, 3 + dip);
         if (ms >= 350u) {
             sparks(12 + (int32_t)arg * 16 + 5, 33, ms - 350u, 400, 26, sg_color(arg));
-            if (arg >= PROJ_DEMOS) { fmt_u(n, arg - PROJ_DEMOS + 1u); cv_text(206, 5, &FONT_L, n, R_WHITE); } else cv_text(190, 14, &FONT_S, arg ? "DEMO 2" : "DEMO 1", R_WHITE);
+            if (!proj_is_demo(arg)) { fmt_u(n, arg >= PROJ_DEMOS ? arg - PROJ_DEMOS + 1u : arg + 11u); cv_text(206, 5, &FONT_L, n, R_WHITE); } else cv_text(190, 14, &FONT_S, arg ? "DEMO 2" : "DEMO 1", R_WHITE);
         }
         break; }
     case AN_OCT: {                                  /* five octaves of keys, the one you are on lights, sliding from the one you left */

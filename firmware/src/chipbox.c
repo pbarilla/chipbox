@@ -497,7 +497,7 @@ static void app_main(void)
     act_ms = fm1_ms;
     proj_cur = set.proj < PROJ_SLOTS ? set.proj : 0;                  /* the project you left open; Korobeiniki on a new device */
     proj_loaded = proj_load(proj_cur) == 0;
-    if (!proj_loaded) { if (proj_cur == 0u) seq_tetris(); else if (proj_cur == 1u) seq_symphony(); else proj_blank(); }
+    if (!proj_loaded) { if (proj_is_demo(proj_cur) && proj_cur == 0u) seq_tetris(); else if (proj_is_demo(proj_cur) && proj_cur == 1u) seq_symphony(); else proj_blank(); }
     if (set.oct < -2 || set.oct > 2) set.oct = 0;
     if (set.demo & QS_INSTALLED) { fresh = 1; set.demo &= (uint8_t)~QS_INSTALLED; dirty = 1; t_change = fm1_ms; }      /* an install started from Chipbox (an update, or another firmware and back) */
     for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) if (proj_exists(k)) fresh = 0;
@@ -510,7 +510,8 @@ static void app_main(void)
 
 #define FACTORY_RESET() do {                                                            /* the menu's Factory Reset, and MIDI CC 109 (a test) */ \
         seq_stop(); rec_on = 0; duck_ch = 255; \
-        for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) proj_clear(k);               /* every project goes, the demos stay */ \
+        for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) proj_clear(k);               /* every project goes, the demos come back */ \
+        if (proj_demos_free_empty() + proj_demos_free_used()) proj_demos_restore_all(); \
         set.oct = 0; \
         proj_cur = 0; proj_dirty = 0; proj_loaded = proj_load(0) == 0; undo_reset(); \
         set.proj = 0; dirty = 1; t_change = fm1_ms; \
@@ -636,7 +637,7 @@ static void app_main(void)
             e = fm1_enc_take(ENC_SELECT);
             if (!e) e = fm1_enc_take(ENC_PRESETS);
             if (e) { pick_sel = e < 0 ? (pick_sel ? pick_sel - 1u : 0u) : (pick_sel + 1u < PROJ_SLOTS ? pick_sel + 1u : PROJ_SLOTS - 1u); pick_del = 0; pick_dirty = 1; }
-            if (edit_now && fm1_ms - edit_t0 >= 600u && !pick_del && pick_have[pick_sel] && pick_sel >= PROJ_DEMOS) { pick_del = 1; pick_dirty = 1; }
+            if (edit_now && fm1_ms - edit_t0 >= 600u && !pick_del && pick_have[pick_sel]) { pick_del = 1; pick_dirty = 1; }
             sel_now = fm1_in.buttons >> BTN_SEL & 1u;                                   /* hold SEL on a project: a copy in the first free slot */
             if (sel_now && !sel_was) { sel_t0 = fm1_ms; sel_used = 0; }
             if (sel_now && !sel_used && !pick_del && pick_have[pick_sel] && fm1_ms - sel_t0 >= 600u) {
@@ -648,8 +649,8 @@ static void app_main(void)
             sel_was = sel_now;
             if ((b & (1u << BTN_OCT_UP)) || (home_tap && !pick_del)) {       /* OCT+ (yes) or a HOME tap opens the slot under the frame */
                 if (pick_del) {
-                    proj_clear(pick_sel);
-                    if (pick_sel == proj_cur) { proj_blank(); proj_dirty = 0; sel = 0; }
+                    seq_stop(); proj_free(pick_sel);                    /* a demo too: its slot is an ordinary empty one from now on (Restore Demos puts the demo back if the slot is still empty) */
+                    if (pick_sel == proj_cur) { proj_blank(); proj_dirty = 0; proj_lock = 0; sel = 0; rack_inval = 1; }
                     pick_del = 0; pick_scan(); pick_dirty = 1;
                 } else {
                     if (pick_sel != proj_cur) {
@@ -681,7 +682,7 @@ static void app_main(void)
             else if (view) man_open(MC_RACK, rack_rm == 2u ? MRP_CHANGE : rack_rm ? MRP_REMOVE : sel >= chan_n ? MRP_ADD : rec_on ? MRP_REC : seq_run ? MRP_PLAY : MRP_PICK);
             else man_open_chip(sel, chip_page);
         } else if (home_tap) {
-            if (menu_on) menu_on = 0;                                                                  /* HOME closes any menu (the Brothers Link page too) */
+            if (menu_on) { if (man_lock && menu_kind == MK_MANUAL) { dirty = 1; t_change = fm1_ms; } menu_on = 0; }          /* HOME closes any menu (the Brothers Link page too); leaving the quick start saves the settings */
             else if (fx_layer) { fx_layer = 0; fx_off(); anim_start(AN_VIEW, view); }       /* HOME leaves the punch-in layer first */
             else if (view == 3u) { view = 1; anim_start(AN_VIEW, 1u); }
             else { view = view == 1u ? (chan_n ? 0u : 2u) : view == 0u ? 2u : 1u; anim_start(AN_VIEW, view); }       /* HOME: the rack, the chip, the song, the rack ... */
@@ -749,10 +750,13 @@ static void app_main(void)
             } else anim_start(AN_UNDO, 0);
         }
         undo_tick();
-        if ((b & (1u << BTN_SAVE)) && proj_cur >= PROJ_DEMOS) { add_aud_stop(); if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
+        if ((b & (1u << BTN_SAVE)) && !proj_is_demo(proj_cur) && !proj_lock) { add_aud_stop(); if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
         if (in_menu) {                                  /* in a menu only SELECT does anything (and, in a pick list, OCT+ yes, OCT- no) */
             if (b & ((1u << BTN_OCT_UP) | (1u << BTN_OCT_DOWN))) add_aud_stop();          /* the audition's channel goes before anything is added */
             if (menu_on && menu_kind == MK_MANUAL) man_input(b);
+            if (menu_on && menu_kind == MK_MANUAL && man_lock && (b & (1u << BTN_OCT_DOWN))) {              /* the quick start, OCT-: hide it (it will not come back by itself) */
+                menu_on = 0; man_lock = 0; set.demo &= (uint8_t)~QS_ALWAYS; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; b &= ~(1u << BTN_OCT_DOWN);
+            }
             if (menu_on && menu_kind == MK_ADD) {           /* the Add Channel list: KNOB1 groups, SEL opens the card, OCT- closes it first */
                 e = fm1_enc_take(ENC_KNOB1);
                 if (e) add_mode_step(e);
@@ -790,7 +794,18 @@ static void app_main(void)
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                 } else if (menu_kind == MK_MENU) {
                     if (menu_sel == 5u) bt_open(1);                                                                               /* the Bluetooth page */
-                    else if (menu_sel == 6u) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
+                    else if (menu_sel + 1u == menu_n) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }          /* Factory Reset is the last row */
+                    else if (menu_sel == 6u) {                                                                                  /* Restore Demos: the deleted ones are made again */
+                        if (proj_demos_free_empty()) {
+                            seq_stop(); rec_on = 0; duck_ch = 255;
+                            if (proj_dirty && proj_save(proj_cur) == 0) proj_dirty = 0;
+                            proj_demos_restore();
+                            proj_loaded = proj_load(proj_cur) == 0;
+                            if (!proj_loaded) { if (proj_is_demo(proj_cur) && proj_cur == 0u) seq_tetris(); else if (proj_is_demo(proj_cur) && proj_cur == 1u) seq_symphony(); else proj_blank(); }
+                            undo_reset(); proj_dirty = 0; rack_inval = 1; rack_force = 1; chip_drawn = ~0u;
+                        }
+                        sys_open(set.demo, proj_demos_free_empty() + proj_demos_free_used() ? menu_sel : menu_sel - 1u);       /* (the last demo came back: the row is gone, the bar steps up) */
+                    }
                     else if (menu_sel == 4u) { clk_mode = (uint8_t)((clk_mode + 1u) % 3u); bt_pack(); if (clk_mode != 2u) ext_on = 0; dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* off, send, follow */
                     else { set.demo ^= (uint8_t)(menu_sel == 1u ? QS_ALWAYS : menu_sel == 2u ? QS_PICK : QS_NOTIPS); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* a switch: the line says Yes or No */
                 } else if (menu_kind == MK_BT) {                                    /* Sync, (Status), Sidechain, Patterns */
@@ -800,7 +815,7 @@ static void app_main(void)
                     else if (menu_sel == 5u) bt_fxsync ^= 1u;
                     else if (menu_sel == 6u) bt_key ^= 1u;
                     if (menu_sel == 7u) {                                   /* Demo: the locked project (it is a demo slot: nothing is saved) */
-                        seq_stop(); seq_bt_demo(); proj_cur = 0; proj_dirty = 0; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; menu_on = 0;
+                        seq_stop(); seq_bt_demo(); proj_lock = 1; if (proj_is_demo(0)) proj_cur = 0; proj_dirty = 0; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; menu_on = 0;
                     } else { bt_pack(); bt_open(menu_sel); }
                 } else if (menu_kind == MK_FACTORY) {
                     FACTORY_RESET();
@@ -998,9 +1013,9 @@ static void app_main(void)
                 continue;
             }
             if ((st & 0xF0u) == 0xB0u && d1 == 102u) { if (d2 >= 64u) seq_play(0, 0); else if (seq_run) seq_stop(); continue; }
-            if ((st & 0xF0u) == 0xB0u && d1 == 119u) { seq_stop(); seq_bt_demo(); proj_cur = 0; proj_dirty = 0; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; menu_on = 0; continue; }       /* test: the Bluetooth demo */
+            if ((st & 0xF0u) == 0xB0u && d1 == 119u) { seq_stop(); seq_bt_demo(); proj_lock = 1; if (proj_is_demo(0)) proj_cur = 0; proj_dirty = 0; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; menu_on = 0; continue; }       /* test: the Bluetooth demo */
             if ((st & 0xF0u) == 0xB0u && d1 == 103u) { seq_bpm = d2 * 2u; proj_edited(); continue; }
-            if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (proj_cur >= PROJ_DEMOS && proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
+            if ((st & 0xF0u) == 0xB0u && d1 == 104u) { if (!proj_is_demo(proj_cur) && proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } continue; }
             if ((st & 0xF0u) == 0xB0u && d1 == 108u) { fx_apply(d2 == 0u ? 0u : d2 <= FXN ? fx_held | FXB(d2 - 1u) : d2 <= 2u * FXN ? fx_held & ~FXB(d2 - 1u - FXN) : fx_held); if (d2 && d2 <= FXN) anim_fx(d2 - 1u); continue; }     /* test: pad d2-1 on; d2 17..32: pad off; 0: all off */
             if ((st & 0xF0u) == 0xB0u && d1 == 106u) { if (chan_add(d2) >= 0) proj_edited(); continue; }              /* test: add a channel of kind d2 */
             if ((st & 0xF0u) == 0xB0u && d1 == 109u) { static uint32_t arm; if (d2 == 127u) arm = fm1_ms | 1u; else if (d2 == 1u && arm && fm1_ms - arm < 3000u) { arm = 0; FACTORY_RESET(); } continue; }                   /* test: Factory Reset: CC 109 = 127, then CC 109 = 1 within 3 s (so a controller's stray CC cannot wipe projects) */
@@ -1092,7 +1107,7 @@ static void app_main(void)
         }
         }
 
-        if (proj_dirty && proj_cur >= PROJ_DEMOS && !seq_run && !pick_on && add_aud_c < 0 && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
+        if (proj_dirty && !proj_is_demo(proj_cur) && !proj_lock && !seq_run && !pick_on && add_aud_c < 0 && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
             if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } else proj_t_fail = fm1_ms;
         }
         if (dirty && quiet() && fm1_ms - t_change > 2000u) {

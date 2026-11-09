@@ -197,7 +197,24 @@ static int proj_load(uint32_t slot)             /* 0: the slot's project is now 
     }
     return -1;
 }
-static uint32_t proj_mark;                      /* a demo's banks carry this bit in their number, so an older firmware's project in the slot can be told from it */
+static uint32_t proj_mark;                      /* a demo's banks carry bit 30 in their number, so an older firmware's project in the slot can be told from it */
+#define PROJ_DEMO_BIT 0x40000000u
+#define PROJ_USER 0x20000000u                   /* a project the user saved into a demo's slot (the demo was trashed): the slot is theirs, the demo is never made over it */
+/* The demo slots (0 and 1) hold a DEMO (locked), or were freed by trashing it: then the slot is an ordinary one. Freed + empty = a tombstone in the first bank's header
+ * (a magic no project has); freed + used = a project whose number carries PROJ_USER. Another firmware's data over the slot wipes either mark: the demo is simply made again. */
+#define PROJ_TOMB 0x424D4F54u                   /* "TOMB" */
+enum { DS_DEMO, DS_EMPTY, DS_USED, DS_NONE };   /* a demo slot: the demo is there / freed and empty / freed and holds the user's project / nothing written yet */
+static uint8_t demo_here[2];                    /* the demo is in slot 0 / 1 (kept in step with the flash: proj_demo_refresh) */
+static uint8_t proj_lock;                       /* what is open is a locked demo that is not in its slot (the Brothers Link demo): never saved */
+static uint32_t proj_slot_state(uint32_t slot)
+{
+    proj_hdr_t h;
+    int b = proj_newest(slot, &h);
+    if (b >= 0) return h.seq & PROJ_USER ? DS_USED : DS_DEMO;
+    return !pf_read(proj_base(slot, 0), &h, sizeof h) && h.magic == PROJ_TOMB ? DS_EMPTY : DS_NONE;
+}
+static void proj_demo_refresh(void) { demo_here[0] = proj_slot_state(0) == DS_DEMO; demo_here[1] = proj_slot_state(1) == DS_DEMO; }
+static int proj_is_demo(uint32_t slot) { return slot < PROJ_DEMOS && demo_here[slot]; }    /* the locked rules (never saved, no USB write ...) belong to the demo, not to the slot number */
 static int proj_write_buf(uint32_t slot, uint32_t len)     /* proj_buf's first len bytes into the slot's older bank */
 {
     proj_hdr_t h, nh;
@@ -207,13 +224,13 @@ static int proj_write_buf(uint32_t slot, uint32_t len)     /* proj_buf's first l
     sectors = (PROJ_HDR + len + 0xFFFu) / 0x1000u;
     for (i = 0; i < sectors; i++) if (pf_erase(base + i * 0x1000u)) return -1;
     if (pf_write(base + PROJ_HDR, proj_buf, len)) return -1;
-    nh.magic = PROJ_MAGIC; nh.seq = (b < 0 ? 1u : h.seq + 1u) | proj_mark; nh.len = len; nh.crc = proj_crc(proj_buf, len);
+    nh.magic = PROJ_MAGIC; nh.seq = (b < 0 ? 1u : h.seq + 1u) | (proj_mark ? proj_mark : slot < PROJ_DEMOS ? PROJ_USER : 0u); nh.len = len; nh.crc = proj_crc(proj_buf, len);
     if (pf_write(base, &nh, sizeof nh)) return -1;
     return 0;
 }
-static int proj_save(uint32_t slot)             /* slots 0 and 1 are the demos: nothing is ever saved into them */
+static int proj_save(uint32_t slot)             /* a demo is never saved over (and nothing is saved from a locked demo); a freed demo slot saves like any other */
 {
-    if (slot < PROJ_DEMOS) return 0;
+    if (proj_is_demo(slot) || (proj_lock && slot == proj_cur)) return 0;
     return proj_write_buf(slot, proj_pack(proj_buf));
 }
 static void proj_open(uint32_t slot)            /* switch projects: stop, keep what is unsaved, load (or start blank) */
@@ -222,13 +239,25 @@ static void proj_open(uint32_t slot)            /* switch projects: stop, keep w
     if (proj_dirty && proj_save(proj_cur) == 0) proj_dirty = 0;
     proj_loaded = proj_load(slot) == 0;
     if (!proj_loaded) proj_blank();
-    proj_cur = (uint8_t)slot; proj_dirty = 0; undo_reset();
+    proj_cur = (uint8_t)slot; proj_dirty = 0; proj_lock = 0; undo_reset();
 }
 static void proj_clear(uint32_t slot)           /* an empty slot: both banks' first sector */
 {
     pf_erase(proj_base(slot, 0));
     pf_erase(proj_base(slot, 1));
 }
+
+static void proj_trash(uint32_t slot)           /* a demo slot is freed: empty, with the tombstone (also what clearing the user's project in a freed slot does, so the demo does not come back) */
+{
+    proj_hdr_t h;
+    proj_clear(slot);
+    h.magic = PROJ_TOMB; h.seq = 0; h.len = 0; h.crc = 0;
+    pf_write(proj_base(slot, 0), &h, sizeof h);
+    proj_demo_refresh();
+}
+static void proj_free(uint32_t slot) { if (slot < PROJ_DEMOS) proj_trash(slot); else proj_clear(slot); }       /* clear a slot the way its kind needs */
+static uint32_t proj_demos_free_empty(void) { return (uint32_t)(proj_slot_state(0) == DS_EMPTY) + (uint32_t)(proj_slot_state(1) == DS_EMPTY); }
+static uint32_t proj_demos_free_used(void) { return (uint32_t)(proj_slot_state(0) == DS_USED) + (uint32_t)(proj_slot_state(1) == DS_USED); }
 
 /* what a slot looks like in the picker: a row per channel (its chip), a bit per step of page 1 */
 static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t *nch)
@@ -273,29 +302,43 @@ static void seq_symphony(void) { proj_unpack(DEMO2, sizeof DEMO2); }
 static void proj_demo_sync(void)
 {
     proj_hdr_t h;
-    uint32_t len, s, f;
+    uint32_t len, st, f;
     seq_stop();
     seq_tetris();                               /* what was in memory is gone: this runs before the first project is opened */
     len = proj_pack(proj_buf);
-    if (proj_newest(0, &h) < 0 || h.len != len || h.crc != proj_crc(proj_buf, len)) proj_write_buf(0, len);
-    if (proj_newest(1, &h) >= 0 && !(h.seq & 0x40000000u)) {         /* a project of an older firmware sits in slot 1: it moves to a free slot at the end */
+    st = proj_slot_state(0);
+    if ((st == DS_DEMO || st == DS_NONE) && (proj_newest(0, &h) < 0 || h.len != len || h.crc != proj_crc(proj_buf, len))) { proj_mark = PROJ_DEMO_BIT; proj_write_buf(0, len); proj_mark = 0; }
+    if (proj_slot_state(1) == DS_DEMO && proj_newest(1, &h) >= 0 && !(h.seq & PROJ_DEMO_BIT)) {         /* a project of an older firmware sits in slot 1: it moves to a free slot at the end */
         for (f = PROJ_SLOTS - 1u; f > 1u && proj_exists(f); f--) {}
         if (f > 1u) proj_copy(1, f);
     }
     seq_stop();
     seq_symphony();
     len = proj_pack(proj_buf);
-    if (proj_newest(1, &h) >= 0 && (h.seq & 0x40000000u) && h.len == len && h.crc == proj_crc(proj_buf, len)) return;
-    proj_mark = 0x40000000u;
-    proj_write_buf(1, len);
-    proj_mark = 0;
+    st = proj_slot_state(1);
+    if ((st == DS_DEMO || st == DS_NONE) && !(st == DS_DEMO && proj_newest(1, &h) >= 0 && (h.seq & PROJ_DEMO_BIT) && h.len == len && h.crc == proj_crc(proj_buf, len))) {
+        proj_mark = PROJ_DEMO_BIT; proj_write_buf(1, len); proj_mark = 0;
+    }
+    proj_demo_refresh();
+}
+static void proj_demos_restore(void)            /* a freed demo slot that is empty gets its demo back; one that holds the user's project is left alone (what is in memory is replaced: the caller reloads its project) */
+{
+    uint32_t s;
+    for (s = 0; s < PROJ_DEMOS; s++) if (proj_slot_state(s) == DS_EMPTY) proj_clear(s);
+    proj_demo_sync();
+}
+static void proj_demos_restore_all(void)        /* Factory Reset: the user's projects in freed demo slots go with the rest, then both demos are there */
+{
+    uint32_t s;
+    for (s = 0; s < PROJ_DEMOS; s++) { const uint32_t st = proj_slot_state(s); if (st == DS_EMPTY || st == DS_USED) proj_clear(s); }
+    proj_demo_sync();
 }
 static int proj_copy(uint32_t from, uint32_t to)    /* a project into another slot (the open one as it is in memory) */
 {
     proj_hdr_t h;
     int b;
     uint32_t len;
-    if (from == proj_cur && from >= PROJ_DEMOS) { len = proj_pack(proj_buf); return proj_write_buf(to, len); }
+    if (from == proj_cur && !proj_is_demo(from) && !proj_lock) { len = proj_pack(proj_buf); return proj_write_buf(to, len); }
     b = proj_newest(from, &h);
     if (b < 0 || !proj_bank_ok(from, (uint32_t)b, &h)) return -1;
     return proj_write_buf(to, h.len);

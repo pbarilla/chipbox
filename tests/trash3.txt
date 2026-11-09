@@ -1,0 +1,26 @@
+# third boot: clear the user's project in the freed slot (11): the slot is empty and the demo stays away; Restore Demos brings the demo back
+500 held 0x100
+1300 held 0
+1400 held 0x40
+2200 shot
+2300 held 0
+2500 btn 1
+3000 shot
+3100 btn 0
+3300 held 0x180
+3400 btn 7
+3500 held 0
+3800 enc 0 1
+3900 enc 0 1
+4000 enc 0 1
+4100 enc 0 1
+4200 enc 0 1
+4500 shot
+4600 btn 1
+4900 shot
+5000 held 0x100
+5100 held 0
+5500 held 0x100
+6300 shot
+6400 held 0
+8000 end

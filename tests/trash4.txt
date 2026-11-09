@@ -1,0 +1,27 @@
+# fresh device: delete both demos, open a freed slot (it is blank and saveable), Factory Reset (MIDI test hook) brings both demos back
+100 held 0x100
+200 held 0
+500 held 0x100
+1300 held 0
+1400 held 0x40
+2200 held 0
+2300 btn 1
+2800 enc 0 1
+2900 held 0x40
+3700 held 0
+3800 btn 1
+4300 shot
+4400 btn 1
+4800 shot
+4900 enc 0 -1
+5000 btn 1
+5400 shot
+5500 btn 0
+5600 midi 0xB0 109 127
+5700 midi 0xB0 109 1
+6300 held 0x100
+6380 held 0
+6700 held 0x100
+7500 shot
+7600 held 0
+8200 end

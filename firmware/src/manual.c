@@ -13,7 +13,7 @@ typedef struct { const char *topic; uint32_t ring; const char *text; } mpage_t;
 typedef struct { const char *name; uint16_t col; const mpage_t *page; uint8_t n; } mchap_t;
 
 static const mpage_t MP_QUICK[] = {
-    {"", M_GLO | M_SELECT | M_HOME | M_SMALL, "Press GLO at any time to view this manual. Flip through the pages by using the SELECT knob. When you're finished, hit HOME to close."},
+    {"", M_GLO | M_SELECT | M_HOME | M_SMALL, "Press GLO at any time to open the manual. Spin SELECT to flip the pages. When you're ready, hit HOME to close this guide!"},
     {"", M_HOME | M_SELECT | M_SMALL, "Hold HOME to open the project browser. Use the SELECT knob to pick an existing project, or start a new one. When you're ready, hit HOME to open it!"},
     {"", M_QR, "Find the full manual at"},
     {"", M_GLO | M_HOME | M_SMALL, "To see this quick start every time, or to adjust other settings, press GLO and HOME."},
@@ -72,7 +72,8 @@ static const mpage_t MP_PROJ[] = {
     {"Open", M_HOME | M_SELECT, "Hold HOME to open the projects. Turn SELECT to pick one, then press HOME to open it."},
     {"Leave", M_OCTD | M_GLO | M_SMALL, "Press OCT- or GLO to close the projects. Pick an empty tile to start a new project."},
     {"Demos", M_SEL | M_SMALL, "The first two projects are demos. They are locked and never save. Hold SEL on one to copy it into a free slot."},
-    {"Copy and clear", M_SEL | M_EDIT | M_SMALL, "Hold SEL on a project to copy it into a free slot. Hold EDIT on one to clear it. The demos stay."},
+    {"Delete demos", M_EDIT | M_SMALL, "Hold EDIT on a demo to delete it. Its slot is then yours to use. Restore Demos in the menu brings the demo back to an empty slot."},
+    {"Copy and clear", M_SEL | M_EDIT | M_SMALL, "Hold SEL on a project to copy it into a free slot. Hold EDIT on one to clear it."},
     {"Save", M_SAVE | M_SMALL, "Press SAVE to save your project. Stop the music and leave it alone for two seconds and it saves by itself."},
 };
 static const mpage_t MP_MENU[] = {
@@ -82,7 +83,8 @@ static const mpage_t MP_MENU[] = {
     {"Brothers Link", M_OCTU | M_SMALL, "Open Brothers Link in the menu. Set Sync to Lead on one FM-1 and Follow on the others. Press OCT+ to change it. Sync is Off every time you switch on."},
     {"Link options", M_OCTU | M_SMALL, "Sidechain ducks to the leader's kicks. Patterns follows its page. Punch-in FX copies its pads 1 to 8. Key moves your notes to its key."},
     {"Link demo", M_OCTU | M_SMALL, "Demo: Load opens a locked song to play along with the others. Nothing in it is saved."},
-    {"Factory Reset", M_OCTU | M_SMALL, "Pick Factory Reset and press OCT+ to confirm. Your projects go and the quick start comes back. The demos stay."},
+    {"Restore Demos", M_OCTU | M_SMALL, "Once you delete a demo, the menu gets a Restore Demos row. Press OCT+ on it to bring the demo back. A slot that holds your project stays yours."},
+    {"Factory Reset", M_OCTU | M_SMALL, "Pick Factory Reset and press OCT+ to confirm. Your projects go and the quick start comes back. The demos come back too."},
     {"Moving around", M_SELECT | M_PRESETS, "Turn SELECT to turn the pages. Turn PRESETS to jump to another chapter."},
     {"Contents", M_GLO | M_HOME, "Press GLO to see the contents. Press HOME to leave the manual."},
 };
@@ -166,7 +168,7 @@ static void man_draw(void)
                 int32_t ty = 142;
                 man_k = p->ring & M_SMALL ? 7 : 13; man_x0 = p->ring & M_SMALL ? 64 : 16; man_y0 = p->ring & M_SMALL ? 34 : 34;
                 man_panel(p->ring);
-                if (p->ring & M_SMALL) ty = 88;
+                if (p->ring & M_SMALL) ty = 96;
                 if (p->topic[0]) { if (p->ring & M_SMALL) { mT(8, 84, p->topic, M_ACC); ty = 104; } else mT(8, 120, p->topic, M_ACC); }
                 else if (!(p->ring & M_SMALL)) ty = 120;
                 mWords(8, ty, p->text, 224);
@@ -175,6 +177,7 @@ static void man_draw(void)
             {   int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 224 - (int32_t)c->n * 10;          /* the dots: centred, or at the right with GLO Menu at the left */
                 for (i = 0; i < c->n; i++) mR(d0 + (int32_t)i * 10, 226, 6, 4, i <= man_pg ? c->col : RGB(58, 58, 74));
                 if (!man_lock) mT(8, 218, "GLO Menu", RGB(138, 138, 154));
+                else { mT(8, 207, "HOME  Close", RGB(138, 138, 154)); mT(232 - text_w(&FONT_S, "OCT-  Hide"), 207, "OCT-  Hide", RGB(138, 138, 154)); }       /* the quick start: HOME leaves it, OCT- leaves it and keeps it away */
                 if (man_pg > 0u || (!man_lock && man_ch > 0u)) mT(man_lock ? 4 : d0 - 14, 216, "<", RGB(138, 138, 154));
                 if (man_pg + 1u < c->n || (!man_lock && man_ch + 1u < MCHN)) mT(228, 216, ">", RGB(138, 138, 154));
             }

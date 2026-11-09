@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
 /* The project picker (hold HOME): 12 slots, 3 across and 4 down, each a number and a little picture of its first page. The frame is the cursor,
  * the green dot the open project; an empty slot is a dim number. SELECT moves, OCT+ opens (YES), OCT- / GLO / HOME go back,
- * hold EDIT to clear a slot (the frame turns red, OCT+ confirms). Included by chipbox.c after rack.c. */
+ * hold EDIT to clear a slot (the frame turns red, OCT+ confirms; a demo too: its slot becomes an ordinary one, and Restore Demos in the menu puts the demo back while the slot is empty). Included by chipbox.c after rack.c. */
 static uint32_t pick_on, pick_sel, pick_del, pick_dirty, pick_fresh;
 static uint16_t pick_rows[PROJ_SLOTS][MAXCH];
-static uint8_t pick_chips[PROJ_SLOTS][MAXCH], pick_have[PROJ_SLOTS];
+static uint8_t pick_chips[PROJ_SLOTS][MAXCH], pick_have[PROJ_SLOTS], pick_demo[PROJ_SLOTS];
 static uint32_t pick_nch[PROJ_SLOTS];
 
 static void pick_scan(void)
@@ -12,6 +12,7 @@ static void pick_scan(void)
     uint32_t s;
     for (s = 0; s < PROJ_SLOTS; s++) {
         pick_have[s] = s == proj_cur || proj_exists(s);
+        pick_demo[s] = (uint8_t)proj_is_demo(s);
         proj_preview(s, pick_rows[s], pick_chips[s], &pick_nch[s]);
     }
 }
@@ -29,10 +30,10 @@ static void pick_draw(void)
             uint32_t s = row * 3u + col;
             int32_t x = 7 + (int32_t)col * 79;
             char num[12];
-            if (s >= PROJ_DEMOS) fmt_u(num, s - PROJ_DEMOS + 1u);       /* 1 to 10; the first two tiles are the demos (and have no number: it would be -1, 10 digits) */
+            if (!pick_demo[s]) fmt_u(num, s >= PROJ_DEMOS ? s - PROJ_DEMOS + 1u : s + 11u);       /* 1 to 10; the first two tiles are the demos (no number); a demo you deleted leaves an ordinary slot: 11 and 12 */
             else num[0] = 0;
             rk_rect(x, 3, 70, 46, pick_have[s] ? RGB(30, 30, 40) : RGB(22, 22, 28));
-            if (s >= PROJ_DEMOS) cv_text(x + 5, 5, &FONT_S, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
+            if (!pick_demo[s]) cv_text(x + 5, 5, &FONT_S, num, pick_have[s] ? RGB(235, 235, 240) : RGB(90, 90, 100));
             else cv_text(x + 5, 5, &FONT_S, s ? "DEMO 2" : "DEMO 1", RGB(235, 235, 240));
             if (pick_have[s] && pick_nch[s]) {                          /* a row a channel, a block a step: the rows share the height, 16 channels or 2 */
                 int32_t rh = 21 / (int32_t)pick_nch[s], y0;
@@ -44,8 +45,8 @@ static void pick_draw(void)
                         rk_rect(x + 3 + (int32_t)c * 4, y0 + (int32_t)r * rh, 3, rh > 2 ? rh - 1 : 1, pick_rows[s][r] >> c & 1u ? on : mix16(R_BG, on, 46));
                 }
             }
-            if (s == proj_cur) rk_rect(s < PROJ_DEMOS ? x + 46 : x + 60, 9, 6, 6, RGB(80, 220, 120));
-            if (s < PROJ_DEMOS) {                                       /* a demo: a padlock */
+            if (s == proj_cur) rk_rect(pick_demo[s] ? x + 46 : x + 60, 9, 6, 6, RGB(80, 220, 120));
+            if (pick_demo[s]) {                                         /* a demo: a padlock */
                 uint16_t lk = RGB(140, 140, 155);
                 rk_rect(x + 56, 15, 8, 6, lk); rk_rect(x + 57, 11, 1, 4, lk); rk_rect(x + 62, 11, 1, 4, lk); rk_rect(x + 57, 10, 6, 1, lk);
             }

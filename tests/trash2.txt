@@ -1,0 +1,18 @@
+# second boot on the same flash: the demo is not made over the user's project; Restore Demos says the slot is in use and does nothing
+500 shot
+800 held 0x100
+1600 shot
+1700 held 0
+1800 btn 0
+2000 held 0x180
+2100 btn 7
+2200 held 0
+2500 enc 0 1
+2600 enc 0 1
+2700 enc 0 1
+2800 enc 0 1
+2900 enc 0 1
+3100 shot
+3200 btn 1
+3500 shot
+4500 end

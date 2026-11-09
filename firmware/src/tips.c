@@ -35,6 +35,7 @@ static const tip_t TIPS[] = {
     {"Press OCT- or OCT+ to move the keys down or up an octave.", -1},
     {"Hold SEL on a project in the browser to copy it into the next free slot.", -1},
     {"Open DEMO 2 in the project browser to hear every console in one song.", -1},
+    {"Hold EDIT on a demo in the project browser to delete it. Its slot is then yours. Restore Demos in the system menu brings it back.", -1},
     {"Get updates here:", QR_SITE},
     {"Turn on Projects At Start in the system menu to pick a project each time you switch on.", -1},
     {"Press FX, then hold the TAPE pad and turn SELECT to slow your song down.", -1},

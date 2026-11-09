@@ -72,7 +72,7 @@ static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     
 #define QS_PICK 2u                               /* the project browser at every start */
 #define QS_NOTIPS 4u                             /* tips off (a new device has them on) */
 #define QS_INSTALLED 8u                          /* an install started from here: the next boot of Chipbox is a fresh one (if there are no projects) */
-static mline_t SYSM[7] = {MH("Menu"), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Factory Reset")};
+static mline_t SYSM[8] = {MH("Menu"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Factory Reset")};
 static mline_t BTM[8] = {MH("Brothers Link"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Demo: Load")};            /* the Bluetooth page: Sync, Status, Sidechain, Patterns, Punch-in FX, Key */
 static void bt_texts(void)
 {
@@ -92,7 +92,14 @@ static void sys_open(uint32_t fl, uint32_t at)
     SYSM[3].text = fl & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes";
     SYSM[4].text = clk_mode == 1u ? "MIDI Clock: Send" : clk_mode == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off";
     SYSM[5].text = "Brothers Link";
-    menu_open_pick(SYSM, 7);
+    if (proj_demos_free_empty() + proj_demos_free_used()) {                       /* a demo was deleted: the Restore Demos row shows (it is hidden otherwise), Factory Reset is the last row */
+        SYSM[6].text = proj_demos_free_empty() ? "Restore Demos" : "Restore Demos: Slot In Use";
+        SYSM[7].text = "Factory Reset";
+        menu_open_pick(SYSM, 8);
+    } else {
+        SYSM[6].text = "Factory Reset";
+        menu_open_pick(SYSM, 7);
+    }
     menu_sel = at;
 }
 static void menu_scroll(int32_t d)
@@ -115,7 +122,7 @@ static void add_draw(uint16_t accent);
 static void man_draw(void);
 static void menu_win(void)                      /* a pick list as a window: the heading is the title, the bar is the choice, the confirm button at the bottom */
 {
-    const int32_t w = 232, h = menu_kind == MK_BT ? 200 : menu_kind == MK_MENU ? 190 : 156, x = 4, y0 = menu_kind == MK_BT ? 34 : menu_kind == MK_MENU ? 38 : 42;      /* the menu has one more line than the others */
+    const int32_t big = menu_kind == MK_BT || (menu_kind == MK_MENU && menu_n > 7u), w = 232, h = big ? 200 : menu_kind == MK_MENU ? 190 : 156, x = 4, y0 = big ? 34 : menu_kind == MK_MENU ? 38 : 42;      /* the Brothers Link page and the menu with the Restore Demos row have the most lines */
     const uint16_t col = menu_kind == MK_FACTORY ? RGB(235, 64, 52) : M_ACC;
     const char *hint = menu_kind == MK_ADD2 ? (chg_ch < chan_n ? "OCT+  Change" : "OCT+  Add") : menu_pick ? "OCT+  Select" : 0;
     uint32_t b, i;
@@ -123,7 +130,7 @@ static void menu_win(void)                      /* a pick list as a window: the 
     for (b = 0; b * 80u < (uint32_t)h; b++) {
         win_band(b, w, h);
         win_chrome(w, h, menu_lines[0].text, col);
-        for (i = 1; i < menu_n && i < (menu_kind == MK_BT ? 8u : menu_kind == MK_MENU ? 7u : 5u); i++) {
+        for (i = 1; i < menu_n && i < (menu_kind == MK_BT || menu_kind == MK_MENU ? 8u : 5u); i++) {
             int32_t pitch = menu_kind == MK_MENU || menu_kind == MK_BT ? 21 : 24, y = 29 + ((int32_t)i - 1) * pitch;
             if (menu_pick && i == menu_sel) { mR(4, y - 3, w - 8, pitch - 2, R_SEL); mR(4, y - 3, 3, pitch - 2, col); }
             mT(14, y, menu_lines[i].text, menu_pick && i == menu_sel ? R_WHITE : RGB(200, 200, 210));
