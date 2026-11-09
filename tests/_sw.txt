@@ -1,0 +1,26 @@
+50 held 0x100
+80 held 0
+100 midi 0xB0 106 42
+600 held 0x100
+650 held 0
+700 enc 6 1
+760 enc 6 1
+820 enc 6 1
+880 enc 6 1
+1000 midi 0x94 60 100
+1900 midi 0x84 60 0
+2000 btn 3
+2100 btn 3
+2200 btn 3
+2300 btn 3
+2400 enc 1 1
+2500 enc 1 1
+2600 enc 5 -7
+2680 enc 5 -7
+2760 enc 5 -7
+2840 enc 5 -7
+2920 enc 5 -7
+3000 enc 5 -7
+3380 midi 0x94 60 100
+4280 midi 0x84 60 0
+4580 end

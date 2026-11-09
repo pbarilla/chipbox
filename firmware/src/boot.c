@@ -232,7 +232,7 @@ static void boot_screen(uint32_t n)
     if (n == 0u) { chan[0].in.duty = 2; chan[0].in.dec = 12; chan[0].in.sus = 8; chan[0].in.rel = 3; }                 /* the coin */
     else if (n == 1u) { chan[0].in.duty = 1; chan[0].in.dec = 6; chan[0].in.sus = 10; chan[0].in.rel = 2; }
     else if (n == 2u) { chan[0].in.wave = 5; chan[0].in.dec = 12; chan[0].in.sus = 10; chan[0].in.rel = 2; }
-    else if (n == 3u) { fm_set(0, 0, 1, 10, 6, 4); chan[0].in.dec = 13; chan[0].in.sus = 12; chan[0].in.rel = 5; }         /* a big voice */
+    else if (n == 3u) { fm_set(0, 0, 1, 10, 6, 4); chan[0].in.dec = 13; chan[0].in.sus = 12; chan[0].in.rel = 5; fm_from_classic(chan[0].kind, &chan[0].in, &chan[0].fm); }         /* a big voice */
     else if (n == 4u) { chan[0].in.wave = 10; chan[0].in.wf = 3; chan[0].in.dec = 8; chan[0].in.sus = 0; chan[0].in.rel = 4; }
     else if (n == 6u || n == 13u) { chan[0].in.duty = 2; chan[0].in.dec = 15; chan[0].in.sus = 10; chan[0].in.rel = 2; }
     else if (n == 9u) { chan[0].in.dec = 15; chan[0].in.sus = 12; }

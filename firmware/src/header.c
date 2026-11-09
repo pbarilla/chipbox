@@ -688,19 +688,30 @@ static void nav_draw(uint32_t view)
     cv_blit(0, NAV_Y);
 }
 
-static void win_ask(const char *q)               /* a window: the question, OCT+ yes (green), OCT- no (red) */
+static void win_ask(const char *q)               /* a window: the question (one to three lines, split at newlines), OCT+ yes (green), OCT- no (red); more lines, a taller window */
 {
-    const int32_t w = 216, h = 134, x = 12, y0 = 52;
-    uint32_t b;
-    win_shadow(x, y0, w, h);
-    for (b = 0; b * 80u < (uint32_t)h; b++) {
-        win_band(b, w, h);
-        win_chrome(w, h, "Confirm", RGB(235, 64, 52));
-        mT((w - text_w(&FONT_S, q)) / 2, 30, q, R_WHITE);
-        mR(14, 56, w - 28, 22, RGB(24, 70, 40)); mT(24, 59, "OCT+  Yes", RGB(130, 235, 150));
-        mR(14, 82, w - 28, 22, RGB(80, 26, 22)); mT(24, 85, "OCT-  No", RGB(245, 130, 120));
-        win_foot(w, h, 0);
-        cv_blit(x, y0 + b * 80u);
+    uint32_t nl = 1, b;
+    const char *t;
+    for (t = q; *t; t++) if (*t == '\n') nl++;
+    {
+        const int32_t w = 216, ex = (int32_t)(nl - 1u) * 14, h = 134 + ex, x = 12, y0 = 52 - ex / 2;
+        win_shadow(x, y0, w, h);
+        for (b = 0; b * 80u < (uint32_t)h; b++) {
+            char ln[40];
+            uint32_t n, k = 0;
+            win_band(b, w, h);
+            win_chrome(w, h, "Confirm", RGB(235, 64, 52));
+            for (t = q; k < nl; k++) {
+                for (n = 0; t[n] && t[n] != '\n' && n < 39u; n++) ln[n] = t[n];
+                ln[n] = 0;
+                mT((w - text_w(&FONT_S, ln)) / 2, 30 + (int32_t)k * 14, ln, R_WHITE);
+                t += n + 1u;
+            }
+            mR(14, 56 + ex, w - 28, 22, RGB(24, 70, 40)); mT(24, 59 + ex, "OCT+  Yes", RGB(130, 235, 150));
+            mR(14, 82 + ex, w - 28, 22, RGB(80, 26, 22)); mT(24, 85 + ex, "OCT-  No", RGB(245, 130, 120));
+            win_foot(w, h, 0);
+            cv_blit(x, y0 + b * 80u);
+        }
     }
 }
 static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t chip, uint32_t last_note)

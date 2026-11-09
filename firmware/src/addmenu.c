@@ -349,10 +349,10 @@ static void add_body(uint16_t accent)
             fl[q] = 0; cv_text(120 - text_w(&FONT_S, fl) / 2, 174, &FONT_S, fl, t->dim); }
         if (add_aud_c >= 0) channel_glyph((uint32_t)add_aud_c, 20, 194, 200, 14, t->acc);
         else cv_rect(20, 201, 200, 1, t->dim);
-        cv_text(20, 214, &FONT_S, "OCT+ Add", t->fg); cv_text(240 - 20 - text_w(&FONT_S, "OCT- Back"), 214, &FONT_S, "OCT- Back", t->dim);
+        cv_text(20, 214, &FONT_S, chg_ch < chan_n ? "OCT+ Change" : "OCT+ Add", t->fg); cv_text(240 - 20 - text_w(&FONT_S, "OCT- Back"), 214, &FONT_S, "OCT- Back", t->dim);
         return;
     }
-    cv_text(8, 2, &FONT_S, "Add Channel", accent);
+    cv_text(8, 2, &FONT_S, chg_ch < chan_n ? "Change Channel" : "Add Channel", accent);
     {   const int32_t tw = text_w(&FONT_S, ADD_MODE[add_mode]) + 8, kw = text_w(&FONT_S, "<K1>"), x0 = 234 - (tw + 6 + kw);       /* the mode and the knob that turns it, flush right whatever the word */
         add_tag(x0, 4, ADD_MODE[add_mode], accent);
         cv_text(x0 + tw + 6, 2, &FONT_S, "<K1>", RGB(110, 110, 124));

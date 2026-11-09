@@ -1,0 +1,37 @@
+50 held 0x100
+80 held 0
+100 midi 0xB0 106 77
+200 enc 6 1
+260 enc 6 1
+320 enc 6 1
+380 enc 6 1
+600 held 0x100
+650 held 0
+900 btn 7
+1300 shot
+1420 enc 0 1
+1570 shot
+1690 enc 0 1
+1840 shot
+1960 enc 0 1
+2110 shot
+2230 enc 0 1
+2380 shot
+2500 enc 0 1
+2650 shot
+2770 enc 0 1
+2920 shot
+3040 enc 0 1
+3190 shot
+3310 enc 0 1
+3460 shot
+3580 enc 0 1
+3730 shot
+3850 enc 0 1
+4000 shot
+4120 enc 0 1
+4270 shot
+4390 enc 0 1
+4540 shot
+4660 enc 0 1
+4910 end

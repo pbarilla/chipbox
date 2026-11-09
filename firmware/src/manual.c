@@ -19,7 +19,7 @@ static const mpage_t MP_QUICK[] = {
     {"", M_GLO | M_HOME | M_SMALL, "To see this quick start every time, or to adjust other settings, press GLO and HOME."},
     {"", M_NOPANEL, "I hope you make some really cool stuff! Have fun!"},
 };
-enum { MRP_PICK, MRP_ADD, MRP_LIST, MRP_REMOVE, MRP_PAGES, MRP_PLAY, MRP_TAPE, MRP_REC, MRP_SEQ, MRP_TAILS, MRP_COPY };      /* GLO opens one of these by what you are doing */
+enum { MRP_PICK, MRP_ADD, MRP_LIST, MRP_REMOVE, MRP_PAGES, MRP_PLAY, MRP_TAPE, MRP_REC, MRP_SEQ, MRP_TAILS, MRP_COPY, MRP_CHANGE };      /* GLO opens one of these by what you are doing */
 static const mpage_t MP_RACK[] = {
     {"Pick a channel", M_PRESETS | M_KEYS | M_SMALL, "Turn PRESETS to pick a channel. Press a key to play it. When stopped or paused, a key also writes a note on the playhead's step."},
     {"Add a channel", M_PRESETS | M_OCTU | M_SMALL, "Turn PRESETS to the + row. Press OCT+. Pick a console with SELECT and press OCT+. Pick a channel and press OCT+ to add it."},
@@ -32,10 +32,14 @@ static const mpage_t MP_RACK[] = {
     {"Step entry", M_SEQ, "Press SEQ to enter notes one at a time. On a drum channel it opens the drum lanes."},
     {"Note tails", M_ARP, "Press ARP to turn the note tails on or off."},
     {"Copy and undo", M_SEL | M_LFO, "Hold SEL on a channel to copy it. Press LFO to undo your last change."},
+    {"Change console", M_EDIT | M_OCTU | M_OCTD | M_SMALL, "Tap EDIT on a channel to give it another console. Its notes stay. Going between notes and drums clears the track: press OCT+ for yes or OCT- for no."},
+    {"Level", M_K2, "Turn KNOB 2 to set the channel's level. A bar under its name shows it for a moment."},
+    {"Slide steps", M_K3, "Turn KNOB 3 to slide the channel's steps along this page."},
+    {"Sidechain", M_K4, "Turn KNOB 4 to let a kick duck this channel. Drum channels set it off."},
 };
 static const mpage_t MP_CHIP[] = {
     {"Knobs", M_KNOBS, "Turn KNOB 1 to 4 to change the sound. Watch the screen to see what each one does."},
-    {"More knobs", M_ALGO, "Turn ALGORITHM to reach the next page of knobs. Tone, envelope and arp come first. Some chips have more."},
+    {"More knobs", M_ALGO | M_SEL | M_SMALL, "Turn ALGORITHM to reach the next page of knobs. On an FM chip, press SEL first to pick the channel or an operator."},
     {"Channel", M_PRESETS, "Turn PRESETS to hear another channel's sound. Press HOME to go on to the song."},
     {"Keys", M_KEYS | M_OCTD | M_OCTU, "Press the keys to try the sound. Press OCT- or OCT+ to move up or down an octave."},
 };
@@ -82,8 +86,9 @@ static const mpage_t MP_MENU[] = {
     {"Moving around", M_SELECT | M_PRESETS, "Turn SELECT to turn the pages. Turn PRESETS to jump to another chapter."},
     {"Contents", M_GLO | M_HOME, "Press GLO to see the contents. Press HOME to leave the manual."},
 };
+#include "chipdoc.c"
 #define MC(n, c, p) {n, c, p, sizeof p / sizeof p[0]}
-static const mchap_t MCH[] = {
+static mchap_t MCH[] = {
     MC("Quick Start", RGB(120, 210, 120), MP_QUICK),
     MC("Rack", RGB(240, 150, 40), MP_RACK), MC("Chip", RGB(60, 190, 170), MP_CHIP), MC("Song", RGB(150, 110, 235), MP_SONG), MC("Step Entry", RGB(240, 150, 40), MP_STEP),
     MC("Drums", RGB(235, 100, 70), MP_DRUM), MC("FX Punch In", RGB(230, 90, 140), MP_FX), MC("Projects", RGB(120, 170, 230), MP_PROJ), MC("Menu", RGB(160, 160, 175), MP_MENU),
@@ -177,7 +182,7 @@ static void man_draw(void)
         cv_blit(0, b * 80u);
     }
 }
-static void man_open(uint32_t ch, uint32_t pg) { man_ch = ch; man_pg = pg; man_toc = 0; man_lock = 0; menu_kind = MK_MANUAL; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
+static void man_open(uint32_t ch, uint32_t pg) { if (ch != MC_CHIP) { MCH[MC_CHIP].name = "Chip"; MCH[MC_CHIP].page = MP_CHIP; MCH[MC_CHIP].n = sizeof MP_CHIP / sizeof MP_CHIP[0]; } man_ch = ch; man_pg = pg; man_toc = 0; man_lock = 0; menu_kind = MK_MANUAL; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
 static void man_glo(void) { if (!man_lock) { man_toc ^= 1u; menu_dirty = 1; } }
 static void man_input(uint32_t btn)                      /* SELECT turns pages (on into the next chapter), PRESETS jumps chapters, OCT+ opens a chapter from the contents */
 {
@@ -198,4 +203,12 @@ static void man_input(uint32_t btn)                      /* SELECT turns pages (
         man_pg = 0; menu_dirty = 1;
     }
     if (man_toc && (btn & (1u << BTN_OCT_UP))) { man_toc = 0; man_pg = 0; menu_dirty = 1; }
+}
+static void man_open_chip(uint32_t c, uint32_t page_now)         /* GLO on the chip screen: the chapter for this chip, at the page of the knobs on show */
+{
+    uint32_t at = 0, n;
+    if (c >= chan_n) { man_open(MC_CHIP, 0); return; }
+    n = man_chip_pages(chan[c].kind, &at, page_now, fm_foc);
+    MCH[MC_CHIP].name = ADD_NAME[KIND_CHIP[chan[c].kind]]; MCH[MC_CHIP].page = man_cdoc; MCH[MC_CHIP].n = (uint8_t)n;
+    man_open(MC_CHIP, at);
 }

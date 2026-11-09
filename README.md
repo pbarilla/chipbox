@@ -12,6 +12,8 @@ Chiptune 'grovebox' thing for the FM-1, with more that 35 sound chips!
 
 A simple (to me) workflow for making music.
 
+The FM chips have their real operators (`SEL` picks one), the wavetable chips have a wave you can draw, and `GLO` explains every knob of the chip you are on.
+
 ## Links
 
 - [Play online](https://ihavenocluewhatimdoing.com/chipbox/play/)
@@ -47,15 +49,15 @@ Absolutely not. If you do choose to use the novel method for connecting 2+ FM-1s
 
 | Console        | Channels               | Documentation                                                                                                                                                          |
 | -------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NES            | Pulse, Triangle, Drums | [APU](https://www.nesdev.org/wiki/APU), [APU mixer](https://www.nesdev.org/wiki/APU_Mixer) (NESdev wiki)                                                               |
-| Game Boy       | Pulse, Wave, Drums     | [Audio](https://gbdev.io/pandocs/Audio.html) (Pan Docs)                                                                                                                |
+| NES            | Pulse, Triangle, Noise, Drums | [APU](https://www.nesdev.org/wiki/APU), [APU mixer](https://www.nesdev.org/wiki/APU_Mixer) (NESdev wiki)                                                               |
+| Game Boy       | Pulse, Wave, Noise, Drums | [Audio](https://gbdev.io/pandocs/Audio.html) (Pan Docs)                                                                                                                |
 | Master System  | Tone, Drums            | [SN76489](https://www.smspower.org/Development/SN76489) (SMS Power!)                                                                                                   |
-| PC Engine      | Wave, Drums            | [PC Engine](https://tildearrow.org/furnace/doc/latest/7-systems/pce.html) (Furnace manual)                                                                             |
+| PC Engine      | Wave, Noise, Drums     | [PC Engine](https://tildearrow.org/furnace/doc/latest/7-systems/pce.html) (Furnace manual)                                                                             |
 | Atari 2600     | Sound, Drums           | [TIA hardware notes](https://www.atarihq.com/danb/files/TIA_HW_Notes.txt) (Andrew Towers)                                                                              |
 | Konami VRC6    | Pulse, Saw, Drums      | [VRC6 audio](https://www.nesdev.org/wiki/VRC6_audio) (NESdev wiki)                                                                                                     |
 | AY-3-8910      | Tone, Drums            | [AY-3-8910](https://en.wikipedia.org/wiki/General_Instrument_AY-3-8910) (Wikipedia)                                                                                    |
 | Mega Drive     | FM, Drums              | [Mega Drive audio](https://info.sonicretro.org/SCHG:Mega_Drive_Audio) (Sonic Retro), [YM2612](https://en.wikipedia.org/wiki/Yamaha_YM2612) (Wikipedia)                 |
-| Virtual Boy    | Wave, Drums            | [Virtual Boy](https://tildearrow.org/furnace/doc/latest/7-systems/virtual-boy.html) (Furnace manual)                                                                   |
+| Virtual Boy    | Wave, Noise, Drums     | [Virtual Boy](https://tildearrow.org/furnace/doc/latest/7-systems/virtual-boy.html) (Furnace manual)                                                                   |
 | Atari 8-bit    | Sound, Drums           | [POKEY](https://tildearrow.org/furnace/doc/latest/7-systems/pokey.html) (Furnace manual), [POKEY](https://en.wikipedia.org/wiki/POKEY) (Wikipedia)                     |
 | PC Speaker     | Beeper, Drums          | [PC speaker](https://tildearrow.org/furnace/doc/latest/7-systems/pcspkr.html) (Furnace manual), [PC speaker](https://en.wikipedia.org/wiki/PC_speaker) (Wikipedia)     |
 | AdLib          | FM, Drums              | [OPL](https://tildearrow.org/furnace/doc/latest/7-systems/opl.html) (Furnace manual)                                                                                   |

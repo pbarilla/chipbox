@@ -69,7 +69,7 @@
   {
    "id": "EDIT",
    "name": "EDIT",
-   "RACK": "Hold: remove channel",
+   "RACK": "Tap: change console (notes and drums: asks). Hold: remove channel",
    "CHIP": "",
    "SONG": "Tap: open page. Hold: copy page",
    "STEP": "Clear the block (drums: clear the picked drum on this page)",
@@ -147,7 +147,7 @@
    "id": "SELECT",
    "name": "SELECT",
    "RACK": "Tape dial",
-   "CHIP": "Tape dial",
+   "CHIP": "Tape dial. On the DRAW page: move along the wave",
    "SONG": "Move along the song",
    "STEP": "Move the cursor",
    "FX": "Tape dial, while TAPE is held"
@@ -165,7 +165,7 @@
    "id": "ALGORITHM",
    "name": "ALGORITHM",
    "RACK": "Flip page",
-   "CHIP": "Knob page",
+   "CHIP": "Knob page (FM chips: of the channel or the picked operator)",
    "SONG": "",
    "STEP": "Flip page",
    "FX": ""
@@ -182,7 +182,7 @@
   {
    "id": "KNOB2",
    "name": "KNOB 2-4",
-   "RACK": "",
+   "RACK": "KNOB 2: level. KNOB 3: slide the steps. KNOB 4: sidechain",
    "CHIP": "Sound",
    "SONG": "",
    "STEP": "KNOB 2: note length (hold a key, or on the note under the cursor)",
@@ -205,7 +205,8 @@
   {
    "id": "SEL",
    "name": "SEL",
-   "RACK": "Hold: copy the channel (patch only, or patch and notes). In the project list: copy the project"
+   "RACK": "Hold: copy the channel (patch only, or patch and notes). In the project list: copy the project",
+   "CHIP": "FM chips: pick the channel or an operator for the knobs"
   }
  ],
  "pads": [

@@ -55,6 +55,7 @@ static void dstep_set(step_t *s, uint32_t hits, uint32_t acc)
 static void seq_drums_fire(uint32_t t, const step_t *s)     /* a drum channel's step: every drum in it, at once; an accent is louder */
 {
     uint32_t l, h = dstep_hits(s), a = dstep_acc(s);
+    if (h & 1u) duck_lvl = 256u;                /* a kick: the sidechain */
     for (l = 0; l < 11u; l++) if (h >> l & 1u) ev_do(EV_ON, t, DR_LANE_TYPE[l], a >> l & 1u ? 127u : 88u);
 }
 static void seq_clock(void)                     /* one tick, in the audio ISR */
@@ -261,6 +262,7 @@ static int chan_add(uint32_t kind);
 static void fm_set(uint32_t c, uint32_t alg, uint32_t ratio, uint32_t index, uint32_t fb, uint32_t decay)      /* an FM channel's operators */
 {
     chan[c].in.duty = (uint8_t)alg; chan[c].in.wave = (uint8_t)ratio; chan[c].in.wf = (uint8_t)index; chan[c].in.wc = (uint8_t)fb; chan[c].in.wt = (uint8_t)decay;
+    fm_from_classic(chan[c].kind, &chan[c].in, &chan[c].fm);       /* (the old knobs, as an operator patch) */
 }
 
 /* THE BLUETOOTH DEMO: a locked project to play with all three brothers (D minor, 124 BPM): page 1 the groove, page 2 the lift. Drum kicks on the first lane, so the sidechain pumps. */

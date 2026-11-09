@@ -82,5 +82,45 @@
  {
   "name": "All consoles",
   "file": "samples/all-consoles.chipbox"
+ },
+ {
+  "name": "Test: FM 4-op A",
+  "file": "samples/test-fm-4op-a.chipbox"
+ },
+ {
+  "name": "Test: FM 4-op B",
+  "file": "samples/test-fm-4op-b.chipbox"
+ },
+ {
+  "name": "Test: FM 2-op",
+  "file": "samples/test-fm-2op.chipbox"
+ },
+ {
+  "name": "Test: PSG knobs",
+  "file": "samples/test-psg-knobs.chipbox"
+ },
+ {
+  "name": "Test: noise",
+  "file": "samples/test-noise.chipbox"
+ },
+ {
+  "name": "Test: sweep, vibrato, kits",
+  "file": "samples/test-sweep.chipbox"
+ },
+ {
+  "name": "Test: draw waves",
+  "file": "samples/test-draw-waves.chipbox"
+ },
+ {
+  "name": "Test: rack mix",
+  "file": "samples/test-rack-mix.chipbox"
+ },
+ {
+  "name": "Test: PSG knobs 2",
+  "file": "samples/test-psg-knobs-2.chipbox"
+ },
+ {
+  "name": "Test: 5B and SID",
+  "file": "samples/test-5b-sid.chipbox"
  }
 ]

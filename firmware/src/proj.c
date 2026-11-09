@@ -28,7 +28,7 @@ static void proj_edited(void) { if (!undo_open) undo_push(); undo_open = 1; undo
 static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the length, or 0 when it does not fit a bank */
 {
     uint32_t n = 0, pg, c, s, ev = 0, evat;
-    p[n++] = 3;
+    p[n++] = 5;                                 /* version 5: after a channel's sound a length byte and that many extra bytes (0: the defaults; byte 0 the sidechain, then an FM chip's patch, bit packed: fm.c) */
     p[n++] = (uint8_t)seq_bpm; p[n++] = (uint8_t)(seq_bpm >> 8);
     p[n++] = (uint8_t)page_n; p[n++] = (uint8_t)chan_n;
     for (c = 0; c < chan_n; c++) {
@@ -38,6 +38,12 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
         p[n++] = x->vib_spd; p[n++] = x->vib_dep; p[n++] = (uint8_t)x->sweep; p[n++] = x->pan; p[n++] = x->vol;
         p[n++] = x->arp; p[n++] = x->arp_rate; p[n++] = x->arp_dir;
         p[n++] = x->wf; p[n++] = x->wc; p[n++] = x->wt;
+        {   const uint32_t fl = fm_plen(chan[c].kind);
+            if (n + 2u + fl > PROJ_BANK - PROJ_HDR) return 0;
+            if (fl) { p[n++] = (uint8_t)(1u + fl); p[n++] = x->duck; fm_pack(chan[c].kind, &chan[c].fm, p + n); n += fl; }
+            else if (chan[c].wcus && wd_ok(chan[c].kind)) { const uint32_t wl = wd_plen(c); if (n + 2u + wl > PROJ_BANK - PROJ_HDR) return 0; p[n++] = (uint8_t)(1u + wl); p[n++] = x->duck; wd_pack(c, p + n); n += wl; }       /* a drawn wave, at the chip's depth */
+            else if (x->duck) { p[n++] = 1; p[n++] = x->duck; } else p[n++] = 0;
+        }
     }
     evat = n; n += 2;
     for (pg = 0; pg < page_n; pg++)
@@ -58,13 +64,17 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
 static int proj_check(const uint8_t *p, uint32_t len)       /* 0: these bytes are a project this firmware can load */
 {
     uint32_t n, i, c, ev, pages, chans, isz;
-    if (len < 7u || (p[0] != 2u && p[0] != 3u)) return -1;
+    if (len < 7u || p[0] < 2u || p[0] > 5u) return -1;
     isz = p[0] == 2u ? 14u : PROJ_INST;
     pages = p[3]; chans = p[4];
     if (pages < 1u || pages > SEQ_PAGES || chans > MAXCH) return -1;
-    n = 5u + chans * (1u + isz);
+    n = 5u;
+    for (c = 0; c < chans; c++) {
+        if (n + 1u + isz > len || p[n] >= KINDS) return -1;
+        n += 1u + isz;
+        if (p[0] >= 4u) { if (n >= len) return -1; n += 1u + p[n]; }
+    }
     if (len < n + 2u) return -1;
-    for (c = 0; c < chans; c++) if (p[5u + c * (1u + isz)] >= KINDS) return -1;
     ev = (uint32_t)p[n] | (uint32_t)p[n + 1u] << 8;
     n += 2u;
     if (len < n + ev * PROJ_EV) return -1;
@@ -76,19 +86,20 @@ static int proj_check(const uint8_t *p, uint32_t len)       /* 0: these bytes ar
 }
 static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else nothing was changed */
 {
-    uint32_t n, i, c, ev, pages, chans, isz;
+    uint32_t n, i, c, ev, pages, chans, isz, q0;
     if (proj_check(p, len)) return -1;
     isz = p[0] == 2u ? 14u : PROJ_INST;
     pages = p[3]; chans = p[4];
-    n = 5u + chans * (1u + isz);
+    n = 5u;
+    for (c = 0; c < chans; c++) { n += 1u + isz; if (p[0] >= 4u) n += 1u + p[n]; }
     ev = (uint32_t)p[n] | (uint32_t)p[n + 1u] << 8;
     n += 2u;
     seq_stop();
     seq_clear();                                /* (the voices are silent while this runs; a sound is read when a note starts) */
     seq_bpm = (uint32_t)p[1] | (uint32_t)p[2] << 8;
     page_n = pages;
-    for (c = 0; c < chans; c++) {
-        const uint8_t *q = p + 5u + c * (1u + isz);
+    for (c = 0, q0 = 5u; c < chans; c++) {
+        const uint8_t *q = p + q0;
         chan_t *x;
         chan_add(q[0]);
         x = &chan[c];
@@ -97,6 +108,14 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
         x->in.arp = q[12]; x->in.arp_rate = q[13]; x->in.arp_dir = q[14];
         if (isz == 14u) { static const uint8_t OLD[4] = {0, 5, 10, 15}; x->in.wave = OLD[q[1] & 3u]; }       /* version 2: wave was one of four presets */
         else { const uint32_t m = q[0] == KD_SID ? 255u : 15u; x->in.wf = q[15] & m; x->in.wc = q[16] & m; x->in.wt = q[17] & m; }       /* the SID packs two settings in a byte */
+        q0 += 1u + isz;
+        {   const uint32_t nx = p[0] >= 4u ? p[q0] : 0u, fl = fm_plen(q[0]);
+            if (nx >= 1u) x->in.duck = p[q0 + 1u] & 15u;
+            if (fl && p[0] >= 5u && nx == 1u + fl) fm_unpack(q[0], &x->fm, p + q0 + 2u);
+            else if (fl) fm_from_classic(q[0], &x->in, &x->fm);              /* an older project: the old knobs become an operator patch */
+            else if (wd_ok(q[0]) && p[0] >= 5u && nx == 1u + wd_plen(c)) wd_unpack(c, p + q0 + 2u);       /* a drawn wave (its length comes from the sound bytes read above) */
+            if (p[0] >= 4u) q0 += 1u + nx;
+        }
     }
     for (i = 0; i < ev; i++) {
         const uint8_t *e = p + n + i * PROJ_EV;

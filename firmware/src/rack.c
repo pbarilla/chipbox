@@ -25,6 +25,7 @@ static void win_ask(const char *q);
 static uint32_t song_cur, song_top;             /* the song's cursor (a slot; one past the last is the "add" cell) and its first row shown */
 static uint32_t rec_on;                         /* recording: keys land on the step the playhead is at */
 static uint32_t rack_tails;                     /* ARP: show a line under the long notes (kept in the settings) */
+static uint32_t rack_bar_t, rack_bar_row, rk_bar_a;           /* KNOB 2 / 4 turned on a channel: its level and sidechain bars show, then fade (rk_bar_a 0..255 while drawing) */
 static uint32_t rack_cur, rack_inval, rack_rm, rack_top;     /* the cursor's step; set to repaint after an edit; a channel waits to be removed; the first row shown */
 
 static uint16_t mix16(uint16_t a, uint16_t b, uint32_t k)       /* a towards b by k / 256 */
@@ -169,6 +170,16 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
                 if (len < 3u) rack_digit(3 + (int32_t)len * 8, y + 5, nth + 1u > 9u ? 9u : nth + 1u, 2, on_row ? on : mix16(R_BG, on, 150));
                 else rack_digit(26, y + 10, nth + 1u > 9u ? 9u : nth + 1u, 1, on_row ? on : mix16(R_BG, on, 150));
             }
+            if (rk_bar_a && row == rack_bar_row) {                                                        /* the level, and the sidechain under it: only while KNOB 2 / 4 is in use, then they fade */
+                const uint16_t bg = on_row ? R_SEL : R_BG;
+                const uint32_t vl = chan[row].in.vol > 15u ? 15u : chan[row].in.vol, dk = chan[row].in.duck > 15u ? 15u : chan[row].in.duck;
+                rk_rect(3, y + 15, 31, 2, mix16(bg, on, (uint8_t)(rk_bar_a / 5u)));
+                rk_rect(3, y + 15, 2 * (int32_t)vl + 1, 2, mix16(bg, on_row ? on : R_WHITE, (uint8_t)rk_bar_a));
+                if (!IS_DRUM(chan[row].kind)) {
+                    rk_rect(3, y + 17, 31, 2, mix16(bg, R_WHITE, (uint8_t)(rk_bar_a / 8u)));
+                    if (dk) rk_rect(3, y + 17, 2 * (int32_t)dk + 1, 2, mix16(bg, R_WHITE, (uint8_t)(rk_bar_a * 4u / 5u)));
+                }
+            }
             for (i = 0; i < SEQ_LEN; i++) {
                 const step_t *s = &pat[seq_view][row][i];
                 int32_t x = rack_x(i);
@@ -230,6 +241,14 @@ static void rack_update(uint32_t sel, uint32_t force)
     if (sel < rack_top) rack_top = sel;
     if (sel >= rack_top + R_ROWS) rack_top = sel - (R_ROWS - 1u);
     line = rack_line();
+    {   uint32_t a = 0;                                                                                   /* the bars: full for 1.2 s, then gone in 0.6 s (repainted only when the shade changes) */
+        if (rack_bar_t) {
+            const int32_t d0 = (int32_t)(fm1_ms - rack_bar_t);
+            const uint32_t dt = d0 < 0 ? 0u : (uint32_t)d0;
+            if (dt < 1200u) a = 255u; else if (dt < 1800u) a = (1800u - dt) * 255u / 600u & ~15u; else rack_bar_t = 0;
+        }
+        if (a != rk_bar_a) { rk_bar_a = a; rack_inval = 1; }
+    }
     if (force || rack_inval || seq_view != view_d || (seq_run | seq_hold << 1) != run_d || sel != sel_d || rack_cur != cur_d || rack_top != top_d || chan_n != n_d || rec_on != rec_d) {
         if (force) { view_clear(R_BG); hdr_force = 1; }
         rack_inval = 0;
@@ -237,7 +256,8 @@ static void rack_update(uint32_t sel, uint32_t force)
           if (rack_rm) { gfx_dim = 1; gfx_dim_bg = R_BG; }
           rack_cols(sel, 0, 240, line);
           gfx_dim = gd; }
-        if (rack_rm) win_ask("Remove channel?");
+        if (rack_rm == 2u) win_ask(IS_DRUM(chg_kind) ? "Switching from\nNotes to Drums\nwill clear the track" : "Switching from\nDrums to Notes\nwill clear the track");
+        else if (rack_rm) win_ask("Remove channel?");
         view_d = seq_view; run_d = seq_run | seq_hold << 1; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; rec_d = rec_on; line_d = line;
     } else if (line != line_d && !rack_rm) {
         if (line_d >= 0) rack_cols(sel, line_d, 2, -1);

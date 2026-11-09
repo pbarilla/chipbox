@@ -1,0 +1,270 @@
+The test projects (site/projects/samples/test-*.chipbox). A channel differs from the plain one in one thing; a page plays the plain channel and up to three variants, four steps each.
+
+Test: FM 4-op A (OPM)
+  894 bytes, 16 channels, 6 pages
+  channels:
+     1  OPM plain (alg 4)
+     2  OPM alg 0
+     3  OPM alg 1
+     4  OPM alg 2
+     5  OPM alg 3
+     6  OPM alg 5
+     7  OPM alg 6
+     8  OPM alg 7
+     9  OPM FB 7
+    10  OPM op1 TL 6 (loud modulator)
+    11  OPM op1 MUL 5
+    12  OPM op4 DT1 6
+    13  OPM op4 DT2 2
+    14  OPM op4 AR 11 (slow attack)
+    15  OPM op2+4 D1R 24 D1L 8 D2R 9
+    16  OPM op2+4 RR 2 (long release)
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  OPM plain (alg 4) alone
+     2  OPM plain (alg 4) | OPM alg 0 | OPM alg 1 | OPM alg 2
+     3  OPM plain (alg 4) | OPM alg 3 | OPM alg 5 | OPM alg 6
+     4  OPM plain (alg 4) | OPM alg 7 | OPM FB 7 | OPM op1 TL 6 (loud modulator)
+     5  OPM plain (alg 4) | OPM op1 MUL 5 | OPM op4 DT1 6 | OPM op4 DT2 2
+     6  OPM plain (alg 4) | OPM op4 AR 11 (slow attack) | OPM op2+4 D1R 24 D1L 8 D2R 9 | OPM op2+4 RR 2 (long release)
+
+Test: FM 4-op B (OPZ, OPM, MD, OPN, PC-98, Neo Geo)
+  890 bytes, 16 channels, 8 pages
+  channels:
+     1  OPZ plain
+     2  OPZ op4 WAVE 3
+     3  OPZ op4 FINE 8
+     4  OPZ op2+4 SHIFT 3
+     5  OPZ op4 FIX 1
+     6  OPM plain
+     7  OPM op2+4 KS 1 (note 84)
+     8  OPM LFO PMS 5 PMD 100 LFS 150 tri
+     9  OPM LFO AMS 3 AMD 127 op4 AM
+    10  MD plain
+    11  MD pan left, LFO PMS 6 LFS 4
+    12  MD op4 AM AMS 3 LFS 4
+    13  YM2203 plain
+    14  YM2203 op2+4 KS 2, op4 DT1 6
+    15  PC-98 pan right, LFO PMS 5
+    16  Neo Geo FM alg 5
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  OPZ plain alone
+     2  OPZ plain | OPZ op4 WAVE 3 | OPZ op4 FINE 8
+     3  OPZ plain | OPZ op2+4 SHIFT 3 | OPZ op4 FIX 1
+     4  OPM plain | OPM LFO PMS 5 PMD 100 LFS 150 tri | OPM LFO AMS 3 AMD 127 op4 AM
+     5  OPM plain | OPM op2+4 KS 1 (note 84)
+     6  MD plain | MD pan left, LFO PMS 6 LFS 4 | MD op4 AM AMS 3 LFS 4
+     7  YM2203 plain | YM2203 op2+4 KS 2, op4 DT1 6
+     8  MD plain | PC-98 pan right, LFO PMS 5 | Neo Geo FM alg 5
+
+Test: FM 2-op (AdLib, MSX-Audio, OPL3, OPLL, VRC7)
+  668 bytes, 16 channels, 7 pages
+  channels:
+     1  AdLib plain
+     2  AdLib mod MULT 4
+     3  AdLib car KSL 2 (note 84)
+     4  AdLib HOLD (EGT) both
+     5  AdLib car TREM, DAM 1
+     6  AdLib car VIB, DVB 1
+     7  AdLib mod WAVE 1 car WAVE 3, FB 7
+     8  MSX-Audio mod MULT 4 FB 6
+     9  OPL3 plain (conn 2)
+    10  OPL3 conn 0
+    11  OPL3 conn 3
+    12  OPL3 op2+4 WAVE 6, pan left
+    13  OPLL inst 1 plain
+    14  OPLL inst 8
+    15  OPLL custom: inst 1, mod TL 8, car MULT 2
+    16  VRC7 custom: inst 1, mod WAVE 1, FB 7
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  AdLib plain alone
+     2  AdLib plain | AdLib mod MULT 4 | AdLib HOLD (EGT) both | AdLib car TREM, DAM 1
+     3  AdLib plain | AdLib car VIB, DVB 1 | AdLib mod WAVE 1 car WAVE 3, FB 7
+     4  AdLib plain | AdLib car KSL 2 (note 84)
+     5  AdLib plain | MSX-Audio mod MULT 4 FB 6
+     6  OPL3 plain (conn 2) | OPL3 conn 0 | OPL3 conn 3 | OPL3 op2+4 WAVE 6, pan left
+     7  OPLL inst 1 plain | OPLL inst 8 | OPLL custom: inst 1, mod TL 8, car MULT 2 | VRC7 custom: inst 1, mod WAVE 1, FB 7
+
+Test: PSG knobs (AY, SSG, SAA, POKEY)
+  444 bytes, 16 channels, 6 pages
+  channels:
+     1  AY plain tone
+     2  AY NOISE 15 (follows the note)
+     3  AY NOISE 15 PERIOD 3
+     4  AY NOISE 15 PERIOD 12
+     5  AY BUZZ 3
+     6  AY BUZZ 5 BRATIO 4
+     7  AY BUZZ 7 BRATIO 12
+     8  PC-98 SSG plain
+     9  PC-98 SSG BUZZ 4
+    10  SAA plain
+    11  SAA ENV 3
+    12  SAA ENV 6 ERES
+    13  SAA NOISE 15 NRATE 3
+    14  POKEY plain (noisy 5)
+    15  POKEY HPF 9
+    16  POKEY CLOCK 1
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  AY plain tone alone
+     2  AY plain tone | AY NOISE 15 (follows the note) | AY NOISE 15 PERIOD 3 | AY NOISE 15 PERIOD 12
+     3  AY plain tone | AY BUZZ 3 | AY BUZZ 5 BRATIO 4 | AY BUZZ 7 BRATIO 12
+     4  PC-98 SSG plain | PC-98 SSG BUZZ 4
+     5  SAA plain | SAA ENV 3 | SAA ENV 6 ERES | SAA NOISE 15 NRATE 3
+     6  POKEY plain (noisy 5) | POKEY HPF 9 | POKEY CLOCK 1
+
+Test: noise
+  420 bytes, 15 channels, 7 pages
+  channels:
+     1  NES noise plain
+     2  NES noise MODE short
+     3  NES noise PERIOD 6
+     4  GB noise plain
+     5  GB noise WIDTH 7 bit
+     6  PCE noise plain
+     7  PCE noise RATE 8
+     8  VB noise plain
+     9  VB noise TAP 7
+    10  SMS tone
+    11  SMS NOISE 1 white
+    12  SMS NOISE 4 periodic
+    13  SMS NOISE 8 fixed rate
+    14  NGP NOISE 2
+    15  NGP NOISE 7
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  NES noise plain alone
+     2  NES noise plain | NES noise MODE short | NES noise PERIOD 6
+     3  GB noise plain | GB noise WIDTH 7 bit
+     4  PCE noise plain | PCE noise RATE 8
+     5  VB noise plain | VB noise TAP 7
+     6  SMS tone | SMS NOISE 1 white | SMS NOISE 4 periodic | SMS NOISE 8 fixed rate
+     7  SMS tone | NGP NOISE 2 | NGP NOISE 7
+
+Test: sweep, vibrato, kits
+  500 bytes, 16 channels, 8 pages
+  channels:
+     1  GB pulse plain
+     2  GB pulse SWEEP +5
+     3  GB pulse SWEEP -26
+     4  GB pulse VIB 15 VSPD 3
+     5  GB pulse VIB 15 VSPD 14
+     6  PCE plain
+     7  PCE SWEEP +16
+     8  VB plain
+     9  VB SWEEP -10
+    10  NGP plain
+    11  NGP SWEEP +8
+    12  NES pulse plain
+    13  NES pulse SWEEP +34
+    14  NES kit
+    15  GB kit
+    16  SMS kit
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  GB pulse plain alone
+     2  GB pulse plain | GB pulse SWEEP +5 | GB pulse SWEEP -26
+     3  GB pulse plain | GB pulse VIB 15 VSPD 3 | GB pulse VIB 15 VSPD 14
+     4  PCE plain | PCE SWEEP +16
+     5  VB plain | VB SWEEP -10
+     6  NGP plain | NGP SWEEP +8
+     7  NES pulse plain | NES pulse SWEEP +34
+     8  NES kit | GB kit | SMS kit
+
+Test: draw waves
+  683 bytes, 16 channels, 8 pages
+  channels:
+     1  GB wave generator wave
+     2  GB wave drawn pulse 1/8
+     3  GB wave drawn staircase
+     4  PCE generator wave
+     5  PCE drawn two harmonics
+     6  VB generator wave
+     7  VB drawn noisy
+     8  WonderSwan generator wave
+     9  WonderSwan drawn staircase
+    10  SCC generator wave
+    11  SCC drawn two harmonics
+    12  N163 drawn two harmonics, LENGTH 8
+    13  N163 drawn pulse 1/8, LENGTH 16
+    14  N163 drawn noisy, LENGTH 64
+    15  FDS drawn two harmonics
+    16  C30 drawn pulse 1/8
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  GB wave generator wave alone
+     2  GB wave generator wave | GB wave drawn pulse 1/8 | GB wave drawn staircase
+     3  PCE generator wave | PCE drawn two harmonics
+     4  VB generator wave | VB drawn noisy
+     5  WonderSwan generator wave | WonderSwan drawn staircase
+     6  SCC generator wave | SCC drawn two harmonics
+     7  N163 drawn two harmonics, LENGTH 8 | N163 drawn pulse 1/8, LENGTH 16 | N163 drawn noisy, LENGTH 64
+     8  FDS drawn two harmonics | C30 drawn pulse 1/8
+
+Test: rack mix (level, slide, sidechain)
+  495 bytes, 11 channels, 5 pages
+  channels:
+     1  NES kick
+     2  pad plain (vol 15, duck 0)
+     3  pad vol 11
+     4  pad duck 4
+     5  pad slid +1 step
+     6  pad vol 7
+     7  pad duck 9
+     8  pad slid +2 step
+     9  pad vol 3
+    10  pad duck 15
+    11  pad slid +3 step
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  pad plain + kick every beat
+     2  level 15 | 11 | 7 | 3
+     3  sidechain 0 | 4 | 9 | 15, kick every 2 steps
+     4  same phrase on 4 channels, 0 | +1 | +2 | +3 steps (KNOB 3)
+     5  NES kit: kick snare hats
+
+Test: PSG knobs 2 (Lynx, SN76477, N163, VRC6, TIA)
+  445 bytes, 16 channels, 7 pages
+  channels:
+     1  Lynx plain
+     2  Lynx INTEG
+     3  Lynx wave 4 TAPS 6
+     4  Lynx BAL 9 (right)
+     5  SN76477 plain
+     6  SN76477 FILTER 3 (noise)
+     7  SN76477 noise RATE 12
+     8  SN76477 siren DEPTH 12
+     9  SN76477 DUTY 12
+    10  N163 saw, plain (32)
+    11  N163 saw, LENGTH 8
+    12  N163 saw, LENGTH 4
+    13  VRC6 saw plain
+    14  VRC6 saw OVER 8
+    15  TIA TYPE 6
+    16  TIA TYPE 4
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  Lynx plain alone
+     2  Lynx plain | Lynx INTEG | Lynx wave 4 TAPS 6 | Lynx BAL 9 (right)
+     3  SN76477 plain | SN76477 FILTER 3 (noise) | SN76477 noise RATE 12 | SN76477 siren DEPTH 12
+     4  SN76477 plain | SN76477 DUTY 12
+     5  N163 saw, plain (32) | N163 saw, LENGTH 8 | N163 saw, LENGTH 4
+     6  VRC6 saw plain | VRC6 saw OVER 8
+     7  TIA TYPE 6 | TIA TYPE 4
+
+Test: 5B and SID
+  381 bytes, 13 channels, 6 pages
+  channels:
+     1  5B plain tone
+     2  5B NOISE 15 PERIOD 4
+     3  5B BUZZ 2 RATE 3
+     4  5B BUZZ 2 RATE 3 MIXENV
+     5  5B BUZZ 6 plucks
+     6  SID plain (pulse)
+     7  SID low-pass CUT 5 RES 9
+     8  SID band-pass CUT 8 RES 12
+     9  SID high-pass CUT 6
+    10  SID LP CUT 3 FENV 12
+    11  SID SYNC 6
+    12  SID RING 5, triangle
+    13  SID PW 3 PWM 9
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  5B plain tone alone
+     2  5B plain tone | 5B NOISE 15 PERIOD 4 | 5B BUZZ 2 RATE 3 | 5B BUZZ 2 RATE 3 MIXENV
+     3  5B plain tone | 5B BUZZ 6 plucks
+     4  SID plain (pulse) | SID low-pass CUT 5 RES 9 | SID band-pass CUT 8 RES 12 | SID high-pass CUT 6
+     5  SID plain (pulse) | SID LP CUT 3 FENV 12 | SID SYNC 6 | SID RING 5, triangle
+     6  SID plain (pulse) | SID PW 3 PWM 9

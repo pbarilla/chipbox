@@ -166,17 +166,17 @@ static void chip_tabs(const theme_t *t, uint32_t c)
 }
 
 /* the YM2151's eight algorithms (0..7) and the OPL3's four connections (8..11): four operators, who modulates whom, who reaches the output */
-static void fm4_diagram(const theme_t *t, uint32_t alg)
+static void fm4_diagram(const theme_t *t, uint32_t alg, int32_t hl)
 {
     static const int8_t POS[12][4][2] = {
         {{0, 1}, {1, 1}, {2, 1}, {3, 1}}, {{0, 0}, {0, 2}, {1, 1}, {2, 1}}, {{0, 0}, {0, 2}, {1, 2}, {2, 1}}, {{0, 0}, {1, 0}, {1, 2}, {2, 1}},
         {{0, 0}, {1, 0}, {0, 2}, {1, 2}}, {{0, 1}, {1, 0}, {1, 1}, {1, 2}}, {{0, 0}, {1, 0}, {1, 1}, {1, 2}}, {{1, 0}, {1, 1}, {1, 2}, {1, 3}},
-        {{0, 1}, {1, 1}, {2, 1}, {3, 1}}, {{0, 0}, {0, 2}, {1, 2}, {2, 2}}, {{0, 0}, {1, 0}, {2, 0}, {2, 2}}, {{1, 0}, {0, 2}, {1, 2}, {1, 3}}};
+        {{0, 1}, {1, 1}, {2, 1}, {3, 1}}, {{0, 0}, {0, 2}, {1, 2}, {2, 2}}, {{0, 0}, {1, 0}, {0, 2}, {1, 2}}, {{1, 0}, {0, 2}, {1, 2}, {1, 3}}};
     static const int8_t WIRE[12][3][2] = {                       /* from, to; the operator numbers count from 0; -1 none */
         {{0, 1}, {1, 2}, {2, 3}}, {{0, 2}, {1, 2}, {2, 3}}, {{1, 2}, {0, 3}, {2, 3}}, {{0, 1}, {1, 3}, {2, 3}},
         {{0, 1}, {2, 3}, {-1, 0}}, {{0, 1}, {0, 2}, {0, 3}}, {{0, 1}, {-1, 0}, {-1, 0}}, {{-1, 0}, {-1, 0}, {-1, 0}},
-        {{0, 1}, {1, 2}, {2, 3}}, {{1, 2}, {2, 3}, {-1, 0}}, {{0, 1}, {1, 2}, {-1, 0}}, {{1, 2}, {-1, 0}, {-1, 0}}};
-    static const uint8_t CARRY[12] = {8, 8, 8, 8, 10, 14, 14, 15, 8, 9, 12, 13};     /* a bit an operator */
+        {{0, 1}, {1, 2}, {2, 3}}, {{1, 2}, {2, 3}, {-1, 0}}, {{0, 1}, {2, 3}, {-1, 0}}, {{1, 2}, {-1, 0}, {-1, 0}}};
+    static const uint8_t CARRY[12] = {8, 8, 8, 8, 10, 14, 14, 15, 8, 9, 10, 13};     /* a bit an operator */
     int32_t bx[4], by[4], i, lo = 99, hi = 0, mid;
     if (alg > 11u) alg = 0;
     for (i = 0; i < 4; i++) { bx[i] = 10 + POS[alg][i][0] * 48; by[i] = 4 + POS[alg][i][1] * 15; }
@@ -193,7 +193,8 @@ static void fm4_diagram(const theme_t *t, uint32_t alg)
     for (i = 0; i < 4; i++) {
         char l[2];
         l[0] = (char)('1' + i); l[1] = 0;
-        cv_rect(bx[i], by[i], 26, 12, t->acc);
+        cv_rect(bx[i], by[i], 26, 12, hl == i ? t->fg : t->acc);
+        if (hl == i) { cv_rect(bx[i] - 2, by[i] - 2, 30, 2, t->fg); cv_rect(bx[i] - 2, by[i] + 12, 30, 2, t->fg); }
         cv_text(bx[i] + 9, by[i] - 1, &FONT_S, l, t->bg);
         if (CARRY[alg] >> i & 1u) {
             cv_rect(bx[i] + 26, by[i] + 5, 202 - bx[i] - 26, 2, t->fg);
@@ -208,11 +209,11 @@ static void fm4_diagram(const theme_t *t, uint32_t alg)
 }
 
 /* the OPL2's two operators: A modulates C (or both play, in the last pair); C's wave is drawn above it: sine, half sine, absolute sine */
-static void opl_diagram(const theme_t *t, uint32_t alg)
+static void opl_diagram(const theme_t *t, uint32_t alg, int32_t hl)
 {
     int32_t ax = alg == 3u ? 158 : 92, ay = alg == 3u ? 10 : 30, cx = 158, cy = alg == 3u ? 46 : 30, i, mid = alg == 3u ? 38 : 39;
-    cv_rect(ax, ay, 30, 16, t->acc); cv_text(ax + 12, ay + 2, &FONT_S, "A", t->bg);
-    cv_rect(cx, cy, 30, 16, t->acc); cv_text(cx + 12, cy + 2, &FONT_S, "C", t->bg);
+    cv_rect(ax, ay, 30, 16, hl == 0 ? t->fg : t->acc); cv_text(ax + 12, ay + 2, &FONT_S, "1", t->bg);
+    cv_rect(cx, cy, 30, 16, hl == 1 ? t->fg : t->acc); cv_text(cx + 12, cy + 2, &FONT_S, "2", t->bg);
     if (alg != 3u) {
         cv_rect(ax + 30, ay + 7, cx - ax - 34, 2, t->fg);
         cv_rect(cx - 4, cy + 5, 1, 6, t->fg); cv_rect(cx - 3, cy + 6, 1, 4, t->fg); cv_rect(cx - 2, cy + 7, 1, 2, t->fg);
@@ -282,7 +283,36 @@ static void sid_curve(const theme_t *t, const inst_t *in, int32_t top, int32_t b
         px = x; py = y;
     }
 }
+/* the wave as the chip plays it: n bars at the chip's real depth; on the DRAW page the cursor, the brush and the mirror show */
+static uint32_t wd_c = 255u;                                            /* the channel whose wave the envelope panel shows (255: none) */
+static void wd_panel(const theme_t *t, uint32_t c, uint32_t page, uint32_t np, uint32_t draw)
+{
+    uint8_t wv[64];
+    const uint32_t kind = chan[c].kind, n = wd_n(c), top = wd_top(kind), chip = KIND_CHIP[kind];
+    const int32_t base = CV_ENV_H - 10, cur = (int32_t)(dr_cur < n ? dr_cur : n - 1u), bw = 1 << dr_brush;
+    int32_t i, mir = -1;
+    wd_cur(c, wv);
+    cv_begin(240, CV_ENV_H, t->bg);
+    skin_box(chip, t, 3, 0, 234, CV_ENV_H, t->bar);
+    { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }
+    cv_rect(12, base + 1, 216, 1, t->dim);
+    if (draw) {                                                         /* where the mirror writes, under the baseline */
+        if (dr_sym == 1u || dr_sym == 2u) mir = (int32_t)n - 1 - cur;
+        else if (dr_sym == 3u) mir = (cur + (int32_t)n / 2) % (int32_t)n;
+    }
+    for (i = 0; i < (int32_t)n; i++) {
+        const int32_t x0 = 12 + i * 216 / (int32_t)n, x1 = 12 + (i + 1) * 216 / (int32_t)n, w = x1 - x0 - 1, h = 2 + (int32_t)wv[i] * 52 / (int32_t)top;
+        const int32_t on = draw && i >= cur && i < cur + bw, at = draw && i == cur;
+        cv_rect(x0, base - h, w, h, at ? t->fg : on ? t->acc : mix16(t->bar, t->acc, draw ? 70 : 90));
+        cv_rect(x0, base - h, w, 3, at ? t->fg : t->acc);
+        if (at) cv_rect(x0 + w / 2, 8, 1, base - h - 8, t->fg);          /* a guide up from the bar */
+        if (on) cv_rect(x0, base + 3, w, 4, at ? t->fg : t->acc);
+        if (draw && mir >= 0 && i >= mir && i < mir + bw && i < (int32_t)n) cv_rect(x0, base + 3, w, 2, t->acc);
+    }
+    cv_blit(0, CV_ENV_Y);
+}
 /* the envelope as it plays: rise, fall to the held level, hold, fade; the time axis is squeezed to fit */
+static uint32_t env_x;                                                  /* the panel on an extra page: the envelope, whatever the page number */
 static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t page, uint32_t np, uint32_t fm, uint32_t drum)
 {
     int32_t base = CV_ENV_H - 10, top = 12, w[4], total, x, ys, i;
@@ -301,22 +331,10 @@ static void chip_env(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
     }
     { uint32_t d; for (d = 0; d < np; d++) cv_rect(204 - (int32_t)(np - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim); }       /* which page of knobs */
     cv_rect(12, base + 1, 216, 1, t->dim);
+    if (env_x) page = 1u;                                       /* (an extra page shows the envelope) */
     if (chip == CHIP_SID && (page == 0u || page == 3u)) { sid_scope(t, in, top, base); cv_blit(0, CV_ENV_Y); return; }
     if (chip == CHIP_SID && page == 4u) { sid_curve(t, in, top, base); cv_blit(0, CV_ENV_Y); return; }
-    if (page == 0u && fm) {                                     /* the FM: the operators and how they connect */
-        if (chip == CHIP_OPL) opl_diagram(t, in->duty); else if (chip == CHIP_OPL1) opl_diagram(t, in->duty ? 3u : 0u); else if (chip == CHIP_OPM || chip == CHIP_OPL3 || chip == CHIP_PC98 || chip == CHIP_NEO || chip == CHIP_OPZ || chip == CHIP_OPN || chip == CHIP_MD) fm4_diagram(t, in->duty + (chip == CHIP_OPL3 ? 8u : 0u));
-        cv_blit(0, CV_ENV_Y);
-        return;
-    }
-    if (page == 3u && fm) {                                     /* the FM: how hard the modulator hits, and how fast it dies away over two seconds */
-        for (i = 0; i < 72; i++) {
-            int32_t h = 2 + (int32_t)in->wf * 52 / 15 * 16 / (16 + i * 40 / 72 * (int32_t)in->wt);
-            cv_rect(12 + i * 3, base - h, 2, h, mix16(t->bar, t->acc, 90));
-            cv_rect(12 + i * 3, base - h, 2, 2, t->acc);
-        }
-        cv_blit(0, CV_ENV_Y);
-        return;
-    }
+    if (page == 3u && wd_c < MAXCH && wd_ok(chan[wd_c].kind)) { wd_panel(t, wd_c, page, np, 0u); return; }
     if (page == 3u) {                                           /* the wave: 32 steps of 4 bits, as the chip plays them */
         uint8_t wv[32];
         wave_make(in, wv);
@@ -497,7 +515,7 @@ static void sid_card(const theme_t *t, uint32_t chip, const inst_t *in, uint32_t
 static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
 {
     static const char *const ENVL[4] = {"ATK", "DEC", "SUS", "REL"};
-    static const char *const ARPL[4] = {"SHAPE", "RATE", "DIR", ""};
+    static const char *const ARPL[4] = {"SHAPE", "RATE", "DIR", "VSPD"};
     static const char *const WAVL[4] = {"SHAPE", "FOLD", "STEP", "TWIST"};
     static const char *const FML[4] = {"RATIO", "INDEX", "FB", "DECAY"};
     static const uint8_t BARS[4] = {2, 4, 6, 9};
@@ -507,10 +525,25 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
     cv_begin(240, CV_CARDS_H, t->bg);
     for (k = 0; k < 4u; k++) {
         int32_t x = CV_CARD_X(k), i;
-        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 4u && chan[c].kind == KD_FDS ? (k == 0u ? "RATIO" : k == 1u ? "SWEEP" : k == 2u ? "SHAPE" : "") : page == 3u ? (chan[c].kind == KD_S5B ? (k == 0u ? "PERIOD" : "") : fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_POKEY ? "DIST" : chan[c].kind == KD_AY || chan[c].kind == KD_S5B || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG ? "NOISE" : chan[c].kind == KD_SN77 ? "MIX" : chan[c].kind == KD_MSM ? "FOOT" : IS_OPLL(chan[c].kind) ? "INST" : chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC ? "NOISE" : chan[c].kind == KD_LYNX ? "TYPE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : chan[c].kind == KD_S5B ? "BUZZ" : chan[c].kind == KD_FDS ? "DEPTH" : chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ ? "WAVE" : chan[c].kind == KD_SN77 ? "SLF" : chan[c].kind == KD_MSM ? "QUINT" : "SWEEP";
+        const char *lab = IS_DRUM(chan[c].kind) && k >= 2u ? "" : page == 4u && chan[c].kind == KD_FDS ? (k == 0u ? "RATIO" : k == 1u ? "SWEEP" : k == 2u ? "SHAPE" : "") : page == 3u ? (chan[c].kind == KD_S5B ? (k == 0u ? "PERIOD" : "") : fm ? FML[k] : WAVL[k]) : page == 2u ? ARPL[k] : page == 1u ? ENVL[k] : k == 0u ? (has_wave(c) ? "WAVE" : chan[c].kind == KD_TIA ? "BUZZ" : chan[c].kind == KD_POKEY ? "DIST" : chan[c].kind == KD_AY || chan[c].kind == KD_S5B || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG ? "NOISE" : chan[c].kind == KD_SN77 ? "MIX" : chan[c].kind == KD_MSM ? "FOOT" : IS_OPLL(chan[c].kind) ? "INST" : chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC ? "NOISE" : chan[c].kind == KD_LYNX ? "TYPE" : fm ? "ALGO" : "DUTY") : k == 1u ? "VOL" : k == 2u ? "VIB" : has_pan(c) ? "PAN" : chan[c].kind == KD_S5B ? "BUZZ" : chan[c].kind == KD_FDS ? "DEPTH" : chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ ? "WAVE" : chan[c].kind == KD_SN77 ? "SLF" : chan[c].kind == KD_MSM ? "QUINT" : "SWEEP";
         uint16_t lc;
+        if (page == 0u) {                                                       /* labels that changed: the sound type, the dead knobs */
+            const uint32_t kd = chan[c].kind;
+            if (k == 0u && (kd == KD_TIA || kd == KD_TED || kd == KD_VIC)) lab = "TYPE";
+            else if (k == 0u && kd == KD_NES_TRI) lab = "";
+            else if (k == 0u && kd == KD_VRC6_SAW) lab = "OVER";
+            else if (k == 0u && (kd == KD_SMS || kd == KD_NGP)) lab = "NOISE";
+            else if (k == 3u && kd == KD_MMC5) lab = "";
+            else if (k == 0u && kd == KD_NES_NOI) lab = "MODE";
+            else if (k == 0u && kd == KD_GB_NOI) lab = "WIDTH";
+            else if (k == 0u && kd == KD_PCE_NOI) lab = "RATE";
+            else if (k == 0u && kd == KD_VB_NOI) lab = "TAP";
+            else if (k == 3u && kd == KD_NES_NOI) lab = "PERIOD";
+        }
+        if (page == 3u && chan[c].kind == KD_S5B) lab = k == 0u ? "PERIOD" : k == 1u ? "RATE" : k == 2u ? "MIXENV" : "";
         if (chan[c].kind == KD_SID) { static const char *const SL3[4] = {"PW", "PWM", "SYNC", "RING"}, *const SL4[4] = {"CUT", "RES", "MODE", "FENV"}; if (page == 3u) lab = SL3[k]; else if (page == 4u) lab = SL4[k]; else if (page == 0u && k == 0u) lab = "WAVE"; else if (page == 0u && k == 3u) lab = "CHIP"; }
         lc = (page == 0u && ((k == 0u && !k1) || (k == 1u && !has_vol(c)))) || (page == 3u && chan[c].kind == KD_S5B && k == 0u && !in->wave) ? t->dim : t->fg;       /* (the 5B's PERIOD does nothing while its NOISE is 0) */
+        if (chan[c].wcus && wd_ok(chan[c].kind) && (page == 3u || (page == 0u && k == 0u))) lc = t->dim;       /* the generator is not what plays now */
         skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
         if (!*lab) continue;
         cv_text(x + (CV_CARD_W - text_w(&FONT_S, lab)) / 2, 4, &FONT_S, lab, lc);
@@ -528,7 +561,11 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
             continue;
         }
         if (page == 3u) {
-            if (chan[c].kind == KD_S5B) card_bar(t, chip, x, in->wf, 15);
+            if (chan[c].kind == KD_S5B) {
+                if (k == 0u) card_bar(t, chip, x, in->wf, 15);
+                else if (k == 1u) card_bar(t, chip, x, in->wc, 15);
+                else if (k == 2u) { cv_rect(x + 8, 36, 40, 10, t->dim); cv_rect(x + (in->wt ? 28 : 8), 36, 20, 10, in->wt ? t->acc : mix16(t->dim, t->fg, 90)); }
+            }
             else if (fm) card_bar(t, chip, x, k == 0u ? in->wave : k == 1u ? in->wf : k == 2u ? in->wc : in->wt, 15);
             else if (k == 0u) {                                                 /* the shape alone, small */
                 inst_t base = *in; uint8_t wv[32];
@@ -542,7 +579,8 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
             } else if (k == 1u) {                                               /* faster: more bars */
                 int32_t n = BARS[in->arp_rate & 3u];
                 for (i = 0; i < n; i++) cv_rect(x + 8 + i * 40 / n, 32, 3, 18, in->arp ? t->acc : t->dim);
-            } else {                                                            /* up, down, up and down */
+            } else if (k == 3u) card_bar(t, chip, x, in->vib_spd, 15);          /* how fast the vibrato goes */
+            else {                                                              /* up, down, up and down */
                 uint32_t d = in->arp_dir;
                 uint16_t on = in->arp ? t->acc : t->dim;
                 tri_icon(x + 7, 32, 1, d == 0u ? on : t->dim);
@@ -551,7 +589,12 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
             }
         } else if (page == 1u) card_bar(t, chip, x, k == 0u ? in->atk : k == 1u ? in->dec : k == 2u ? in->sus : in->rel, 15);
         else if (k == 0u) {
-            if (chan[c].kind == KD_TIA) card_bar(t, chip, x, in->wave, 10);
+            if (chan[c].kind == KD_SMS || chan[c].kind == KD_NGP) card_bar(t, chip, x, in->wave, 8);
+            else if (chan[c].kind == KD_NES_NOI || chan[c].kind == KD_GB_NOI) card_bar(t, chip, x, in->duty, 1);
+            else if (chan[c].kind == KD_PCE_NOI) card_bar(t, chip, x, in->duty, 31);
+            else if (chan[c].kind == KD_VB_NOI) card_bar(t, chip, x, in->duty, 7);
+            else if (chan[c].kind == KD_VRC6_SAW) card_bar(t, chip, x, in->duty, 15);
+            else if (chan[c].kind == KD_TIA) card_bar(t, chip, x, in->wave, 10);
             else if (chan[c].kind == KD_POKEY) card_bar(t, chip, x, in->wave, 7);
             else if (chan[c].kind == KD_AY || chan[c].kind == KD_S5B) card_bar(t, chip, x, in->wave, 15);
             else if (IS_OPLL(chan[c].kind)) card_bar(t, chip, x, in->wave, 14);
@@ -573,18 +616,181 @@ static void chip_cards(const theme_t *t, uint32_t c, uint32_t page)
         else if (has_pan(c)) {                                      /* left, centre, right */
             int32_t p;
             for (p = 0; p < 3; p++) cv_rect(x + 7 + p * 15, 36, 12, 10, p == (int32_t)in->pan ? t->acc : t->dim);
-        } else {                                                    /* centred: down to the left, up to the right */
+        } else if (chan[c].kind == KD_NES_NOI) card_bar(t, chip, x, in->wf, 15);
+        else if (chan[c].kind != KD_MMC5) {                       /* centred: down to the left, up to the right */
+            const int32_t sp = sw_real(chan[c].kind) ? sw_pos(sw) : sw;
             cv_rect(x + 8, 36, 40, 10, t->dim);
             cv_rect(x + 27, 32, 2, 18, t->fg);
-            if (sw > 0) cv_rect(x + 28, 36, 20 * sw / 16, 10, t->acc);
-            else if (sw < 0) cv_rect(x + 28 + 20 * sw / 16, 36, -20 * sw / 16, 10, t->acc);
+            if (sp > 0) cv_rect(x + 28, 36, 20 * sp / 16, 10, t->acc);
+            else if (sp < 0) cv_rect(x + 28 + 20 * sp / 16, 36, -20 * sp / 16, 10, t->acc);
+        }
+    }
+    cv_blit(0, CV_CARDS_Y);
+}
+/* ---- the FM chips: the panel shows the wiring (the picked operator lit), an operator's envelope, or the LFO's wave; the cards show the four fields of the page */
+static void fm_curve(const theme_t *t, uint32_t fam, const uint8_t *o, int32_t base, int32_t top)       /* an operator's envelope from its rates: rise, fall to the sustain level, slope, release */
+{
+    const int32_t opl = fam >= FAM_OPL3, sc = opl ? 2 : 1;
+    const int32_t ar = o[OF_AR] * sc, d1 = o[OF_D1R] * sc, d2 = opl ? 0 : o[OF_D2R], rr = o[OF_RR] * 2;
+    int32_t w[4], px[5], py[5], total, x = 12, i, ys, y2;
+    w[0] = 3 + (31 - ar) * 2;
+    w[1] = d1 ? 3 + (31 - d1) * 3 : 0;
+    w[2] = 50;
+    w[3] = 4 + (31 - rr) * 2;
+    if (!ar) w[0] = 120;
+    ys = d1 ? top + (base - top) * (int32_t)o[OF_D1L] / 15 : top;
+    y2 = ys + (base - ys) * d2 / 40;
+    total = w[0] + w[1] + w[2] + w[3];
+    if (total > 216) for (i = 0; i < 4; i++) w[i] = w[i] * 216 / total;
+    px[0] = x; py[0] = base;
+    x += w[0]; px[1] = x; py[1] = ar ? top : base;
+    x += w[1]; px[2] = x; py[2] = ar ? ys : base;
+    x += w[2]; px[3] = x; py[3] = ar ? y2 : base;
+    x += w[3]; px[4] = x; py[4] = base;
+    for (i = 0; i < 4; i++) { cv_line(px[i], py[i], px[i + 1], py[i + 1], t->acc); cv_line(px[i], py[i] + 1, px[i + 1], py[i + 1] + 1, t->acc); }
+}
+static void fm_lfo_scope(const theme_t *t, uint32_t w, int32_t base, int32_t top)       /* two turns of the LFO's wave */
+{
+    int32_t i, px = 12, py = base;
+    for (i = 0; i < 108; i++) {
+        const int32_t x = 12 + i * 2, y = base - (int32_t)fm_lfo_u(w, (uint32_t)i * 79536431u, (uint32_t)i * 7919u) * (base - top) / 255;
+        if (i) { cv_line(px, py, x, y, t->acc); cv_line(px, py + 1, x, y + 1, t->acc); }
+        px = x; py = y;
+    }
+}
+static void fm_panel(const theme_t *t, uint32_t chip, uint32_t c, uint32_t page)
+{
+    const uint32_t fam = fm_fam(chan[c].kind), foc = fm_foc, np = fm_pages(c, foc), nop = FM_NOPS(fam);
+    const uint8_t *row = fm_row(c, foc, page);
+    const fmp_t *p = &chan[c].fm;
+    const int32_t base = CV_ENV_H - 10, top = 12;
+    uint32_t env = 0, lfo = 0, k, d;
+    for (k = 0; k < 4u; k++) { if (row[k] == OF_AR || row[k] == OF_RR || row[k] == OF_D1R) env = 1; if (row[k] == FC(CF_LFS)) lfo = 1; }
+    cv_begin(240, CV_ENV_H, t->bg);
+    skin_box(chip, t, 3, 0, 234, CV_ENV_H, t->bar);
+    for (d = 0; d < np; d++) cv_rect(204 - (int32_t)((np > 3u ? np : 3u) - 3u) * 10 + (int32_t)d * 10, 6, 6, 6, d == page ? t->acc : t->dim);       /* which page of knobs */
+    if (foc && env) {
+        char tag[4];
+        cv_rect(12, base + 1, 216, 1, t->dim);
+        fm_curve(t, fam, p->op[foc - 1u], base, top);
+        tag[0] = 'O'; tag[1] = 'P'; tag[2] = (char)('0' + foc); tag[3] = 0;
+        cv_text(12, 6, &FONT_S, tag, t->fg);
+    } else if (lfo) {
+        cv_rect(12, base + 1, 216, 1, t->dim);
+        fm_lfo_scope(t, fam == FAM_OPN ? 2u : p->ch[CF_LFW], base, top);
+    } else if (nop == 4u) fm4_diagram(t, fm_alg(fam, p), foc ? (int32_t)foc - 1 : -1);
+    else opl_diagram(t, p->ch[CF_ALG] ? 3u : (p->op[1][OF_WAVE] > 2u ? 2u : p->op[1][OF_WAVE]), foc ? (int32_t)foc - 1 : -1);
+    cv_blit(0, CV_ENV_Y);
+}
+static uint32_t fm_boxes(uint32_t id, uint32_t mx)         /* a field drawn as a row of boxes, one lit: how many; 0 for a bar or a switch */
+{
+    if (id == FC(CF_ALG) || id == OF_WAVE) return mx + 1u;
+    if (id == FC(CF_PAN)) return 3u;
+    if (id == FC(CF_LFW) || id == FC(CF_AMS) || id == OF_DT2 || id == OF_KS || id == OF_KSL || id == OF_SHIFT) return 4u;
+    if (id == OF_DT1) return 7u;
+    return 0u;
+}
+static void fm_cards(const theme_t *t, uint32_t c, uint32_t page)
+{
+    const uint32_t fam = fm_fam(chan[c].kind), chip = KIND_CHIP[chan[c].kind];
+    const uint8_t *row = fm_row(c, fm_foc, page);
+    const inst_t *in = &chan[c].in;
+    uint32_t k;
+    cv_begin(240, CV_CARDS_H, t->bg);
+    for (k = 0; k < 4u; k++) {
+        const int32_t x = CV_CARD_X(k);
+        const uint32_t id = row[k];
+        const uint8_t *vp = id == NN ? 0 : fm_fld(c, fm_foc, id);
+        const char *lab = id == NN ? "" : fm_label(fam, id);
+        uint32_t v, mx, nb, i;
+        skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
+        if (!vp || !*lab) continue;
+        v = *vp; mx = fm_fmax(fam, id);
+        cv_text(x + (CV_CARD_W - text_w(&FONT_S, lab)) / 2, 4, &FONT_S, lab, t->fg);
+        nb = fm_boxes(id, mx);
+        if (id == FI_ARP0) {                                                    /* the chord's notes as dots, low to high; a dash is off */
+            if (!in->arp) cv_rect(x + 18, 42, 20, 3, t->dim);
+            else for (i = 0; i < (uint32_t)ARP_N[in->arp - 1u]; i++) cv_rect(x + 8 + (int32_t)i * 11, 49 - ARP_IV[in->arp - 1u][i] * 3 / 2, 8, 4, t->acc);
+        } else if (id == FI_ARP1) {                                             /* faster: more bars */
+            static const uint8_t BARS[4] = {2, 4, 6, 9};
+            const int32_t n = BARS[in->arp_rate & 3u];
+            for (i = 0; i < (uint32_t)n; i++) cv_rect(x + 8 + (int32_t)i * 40 / n, 32, 3, 18, in->arp ? t->acc : t->dim);
+        } else if (id == FI_ARP2) {                                             /* up, down, up and down */
+            const uint32_t d = in->arp_dir;
+            const uint16_t on = in->arp ? t->acc : t->dim;
+            tri_icon(x + 7, 32, 1, d == 0u ? on : t->dim);
+            tri_icon(x + 23, 32, 0, d == 1u ? on : t->dim);
+            tri_icon(x + 39, 28, 1, d == 2u ? on : t->dim); tri_icon(x + 39, 35, 0, d == 2u ? on : t->dim);
+        } else if (nb) {
+            const int32_t pitch = 46 / (int32_t)nb, wd = pitch > 4 ? pitch - 2 : pitch - 1;
+            for (i = 0; i < nb; i++) cv_rect(x + 6 + (int32_t)i * pitch, 34, wd, 12, i == v ? t->acc : t->dim);
+            if (id == OF_DT1) cv_rect(x + 6 + 3 * pitch + wd / 2, 30, 1, 3, t->fg);          /* the middle: no detune */
+        } else if (mx == 1u) {                                                  /* a switch: the thumb at the left is off, at the right on */
+            cv_rect(x + 8, 36, 40, 10, t->dim);
+            cv_rect(x + (v ? 28 : 8), 36, 20, 10, v ? t->acc : mix16(t->dim, t->fg, 90));
+        } else card_bar(t, chip, x, (int32_t)v, (int32_t)mx);
+        if (id == FC(CF_INST) && chan[c].fm.ch[CF_EDIT]) cv_rect(x + CV_CARD_W - 9, 5, 4, 4, t->acc);      /* a mark: changed from the ROM's */
+    }
+    cv_blit(0, CV_CARDS_Y);
+}
+static void x_cards(const theme_t *t, uint32_t c, uint32_t pg)       /* an extra page: its four knobs */
+{
+    uint32_t n, k, i;
+    const xp_t *xp = x_tab(chan[c].kind, &n);
+    const uint32_t chip = KIND_CHIP[chan[c].kind];
+    cv_begin(240, CV_CARDS_H, t->bg);
+    for (k = 0; k < 4u; k++) {
+        const int32_t x = CV_CARD_X(k);
+        const xk_t *xk = &xp[pg < n ? pg : 0].k[k];
+        skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
+        if (xk->f == XF_NONE) continue;
+        cv_text(x + (CV_CARD_W - text_w(&FONT_S, xk->lab)) / 2, 4, &FONT_S, xk->lab, t->fg);
+        {   const int32_t v = x_val(&chan[c].in, xk);
+            if (xk->st == XS_SWEEP) {
+                cv_rect(x + 8, 36, 40, 10, t->dim); cv_rect(x + 27, 32, 2, 18, t->fg);
+                if (v > 0) cv_rect(x + 28, 36, 20 * v / 16, 10, t->acc); else if (v < 0) cv_rect(x + 28 + 20 * v / 16, 36, -20 * v / 16, 10, t->acc);
+            } else if (xk->st == XS_SWITCH) { cv_rect(x + 8, 36, 40, 10, t->dim); cv_rect(x + (v ? 28 : 8), 36, 20, 10, v ? t->acc : mix16(t->dim, t->fg, 90)); }
+            else if (xk->st == XS_BOXES || xk->st == XS_LEN) {
+                const int32_t nb = (int32_t)xk->mx + 1, pitch = 46 / nb, wd = pitch > 4 ? pitch - 2 : pitch - 1;
+                for (i = 0; i < (uint32_t)nb; i++) cv_rect(x + 6 + (int32_t)i * pitch, 34, wd, 12, (int32_t)i == v ? t->acc : t->dim);
+            } else card_bar(t, chip, x, v, (int32_t)xk->mx);
+        }
+    }
+    cv_blit(0, CV_CARDS_Y);
+}
+static void wd_cards(const theme_t *t, uint32_t c)               /* the DRAW page: the height under the cursor, the brush, the mirror */
+{
+    static const char *const L[4] = {"LEVEL", "BRUSH", "MIRROR", ""};
+    uint8_t wv[64];
+    const uint32_t chip = KIND_CHIP[chan[c].kind], n = wd_n(c);
+    uint32_t k, i;
+    wd_cur(c, wv);
+    cv_begin(240, CV_CARDS_H, t->bg);
+    for (k = 0; k < 4u; k++) {
+        const int32_t x = CV_CARD_X(k);
+        skin_box(chip, t, x, 0, CV_CARD_W, CV_CARDS_H, t->bar);
+        if (!*L[k]) continue;
+        cv_text(x + (CV_CARD_W - text_w(&FONT_S, L[k])) / 2, 4, &FONT_S, L[k], t->fg);
+        if (k == 0u) card_bar(t, chip, x, (int32_t)wv[dr_cur < n ? dr_cur : n - 1u], (int32_t)wd_top(chan[c].kind));
+        else {
+            const uint32_t v = k == 1u ? dr_brush : dr_sym;
+            for (i = 0; i < 4u; i++) cv_rect(x + 6 + (int32_t)i * 11, 34, 9, 12, k == 1u ? (i <= v ? t->acc : t->dim) : i == v ? t->acc : t->dim);
         }
     }
     cv_blit(0, CV_CARDS_Y);
 }
 static void chip_panels(const theme_t *t, uint32_t c, uint32_t page)
 {
+    if (!IS_FMK(chan[c].kind) && page == wd_pg(c)) { chip_tabs(t, c); wd_panel(t, c, page, pages(c), 1u); wd_cards(t, c); return; }
+    wd_c = c;
+    if (!IS_FMK(chan[c].kind) && !IS_DRUM(chan[c].kind) && page >= base_pages(c)) {
+        chip_tabs(t, c);
+        env_x = 1; chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, pages(c), 0, 0); env_x = 0;
+        x_cards(t, c, page - base_pages(c));
+        return;
+    }
     chip_tabs(t, c);
+    if (IS_FMK(chan[c].kind)) { fm_panel(t, KIND_CHIP[chan[c].kind], c, page); fm_cards(t, c, page); return; }
     chip_env(t, KIND_CHIP[chan[c].kind], &chan[c].in, page, pages(c), has_fm(c), IS_DRUM(chan[c].kind));
     chip_cards(t, c, page);
 }

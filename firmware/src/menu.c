@@ -7,15 +7,15 @@ typedef struct { const char *text; uint8_t head; } mline_t;      /* head: a head
 static const mline_t ADD_MENU[] = {                      /* the consoles, in the order of the chips in chips.c; a second list holds each one's channels */
     MH("Add Channel"), ML("NES"), ML("Game Boy"), ML("Master System"), ML("PC Engine"), ML("Atari 2600"), ML("Konami VRC6"), ML("AY-3-8910"), ML("Mega Drive"), ML("Virtual Boy"), ML("Atari 8-bit"), ML("PC Speaker"), ML("AdLib"), ML("Namco WSG"), ML("Namco 163"), ML("Sunsoft 5B"), ML("NES MMC5"), ML("Famicom Disk"), ML("Konami SCC"), ML("MSX Music"), ML("Konami VRC7"), ML("Arcade FM"), ML("Sound Blaster"), ML("WonderSwan"), ML("Sam Coupe"), ML("VIC-20"), ML("Plus/4"), ML("Atari Lynx"), ML("PC-98"), ML("Neo Geo"), ML("Neo Geo Pocket"), ML("MSX-Audio"), ML("Yamaha TX81Z"), ML("SN76477"), ML("Namco System 1"), ML("Korg Poly-800"), ML("ZX Spectrum"), ML("NEC PC-88"), ML("Commodore 64"),
 };
-static const mline_t ADD_NES[] = {MH("NES"), ML("Pulse"), ML("Triangle"), ML("Drums")};
-static const mline_t ADD_GB[] = {MH("Game Boy"), ML("Pulse"), ML("Wave"), ML("Drums")};
+static const mline_t ADD_NES[] = {MH("NES"), ML("Pulse"), ML("Triangle"), ML("Noise"), ML("Drums")};
+static const mline_t ADD_GB[] = {MH("Game Boy"), ML("Pulse"), ML("Wave"), ML("Noise"), ML("Drums")};
 static const mline_t ADD_SMS[] = {MH("Master System"), ML("Tone"), ML("Drums")};
-static const mline_t ADD_PCE[] = {MH("PC Engine"), ML("Wave"), ML("Drums")};
+static const mline_t ADD_PCE[] = {MH("PC Engine"), ML("Wave"), ML("Noise"), ML("Drums")};
 static const mline_t ADD_TIA[] = {MH("Atari 2600"), ML("Sound"), ML("Drums")};
 static const mline_t ADD_VRC6[] = {MH("Konami VRC6"), ML("Pulse"), ML("Saw"), ML("Drums")};
 static const mline_t ADD_AY[] = {MH("AY-3-8910"), ML("Tone"), ML("Drums")};
 static const mline_t ADD_MD[] = {MH("Mega Drive"), ML("FM"), ML("Drums")};
-static const mline_t ADD_VB[] = {MH("Virtual Boy"), ML("Wave"), ML("Drums")};
+static const mline_t ADD_VB[] = {MH("Virtual Boy"), ML("Wave"), ML("Noise"), ML("Drums")};
 static const mline_t ADD_POKEY[] = {MH("Atari 8-bit"), ML("Sound"), ML("Drums")};
 static const mline_t ADD_SPK[] = {MH("PC Speaker"), ML("Beeper"), ML("Drums")};
 static const mline_t ADD_OPL[] = {MH("AdLib"), ML("FM"), ML("Drums")};
@@ -45,10 +45,10 @@ static const mline_t ADD_MSM[] = {MH("Korg Poly-800"), ML("Organ"), ML("Drums")}
 static const mline_t ADD_ZX[] = {MH("ZX Spectrum"), ML("Beeper"), ML("Drums")};
 static const mline_t ADD_OPN[] = {MH("NEC PC-88"), ML("FM"), ML("SSG"), ML("Drums")};
 static const mline_t ADD_SID[] = {MH("Commodore 64"), ML("Voice"), ML("Drums")};
-static const struct { const mline_t *l; uint8_t n, kind[3]; } ADD_SUB[CHIPS] = {
-    {ADD_NES, 4, {KD_NES_PU, KD_NES_TRI, KD_DRUM0}}, {ADD_GB, 4, {KD_GB_PU, KD_GB_WAV, KD_DRUM0 + 1}}, {ADD_SMS, 3, {KD_SMS, KD_DRUM0 + 2, 0}},
-    {ADD_PCE, 3, {KD_PCE, KD_DRUM0 + 3, 0}}, {ADD_TIA, 3, {KD_TIA, KD_DRUM0 + 4, 0}}, {ADD_VRC6, 4, {KD_VRC6_PU, KD_VRC6_SAW, KD_DRUM0 + 5}},
-    {ADD_AY, 3, {KD_AY, KD_DRUM0 + 6, 0}}, {ADD_MD, 3, {KD_MD, KD_DRUM0 + 7, 0}}, {ADD_VB, 3, {KD_VB_WAV, KD_DRUM0 + 8, 0}},
+static const struct { const mline_t *l; uint8_t n, kind[4]; } ADD_SUB[CHIPS] = {
+    {ADD_NES, 5, {KD_NES_PU, KD_NES_TRI, KD_NES_NOI, KD_DRUM0}}, {ADD_GB, 5, {KD_GB_PU, KD_GB_WAV, KD_GB_NOI, KD_DRUM0 + 1}}, {ADD_SMS, 3, {KD_SMS, KD_DRUM0 + 2, 0}},
+    {ADD_PCE, 4, {KD_PCE, KD_PCE_NOI, KD_DRUM0 + 3, 0}}, {ADD_TIA, 3, {KD_TIA, KD_DRUM0 + 4, 0}}, {ADD_VRC6, 4, {KD_VRC6_PU, KD_VRC6_SAW, KD_DRUM0 + 5}},
+    {ADD_AY, 3, {KD_AY, KD_DRUM0 + 6, 0}}, {ADD_MD, 3, {KD_MD, KD_DRUM0 + 7, 0}}, {ADD_VB, 4, {KD_VB_WAV, KD_VB_NOI, KD_DRUM0 + 8, 0}},
     {ADD_POKEY, 3, {KD_POKEY, KD_DRUMB, 0}}, {ADD_SPK, 3, {KD_SPK, KD_DRUMB + 1, 0}}, {ADD_OPL, 3, {KD_OPL, KD_DRUMB + 2, 0}},
     {ADD_WSG, 3, {KD_WSG, KD_DRUMB + 3, 0}}, {ADD_N163, 3, {KD_N163, KD_DRUMB + 4, 0}}, {ADD_S5B, 3, {KD_S5B, KD_DRUMB + 5, 0}},
     {ADD_MMC5, 3, {KD_MMC5, KD_DRUMC, 0}}, {ADD_FDS, 3, {KD_FDS, KD_DRUMC + 1, 0}}, {ADD_SCC, 3, {KD_SCC, KD_DRUMC + 2, 0}}, {ADD_OPLL, 3, {KD_OPLL, KD_DRUMC + 3, 0}},
@@ -117,7 +117,7 @@ static void menu_win(void)                      /* a pick list as a window: the 
 {
     const int32_t w = 232, h = menu_kind == MK_BT ? 200 : menu_kind == MK_MENU ? 190 : 156, x = 4, y0 = menu_kind == MK_BT ? 34 : menu_kind == MK_MENU ? 38 : 42;      /* the menu has one more line than the others */
     const uint16_t col = menu_kind == MK_FACTORY ? RGB(235, 64, 52) : M_ACC;
-    const char *hint = menu_kind == MK_ADD2 ? "OCT+  Add" : menu_pick ? "OCT+  Select" : 0;
+    const char *hint = menu_kind == MK_ADD2 ? (chg_ch < chan_n ? "OCT+  Change" : "OCT+  Add") : menu_pick ? "OCT+  Select" : 0;
     uint32_t b, i;
     win_shadow(x, y0, w, h);
     for (b = 0; b * 80u < (uint32_t)h; b++) {

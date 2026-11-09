@@ -12,8 +12,9 @@
 #define OS 4u                                   /* oscillator steps per output frame */
 #define MAXCH 16u
 enum { CHIP_NES, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB, CHIP_POKEY, CHIP_SPK, CHIP_OPL, CHIP_WSG, CHIP_N163, CHIP_S5B, CHIP_MMC5, CHIP_FDS, CHIP_SCC, CHIP_OPLL, CHIP_VRC7, CHIP_OPM, CHIP_OPL3, CHIP_WS, CHIP_SAA, CHIP_VIC, CHIP_TED, CHIP_LYNX, CHIP_PC98, CHIP_NEO, CHIP_NGP, CHIP_OPL1, CHIP_OPZ, CHIP_SN77, CHIP_C30, CHIP_MSM, CHIP_ZX, CHIP_OPN, CHIP_SID, CHIPS };
-enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_VB_WAV, KD_DRUM0, KD_POKEY = KD_DRUM0 + 9, KD_SPK, KD_OPL, KD_WSG, KD_N163, KD_S5B, KD_DRUMB, KD_MMC5 = KD_DRUMB + 6, KD_FDS, KD_SCC, KD_OPLL, KD_DRUMC, KD_VRC7 = KD_DRUMC + 4, KD_OPM, KD_OPL3, KD_WS, KD_DRUMD, KD_SAA = KD_DRUMD + 4, KD_VIC, KD_TED, KD_LYNX, KD_DRUME, KD_PC98_FM = KD_DRUME + 4, KD_PC98_SSG, KD_NEO_FM, KD_NEO_SSG, KD_NGP, KD_OPL1, KD_OPZ, KD_SN77, KD_C30, KD_DRUMF, KD_MSM = KD_DRUMF + 7, KD_ZX, KD_DRUMG, KD_OPN_FM = KD_DRUMG + 2, KD_OPN_SSG, KD_DRUMH, KD_SID, KD_DRUMI, KINDS = KD_DRUMI + 1 };       /* the drum kits, one a console, in the order of the chips */
-#define IS_DRUM(k) (((k) >= KD_DRUM0 && (k) < KD_POKEY) || ((k) >= KD_DRUMB && (k) < KD_MMC5) || ((k) >= KD_DRUMC && (k) < KD_VRC7) || ((k) >= KD_DRUMD && (k) < KD_SAA) || ((k) >= KD_DRUME && (k) < KD_PC98_FM) || ((k) >= KD_DRUMF && (k) < KD_MSM) || ((k) >= KD_DRUMG && (k) < KD_OPN_FM) || ((k) >= KD_DRUMH && (k) < KD_SID) || (k) >= KD_DRUMI)      /* the kits of the first nine consoles come first, the later ones after the later chips */
+enum { KD_NES_PU, KD_NES_TRI, KD_GB_PU, KD_GB_WAV, KD_SMS, KD_PCE, KD_TIA, KD_VRC6_PU, KD_VRC6_SAW, KD_AY, KD_MD, KD_VB_WAV, KD_DRUM0, KD_POKEY = KD_DRUM0 + 9, KD_SPK, KD_OPL, KD_WSG, KD_N163, KD_S5B, KD_DRUMB, KD_MMC5 = KD_DRUMB + 6, KD_FDS, KD_SCC, KD_OPLL, KD_DRUMC, KD_VRC7 = KD_DRUMC + 4, KD_OPM, KD_OPL3, KD_WS, KD_DRUMD, KD_SAA = KD_DRUMD + 4, KD_VIC, KD_TED, KD_LYNX, KD_DRUME, KD_PC98_FM = KD_DRUME + 4, KD_PC98_SSG, KD_NEO_FM, KD_NEO_SSG, KD_NGP, KD_OPL1, KD_OPZ, KD_SN77, KD_C30, KD_DRUMF, KD_MSM = KD_DRUMF + 7, KD_ZX, KD_DRUMG, KD_OPN_FM = KD_DRUMG + 2, KD_OPN_SSG, KD_DRUMH, KD_SID, KD_DRUMI, KD_NES_NOI, KD_GB_NOI, KD_PCE_NOI, KD_VB_NOI, KINDS = KD_VB_NOI + 1 };       /* the drum kits, one a console, in the order of the chips */
+#define IS_DRUM(k) (((k) >= KD_DRUM0 && (k) < KD_POKEY) || ((k) >= KD_DRUMB && (k) < KD_MMC5) || ((k) >= KD_DRUMC && (k) < KD_VRC7) || ((k) >= KD_DRUMD && (k) < KD_SAA) || ((k) >= KD_DRUME && (k) < KD_PC98_FM) || ((k) >= KD_DRUMF && (k) < KD_MSM) || ((k) >= KD_DRUMG && (k) < KD_OPN_FM) || ((k) >= KD_DRUMH && (k) < KD_SID) || (k) == KD_DRUMI)      /* the kits of the first nine consoles come first, the later ones after the later chips */
+#define IS_NZK(k) ((k) >= KD_NES_NOI && (k) <= KD_VB_NOI)       /* the melodic noise voices (kinds added last: saved ids) */
 #define DRUM_KIT(k) ((k) < KD_POKEY ? (k) - KD_DRUM0 : (k) < KD_MMC5 ? 9u + (k) - KD_DRUMB : (k) < KD_VRC7 ? 15u + (k) - KD_DRUMC : (k) < KD_SAA ? 19u + (k) - KD_DRUMD : (k) < KD_PC98_FM ? 23u + (k) - KD_DRUME : (k) < KD_MSM ? 27u + (k) - KD_DRUMF : (k) < KD_OPN_FM ? 34u + (k) - KD_DRUMG : (k) < KD_SID ? 36u + (k) - KD_DRUMH : 37u + (k) - KD_DRUMI)
 #define IS_OPLL(k) ((k) == KD_OPLL || (k) == KD_VRC7)                        /* the YM2413 and its Konami cousin: 15 ROM instruments */
 static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, CHIP_SMS, CHIP_PCE, CHIP_TIA, CHIP_VRC6, CHIP_VRC6, CHIP_AY, CHIP_MD, CHIP_VB,
@@ -31,7 +32,8 @@ static const uint8_t KIND_CHIP[KINDS] = {CHIP_NES, CHIP_NES, CHIP_GB, CHIP_GB, C
                                          CHIP_MSM, CHIP_ZX,
                                          CHIP_MSM, CHIP_ZX,
                                          CHIP_OPN, CHIP_OPN, CHIP_OPN,
-                                         CHIP_SID, CHIP_SID};
+                                         CHIP_SID, CHIP_SID,
+                                         CHIP_NES, CHIP_GB, CHIP_PCE, CHIP_VB};
 
 /* ---- instruments: what a note sounds like, per channel */
 typedef struct {
@@ -43,6 +45,7 @@ typedef struct {
     uint8_t pan;                                /* 0 left, 1 centre, 2 right (Game Boy) */
     uint8_t vol;                                /* 0..15, the channel's level */
     uint8_t arp, arp_rate, arp_dir;             /* arp: 0 off, 1..8 a chord; rate 0..3 (slow to fast); direction 0 up, 1 down, 2 up and down */
+    uint8_t duck;                               /* sidechain: how far a kick pulls this channel down, 0 off .. 15 silent */
 } inst_t;
 #define I(w, d, a, de, s, r, vs, vd, sw, p) {w, d, 0, 0, 0, a, de, s, r, vs, vd, sw, p, 15, 0, 1, 0}
 #define IV(w, d, a, de, s, r, vs, vd, sw, p, v) {w, d, 0, 0, 0, a, de, s, r, vs, vd, sw, p, v, 0, 1, 0}
@@ -102,8 +105,12 @@ static const inst_t INST_DEF[KINDS] = {
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
     {3, 8, 0, 8, 0, 0, 8, 12, 7, 5, 0, 0, 1, 10, 0, 1, 0},     /* SID: the settings are nibbles (sid.c SP_*): wave 3 = pulse, 6581; pulse width 8 = the square; cutoff 8, filter off */
     I(0, 0, 0, 4, 15, 4, 5, 0, 0, 1),
+    IV(0, 0, 0, 0, 15, 3, 5, 0, 0, 1, 5),            /* NES noise: duty = 0 long / 1 short register, wf = the period (0 follows the note) */
+    IV(0, 0, 0, 0, 15, 3, 5, 0, 0, 1, 6),            /* Game Boy noise: duty = 0 long / 1 short register (7 bit), notes pick the nearest of the chip's noise rates */
+    IV(0, 0, 0, 0, 15, 3, 5, 0, 0, 1, 10),            /* PC Engine noise: duty = the rate 1..31 (0 follows the note) */
+    IV(0, 0, 0, 0, 15, 3, 5, 0, 0, 1, 5),            /* Virtual Boy noise: duty = the tap 0..7 */
 };
-static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "VB", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "POK", "SPK", "OPL", "WSG", "N16", "5B", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "MM5", "FDS", "SCC", "YM", "DRM", "DRM", "DRM", "DRM", "VR7", "OPM", "OP3", "WS", "DRM", "DRM", "DRM", "DRM", "SAA", "VIC", "TED", "LYN", "DRM", "DRM", "DRM", "DRM", "FM", "SSG", "FM", "SSG", "NGP", "MA", "OPZ", "77", "C30", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "ORG", "ZX", "DRM", "DRM", "FM", "SSG", "DRM", "SID", "DRM"};
+static const char *const KIND_NAME[KINDS] = {"PU", "TRI", "PU", "WAV", "TN", "PCE", "TIA", "PU", "SAW", "AY", "FM", "VB", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "POK", "SPK", "OPL", "WSG", "N16", "5B", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "MM5", "FDS", "SCC", "YM", "DRM", "DRM", "DRM", "DRM", "VR7", "OPM", "OP3", "WS", "DRM", "DRM", "DRM", "DRM", "SAA", "VIC", "TED", "LYN", "DRM", "DRM", "DRM", "DRM", "FM", "SSG", "FM", "SSG", "NGP", "MA", "OPZ", "77", "C30", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "DRM", "ORG", "ZX", "DRM", "DRM", "FM", "SSG", "DRM", "SID", "DRM", "NOI", "NOI", "NOI", "NOI"};
 
 /* the arp's chords: octave, major, minor, maj7, min7, sus4, power, dim */
 static const uint8_t ARP_N[8] = {2, 4, 4, 4, 4, 4, 4, 4};
@@ -120,7 +127,27 @@ static uint32_t arp_offset(uint32_t shape, uint32_t dir, uint32_t k)      /* sem
 }
 
 /* ---- the channels */
-typedef struct { uint8_t kind; inst_t in; } chan_t;
+/* the FM chips' own registers (fm.c): per operator and per channel, raw values of the chip's fields */
+enum { OF_TL, OF_MUL, OF_DT1, OF_DT2, OF_KS, OF_AR, OF_D1R, OF_D1L, OF_D2R, OF_RR, OF_AM, OF_WAVE, OF_FINE, OF_SHIFT, OF_FIX, OF_KSL, OF_EGT, OF_KSR, OF_VIB, NOPF };
+enum { CF_ALG, CF_FB, CF_PAN, CF_PMS, CF_AMS, CF_LFS, CF_LFW, CF_PMD, CF_AMD, CF_DAM, CF_DVB, CF_INST, CF_PED, CF_EDIT, NCHF };
+enum { FAM_NONE, FAM_OPM, FAM_OPN, FAM_OPN3, FAM_OPZ, FAM_OPL3, FAM_OPL2, FAM_OPL1, FAM_OPLL, FAMS };      /* OPN: with an LFO (YM2612 / 2608 / 2610), OPN3: the YM2203 without */
+typedef struct { uint8_t op[4][NOPF]; uint8_t ch[NCHF]; } fmp_t;
+static uint32_t fm_fam(uint32_t k)
+{
+    switch (k) {
+    case KD_OPM: return FAM_OPM;
+    case KD_MD: case KD_PC98_FM: case KD_NEO_FM: return FAM_OPN;
+    case KD_OPN_FM: return FAM_OPN3;
+    case KD_OPZ: return FAM_OPZ;
+    case KD_OPL3: return FAM_OPL3;
+    case KD_OPL: return FAM_OPL2;
+    case KD_OPL1: return FAM_OPL1;
+    case KD_OPLL: case KD_VRC7: return FAM_OPLL;
+    default: return FAM_NONE;
+    }
+}
+#define IS_FMK(k) (fm_fam(k) != FAM_NONE)
+typedef struct { uint8_t kind; inst_t in; fmp_t fm; uint8_t wcus; uint8_t user[64]; } chan_t;       /* wcus: a drawn wave (draw.c) plays from user instead of the generator */
 static chan_t chan[MAXCH];
 static uint32_t chan_n;
 static volatile uint32_t chan_lock;             /* set while the main loop changes the channel list: the audio side stands still */
@@ -148,6 +175,8 @@ static struct {
     uint16_t env;                               /* Q8, 0..15 */
     uint32_t arp_k;
     int32_t bend;                               /* Q8 semitones from sweep */
+    uint32_t oa[4], lph;                        /* the FM kinds: each operator's attenuation (Q8, 0.09375 dB units), the LFO's phase */
+    uint8_t os[4];                              /* ... and its envelope stage */
     inst_t in;
 } vc[MAXCH];
 static struct { uint32_t ph, inc; const uint8_t *wav; uint8_t duty, vol, pan, wshift; uint32_t ph2, ph3, ph4, inc2, inc3, inc4, idx, rng, fbm; uint16_t gain; int32_t y1, y2; uint8_t alg, fb; } osc[MAXCH];
@@ -175,9 +204,9 @@ static uint32_t interp(const uint16_t *T, uint32_t pq)  /* a table indexed by no
 enum { AN_CLEAN, AN_HW, AN_ALT, AN_MODES };
 static volatile uint32_t analog_mode[CHIPS] = {AN_HW, AN_HW};
 typedef struct { int32_t x1, y1; } hpf_t;
-#define STEREO_IDX(ch) ((ch) == CHIP_OPM ? 0 : (ch) == CHIP_WS ? 1 : (ch) == CHIP_SAA ? 2 : (ch) == CHIP_LYNX ? 3 : (ch) == CHIP_PC98 ? 4 : (ch) == CHIP_NEO ? 5 : (ch) == CHIP_NGP ? 6 : (ch) == CHIP_C30 ? 7 : -1)       /* the later chips with a right channel of their own */
+#define STEREO_IDX(ch) ((ch) == CHIP_OPM ? 0 : (ch) == CHIP_WS ? 1 : (ch) == CHIP_SAA ? 2 : (ch) == CHIP_LYNX ? 3 : (ch) == CHIP_PC98 ? 4 : (ch) == CHIP_NEO ? 5 : (ch) == CHIP_NGP ? 6 : (ch) == CHIP_C30 ? 7 : (ch) == CHIP_OPL3 ? 8 : -1)       /* the later chips with a right channel of their own */
 static hpf_t hp_mm[2];
-static hpf_t hp_nes[2], hp_gb[2], hp_x[2], hp_vb[2], hp_md[2], hp_nx[30], hp_nr[8];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
+static hpf_t hp_nes[2], hp_gb[2], hp_x[2], hp_vb[2], hp_md[2], hp_nx[30], hp_nr[9];       /* ... and the VRC6 and the AY keep a DC blocker */               /* NES: two stages; Game Boy: left, right */
 static int32_t lp_sp, lp_ws;
 typedef struct { int32_t y, x; } lpb_t;
 static lpb_t lp_nes, lp_mm, lp_fds;
@@ -271,6 +300,7 @@ static void wave_make_s(const inst_t *in, uint8_t *out, int32_t top, int32_t n) 
 }
 static void wave_make_n(const inst_t *in, uint8_t *out, int32_t top) { wave_make_s(in, out, top, 32); }
 static void wave_make(const inst_t *in, uint8_t *out) { wave_make_n(in, out, 15); }
+#include "draw.c"
 static const uint8_t NZ_M[16] = {1, 1, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 16};       /* the noise clock as a multiple of the note: the NOISE knob 0..15 */
 static uint32_t opll_kf(uint32_t note, uint32_t ksr)      /* the chip's key scaling of its envelope rates: x 2^(t / 4), t = 2 block + fnum bit 8 (a quarter of it unless the operator's KSR bit is set), as Q8 */
 {
@@ -282,11 +312,6 @@ static uint32_t att375(uint32_t a)                        /* an attenuation in t
     return a > 253u ? 0u : a & 1u ? DB_ATT[a >> 1] * 245u >> 8 : DB_ATT[a >> 1];
 }
 static uint32_t tre_ph, vib_ph;                 /* the OPLL's two slow oscillators, 16 bit phases, stepped by the 60 Hz tick */
-static uint32_t fm_idx(const inst_t *wi, uint32_t age)       /* the modulation depth now: the INDEX knob, falling at the DECAY knob's dB a second */
-{
-    uint32_t u = (uint32_t)FM_DEC[wi->wt & 15u] * age / 60u;
-    return FM_IDX[wi->wf & 15u] * (DB_ATT[u > 127u ? 127u : u] >> 8) >> 8;
-}
 static uint32_t vol_q;                          /* the voice's level before it is rounded to a step: Q4 (16 to a 3 dB step), 0..240; the FM kinds use it */
 static uint32_t fm_gain(uint32_t q)             /* its gain in 0.75 dB steps (the chips' TL step), Q16 of the old PCE_AMP[15] / 256; the last step fades to silence */
 {
@@ -299,6 +324,19 @@ static uint32_t fm_gain_att(uint32_t q, uint32_t att)    /* the same with an ext
 }
 #include "sid.c"
 static const uint8_t S5B_NP[16] = {0, 1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 19, 22, 25, 28, 31};       /* the noise period registers the PERIOD knob picks (0 = follows the note) */
+static const uint8_t BR_EIGHTHS[16] = {8, 16, 32, 64, 4, 2, 1, 12, 24, 6, 10, 20, 3, 5, 40, 48};       /* the envelope's speed against the note, in eighths: x1 x2 x4 x8 x1/2 x1/4 x1/8 x3/2 x3 x3/4 x5/4 x5/2 x1/3 x2/3 x5 x6 (0 = x1) */
+static uint32_t br_inc(uint32_t inc, uint32_t r)
+{
+    const uint32_t m = BR_EIGHTHS[r & 15u];
+    if (m == 8u) return inc;
+    return (inc >> 3) > 0x7FFFFFFFu / m ? 0x7FFFFFFFu : (inc >> 3) * m;
+}
+static uint32_t nz_clock(uint32_t inc, uint32_t nz, uint32_t lim)       /* the noise clock for NOISE 1..15: a multiple of the note, stopped at the chip's top (NOISE 2 is a step and a half: it was the same as 1) */
+{
+    const uint32_t m = NZ_M[nz & 15u];
+    if (nz == 2u) { const uint32_t x = inc + (inc >> 1); return x < inc || x > lim ? lim : x; }
+    return inc > lim / m ? lim : inc * m;
+}
 /* ---- the FDS modulator, as the chip does it: a table of 32 entries, each applied twice (64 steps), moves a 7 bit signed counter; counter x gain / 16 (+ 64, 8 bits, wraps) / 64 multiplies the carrier's pitch, so the pitch swings 0 .. 3.98 x the note.
  * Here: the table holds the counter's path, 64 values, straight (the SHAPE knob, +-32), the modulator runs at note pitch x RATIO, depth (pan) is the gain, sweep fades the gain over the note */
 static const uint8_t FDS_R2[16] = {1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40};       /* the ratio knob, in halves */
@@ -346,6 +384,29 @@ static void fds_set(uint32_t c, uint32_t pq, uint32_t vol)
     }
     fds_otab(c, osc[c].y1 >> 16);
 }
+static void fm_osc(uint32_t c, uint32_t pq, uint32_t vol);
+static void sn_noise(uint32_t c, uint32_t ngp)       /* NOISE (wave): 0 tone; 1 white, 2 periodic on the note; 3..5 white, 6..8 periodic at the chip's three fixed rates. duty = the mode, inc2 = register steps per oscillator step (Q16) */
+{
+    const uint32_t w = chan[c].in.wave > 8u ? 8u : chan[c].in.wave;
+    uint32_t st;
+    osc[c].duty = (uint8_t)w;
+    if (!w) return;
+    if (w <= 2u) st = osc[c].inc >> 12;                                         /* the note's pitch x 16: a periodic noise (a 16 step cycle) sounds the note */
+    else { st = SMS_NSTEP[(w - 3u) % 3u]; if (ngp) st = st * (K_NGP >> 16) / (K_SMS >> 16); }
+    osc[c].inc2 = st ? st : 1u;
+}
+static uint32_t sn_run(uint32_t c)               /* one oscillator step of the noise: a 16 bit register, white (bits 0 and 3) or periodic (bit 0 alone) */
+{
+    const uint32_t white = osc[c].duty == 1u || (osc[c].duty >= 3u && osc[c].duty <= 5u);
+    osc[c].ph2 += osc[c].inc2;
+    while (osc[c].ph2 >= 65536u) {
+        uint32_t r = osc[c].rng ? osc[c].rng : 0x8000u;
+        osc[c].ph2 -= 65536u;
+        r = (r >> 1) | (((r ^ (white ? r >> 3 : 0u)) & 1u) << 15);       /* white: the register's bit 0 xor bit 3; periodic: bit 0 alone */
+        osc[c].rng = r;
+    }
+    return osc[c].rng & 1u;
+}
 static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
 {
     const inst_t *in = &vc[c].in;
@@ -385,14 +446,18 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         osc[c].inc = len > 186u ? t / len * 32u : t; osc[c].duty = (uint8_t)w; osc[c].vol = (uint8_t)vol;
         break; }
     case KD_VRC6_PU: osc[c].inc = interp32(VRC6P_INC, pq); osc[c].duty = in->duty & 7u; osc[c].vol = (uint8_t)vol; break;
-    case KD_VRC6_SAW: osc[c].inc = interp32(VRC6S_INC, pq); osc[c].vol = (uint8_t)vol; break;
+    case KD_VRC6_SAW: osc[c].inc = interp32(VRC6S_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].alg = chan[c].in.duty & 15u; break;       /* OVER (duty): the rate register past 42, up to 63: the accumulator wraps, a rougher saw */
     case KD_AY: {                                       /* the noise clock stops where the chip's does (clock / 16 = 110.8 kHz); it used to wrap round 2^32 for high notes with a big NOISE step */
-        const uint32_t m = NZ_M[chan[c].in.wave & 15u], lim = 0xA1000000u;
-        osc[c].inc = interp32(AY_INC, pq); osc[c].inc2 = osc[c].inc > lim / m ? lim : osc[c].inc * m; osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol; break; }
+        const uint32_t lim = 0xA1000000u, np = S5B_NP[chan[c].in.wf & 15u];       /* PERIOD (wf) 0 follows the note */
+        osc[c].inc = interp32(AY_INC, pq); osc[c].inc2 = np ? lim / np : nz_clock(osc[c].inc, chan[c].in.wave, lim); osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol;
+        osc[c].alg = chan[c].in.wc & 7u; osc[c].inc3 = br_inc(osc[c].inc, chan[c].in.wt); break; }       /* BUZZ (wc): the envelope, BRATIO (wt) its speed */
     case KD_POKEY: {                                    /* a distortion as a cycle of bits, like the TIA; the long noisy ones play the note as their step rate */
         uint32_t w = chan[c].in.wave > 7u ? 7u : chan[c].in.wave;
         t = interp32(NOTE_INC, pq);
         osc[c].inc = w == 3u ? t / POKEY_LEN[3] * 32u : w < 4u ? t : t * 16u;       /* the long 465 step cycle runs at 32 x the note, like the noises */ osc[c].duty = (uint8_t)w; osc[c].vol = (uint8_t)vol;
+        if (w >= 4u && (chan[c].in.wc & 3u) == 1u) osc[c].inc = t * 4u;                                 /* CLOCK (wc): the noise's divider runs off 15 kHz (a darker grain) or 1.79 MHz (a finer one); 0 is the 64 kHz it always had */
+        else if (w >= 4u && (chan[c].in.wc & 3u) == 2u) osc[c].inc = t > 0xFFFFFFFFu / 112u ? 0xFFFFFFFFu : t * 112u;
+        osc[c].alg = chan[c].in.wf & 15u;                                                               /* HPF (wf): the high-pass filter, 0 off */
         break; }
     case KD_MSM: {                                      /* an organ: the voice's square at 16', 8', 4' and 2' (octaves off one counter), 5 1/3' and 2 2/3' (a fifth and an octave and a fifth above 8'), mixed */
         const uint32_t m = chan[c].in.wave & 15u, q = chan[c].in.pan & 3u, cnt = (m & 1u) + (m >> 1 & 1u) + (m >> 2 & 1u) + (m >> 3) + (q & 1u) + (q >> 1);
@@ -401,39 +466,43 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
         break; }
     case KD_ZX: osc[c].inc = interp32(NOTE_INC, pq); osc[c].duty = chan[c].in.duty & 7u; osc[c].vol = vol > 0u; break;       /* a pulse; the speaker is one bit, so no volume */
     case KD_SPK: osc[c].inc = interp32(SPK_INC, pq); osc[c].vol = vol > 0u; break;        /* the timer's divisor is a whole number; no volume: on or off */
-    case KD_OPL: case KD_OPL1: {                        /* two operators: A (the ratio, with feedback) and C (the note); the OPL1 only has FM or both playing */
-        const inst_t *wi = &chan[c].in;
-        t = interp32(NOTE_INC, pq);
-        osc[c].inc = t; osc[c].inc2 = (t >> 1) * OPL_RAT[wi->wave & 15u];
-        osc[c].idx = fm_idx(wi, vc[c].age); osc[c].fbm = FM_FB[wi->wc & 15u]; osc[c].gain = (uint16_t)fm_gain(vol_q); osc[c].duty = 0u; osc[c].vol = (uint8_t)vol;
-        osc[c].alg = chan[c].kind == KD_OPL1 ? (wi->duty ? 3u : 0u) : (uint8_t)(wi->duty & 3u);
-        break; }
     case KD_SN77: {                                     /* a square, noise, or both; the slow oscillator swings the pitch (pan = how fast; the siren swings it twice as far) */
         static const uint8_t SLF[4] = {2, 3, 6, 12};
         const uint32_t m = chan[c].in.wave & 3u;
-        osc[c].inc = interp32(NOTE_INC, pq); osc[c].inc2 = osc[c].inc * 8u; osc[c].inc3 = SLF[in->pan & 3u] * SN77_SLF;
+        static const uint16_t NR[16] = {0, 200, 300, 450, 700, 1000, 1500, 2200, 3300, 5000, 7500, 11000, 16000, 24000, 36000, 55000};       /* RATE: the noise clock in hertz */
+        const uint32_t nr = chan[c].in.wc & 15u;
+        osc[c].inc = interp32(NOTE_INC, pq); osc[c].inc2 = nr ? NR[nr] * SN77_SLF : osc[c].inc * 8u; osc[c].inc3 = SLF[in->pan & 3u] * SN77_SLF;
+        osc[c].idx = chan[c].in.wt ? chan[c].in.wt & 15u : 4u; osc[c].inc4 = chan[c].in.duty & 15u; osc[c].gain = chan[c].in.wf ? chan[c].in.wf & 15u : 5u;       /* DEPTH (wt, quarters, 0 = 4), DUTY (duty, 0 = half), FILTER (wf, sixteenths, 0 = 5) */
         osc[c].duty = (uint8_t)m; osc[c].alg = (uint8_t)((in->pan & 3u) || m == 3u); osc[c].fb = (uint8_t)(m == 3u); osc[c].vol = (uint8_t)vol;
         break; }
-    case KD_NGP: osc[c].inc = K_NGP / interp(NGP_N, pq); osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan; break;
-    case KD_MD: case KD_PC98_FM: case KD_NEO_FM: case KD_OPN_FM: case KD_OPM: case KD_OPL3: case KD_OPZ: {         /* four operators: 1 (the ratio, with feedback), 2 (the note), 3 (an octave up), 4 (the note; the OPM family detunes it a hair) */
-        const inst_t *wi = &chan[c].in;
-        const uint32_t k = chan[c].kind, opl3 = k == KD_OPL3, opz = k == KD_OPZ, det = k != KD_MD && !opl3 && !opz;
-        t = interp32(NOTE_INC, pq);
-        osc[c].inc = det ? t + (t >> 9) : t; osc[c].inc2 = (t >> 1) * (opl3 ? OPL_RAT : FM_RAT)[wi->wave & 15u]; osc[c].inc3 = t; osc[c].inc4 = t * 2u;
-        osc[c].idx = fm_idx(wi, vc[c].age); osc[c].fbm = FM_FB[wi->wc & 15u]; osc[c].vol = (uint8_t)vol; osc[c].gain = (uint16_t)fm_gain(vol_q);
-        osc[c].alg = (uint8_t)(opl3 ? 8u + (wi->duty & 3u) : wi->duty & 7u);
-        osc[c].duty = opl3 ? wi->pan & 7u : opz ? (wi->pan & 7u) | 8u : 0u; osc[c].pan = opl3 || opz || k == KD_OPN_FM ? 1u : in->pan;
+    case KD_NGP: osc[c].inc = K_NGP / interp(NGP_N, pq); osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan; sn_noise(c, 1u); break;
+    case KD_NES_NOI: case KD_GB_NOI: case KD_PCE_NOI: case KD_VB_NOI: {         /* melodic noise: inc2 = register steps per oscillator step (Q16); "follows the note" runs the register at 32 x the note (93 x for the NES's short one, whose cycle is 93 steps) */
+        const uint32_t k = chan[c].kind, d = chan[c].in.duty, ni = interp32(NOTE_INC, pq);
+        uint32_t st;
+        if (k == KD_NES_NOI) { const uint32_t per = chan[c].in.wf & 15u; st = per ? NES_NSTEP[16u - per] : (d & 1u) ? (ni >> 4) * 93u >> 12 : ni >> 11; osc[c].duty = (uint8_t)(d & 1u); }
+        else if (k == KD_GB_NOI) {                      /* the nearest of the chip's rates (its NR43 table); the short register's cycle is 127 steps */
+            uint32_t i, best = 0u, bd = 0xFFFFFFFFu;
+            const uint32_t want = (d & 1u) ? (ni >> 4) * 127u >> 12 : ni >> 11;
+            for (i = 0; i < GB_NNUM; i++) { const uint32_t x = GB_NSTEP[i], dd = x > want ? x * 256u / (want ? want : 1u) : want * 256u / x; if (dd < bd) { bd = dd; best = i; } }
+            st = GB_NSTEP[best]; osc[c].duty = (uint8_t)(d & 1u); osc[c].pan = in->pan;
+        } else if (k == KD_PCE_NOI) { const uint32_t v = d > 31u ? 31u : d; st = v ? 20778u / (33u - v) : ni >> 11; osc[c].duty = (uint8_t)v; osc[c].pan = in->pan; }       /* clock / (64 (32 - NF)) */
+        else { st = ni >> 11; osc[c].duty = (uint8_t)(d & 7u); osc[c].pan = in->pan; }
+        osc[c].inc2 = st ? st : 1u; osc[c].vol = (uint8_t)vol;
         break; }
     case KD_SID: sid_set(c, pq, vol); break;
-    case KD_PC98_SSG: case KD_NEO_SSG: case KD_OPN_SSG: osc[c].inc = interp32(chan[c].kind == KD_NEO_SSG ? SSGN_INC : SSG_INC, pq); osc[c].inc2 = osc[c].inc > 0xB5000000u / NZ_M[chan[c].in.wave & 15u] ? 0xB5000000u : osc[c].inc * NZ_M[chan[c].in.wave & 15u]; osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol; break;       /* (the noise clock stops at clock / 16, it must not wrap) */
+    case KD_PC98_SSG: case KD_NEO_SSG: case KD_OPN_SSG: osc[c].inc = interp32(chan[c].kind == KD_NEO_SSG ? SSGN_INC : SSG_INC, pq); { const uint32_t np = S5B_NP[chan[c].in.wf & 15u]; osc[c].inc2 = np ? 0xB5000000u / np : nz_clock(osc[c].inc, chan[c].in.wave, 0xB5000000u); } osc[c].duty = chan[c].in.wave & 15u; osc[c].vol = (uint8_t)vol; osc[c].alg = chan[c].in.wc & 7u; osc[c].inc3 = br_inc(osc[c].inc, chan[c].in.wt); break;       /* (the noise clock stops at clock / 16, it must not wrap) */
     case KD_SAA: {                                      /* the noise register steps at 15.6, 31.25 or 62.5 kHz (8 MHz clock), or on every half cycle of the tone (the lowest NOISE steps) */
         const uint32_t nz = chan[c].in.wave & 15u;
-        osc[c].inc = interp32(SAA_INC, pq); osc[c].inc2 = nz <= 4u ? osc[c].inc << 1 : nz <= 8u ? 15625u * SN77_SLF : nz <= 11u ? 31250u * SN77_SLF : 62500u * SN77_SLF; osc[c].duty = (uint8_t)nz; osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan; break; }
+        const uint32_t nr = chan[c].in.wt & 3u;                  /* NRATE: 0 as NOISE says, 1..3 the chip's three fixed rates */
+        osc[c].inc = interp32(SAA_INC, pq);
+        osc[c].inc2 = nr == 1u ? 31250u * SN77_SLF : nr == 2u ? 15625u * SN77_SLF : nr == 3u ? 15625u * SN77_SLF / 2u : nz <= 4u ? osc[c].inc << 1 : nz <= 8u ? 15625u * SN77_SLF / 2u : nz <= 11u ? 15625u * SN77_SLF : 31250u * SN77_SLF;       /* (31.25, 15.6 and 7.8 kHz at 8 MHz: clock / 256, 512, 1024, MAME and the data sheet) */
+        osc[c].duty = (uint8_t)nz; osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan;
+        osc[c].alg = chan[c].in.wf > 6u ? 6u : chan[c].in.wf; osc[c].fb = chan[c].in.wc & 1u; break; }       /* ENV (wf): 0 off, 1..6 the envelope generator's shapes; ERES: 3 bit steps */
     case KD_VIC: osc[c].inc = interp32(VIC_INC, pq); osc[c].inc2 = osc[c].inc >= (1u << 27) ? 0xFFFFFFFFu : osc[c].inc < 3293750u ? 105400000u : osc[c].inc << 5;       /* the noise register that matches the note's soprano one: its shift register steps at 32 x the note, between 4.3 and 176 kHz */
         osc[c].duty = chan[c].in.wave & 1u; osc[c].vol = (uint8_t)vol; break;
     case KD_TED: osc[c].inc = interp32(TED_INC, pq); osc[c].inc2 = osc[c].inc * 2u; osc[c].duty = chan[c].in.wave & 1u; osc[c].vol = (uint8_t)vol; break;
     case KD_LYNX: {                                     /* the square plays the note; a short shift register cycle is a tone (the note is the cycle's rate), a long one is noise */
-        const uint32_t w = chan[c].in.wave & 7u, len = LYNX_LEN[w];
+        const uint32_t w = chan[c].in.wave & 7u, tx = w >= 1u && w <= 4u && chan[c].in.wc >= 1u && chan[c].in.wc <= 15u ? chan[c].in.wc : 0u, len = tx ? LYNX_XL[tx - 1u] : LYNX_LEN[w];       /* TAPS (wc): one of fifteen other short cycles in place of the sound's */
         t = interp32(NOTE_INC, pq);
         if (w >= 5u) {                                  /* the long cycles are tuned like the short ones: the whole cycle is the note (the timer's 1 MHz caps it); inc2 = register steps per output frame, Q16 */
             if (t > LYNX_CAP[w - 5u]) t = LYNX_CAP[w - 5u];
@@ -441,13 +510,23 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
             if (!osc[c].inc2) osc[c].inc2 = 1u;
         } else if (w) t = t > 0xFFFFFFFFu / len ? 0xFFFFFFFFu : t * len;
         osc[c].inc = t; osc[c].duty = (uint8_t)w; osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan;
+        osc[c].alg = (uint8_t)tx; osc[c].fb = chan[c].in.wf & 1u;                                      /* INTEG (wf): the output is integrated */
+        if (chan[c].in.wt >= 1u && chan[c].in.wt <= 9u) { const uint32_t p = chan[c].in.wt - 1u; osc[c].idx = p <= 4u ? 8u : 2u * (8u - p); osc[c].fbm = p >= 4u ? 8u : 2u * p; }       /* BAL (wt): 1 hard left .. 5 centre .. 9 hard right */
+        else { osc[c].idx = in->pan == 2u ? 0u : 8u; osc[c].fbm = in->pan == 0u ? 0u : 8u; }          /* 0: the PAN knob's left, centre or right */
         break; }
     case KD_WSG: case KD_N163: case KD_WS: case KD_C30:              /* a 4 bit wave, 32 steps, read live; the volume is linear */
         osc[c].inc = interp32(chan[c].kind == KD_WS ? WS_INC : NOTE_INC, pq); osc[c].vol = (uint8_t)vol; osc[c].pan = in->pan;
         {   const inst_t *wi = &chan[c].in;
-            uint32_t key = (1u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12;
-            if (wkey[c] != key) { wave_make(wi, wtab[c]); wkey[c] = key; }
-            osc[c].wav = wtab[c];
+            static const uint8_t NL[5] = {4, 8, 16, 32, 64};
+            const uint32_t len = chan[c].kind == KD_N163 && wi->duty ? NL[wi->duty > 5u ? 4u : wi->duty - 1u] : 32u;       /* LENGTH (duty, N163 only): 4 to 64 steps; 0 is 32 */
+            uint32_t key = (1u << 16) | (wi->wave & 15u) | (wi->wf & 15u) << 4 | (wi->wc & 15u) << 8 | (wi->wt & 15u) << 12 | (len == 32u ? 0u : len << 17);
+            if (wkey[c] != key) {
+                if (len == 64u) wave_make_s(wi, wtab[c], 15, 64);
+                else if (len < 32u) { uint8_t tmp[32]; uint32_t i2; wave_make(wi, tmp); for (i2 = 0; i2 < len; i2++) wtab[c][i2] = tmp[i2 * 32u / len]; }
+                else wave_make(wi, wtab[c]);
+                wkey[c] = key;
+            }
+            osc[c].wav = wtab[c]; osc[c].alg = len == 32u ? 0u : (uint8_t)len;
         }
         break;
     case KD_MMC5: t = interp(NES_PT, pq); osc[c].inc = K_NES / (t + 1u); osc[c].duty = in->duty & 3u; osc[c].vol = (uint8_t)vol; break;
@@ -460,38 +539,16 @@ static void set_osc(uint32_t c, uint32_t pq, uint32_t vol)
             osc[c].wav = wtab[c];
         }
         break;
-    case KD_OPLL: case KD_VRC7: {                       /* one of the 15 instruments: two operators with the chip's ROM values: multiples, wave bits, feedback, the modulator's level, key scale and envelope */
-        const uint32_t n = (chan[c].in.wave > 14u ? 14u : chan[c].in.wave) + (chan[c].kind == KD_VRC7 ? 15u : 0u), age = vc[c].age, nt = pq >> 8, kl = KSL_TMP[nt > 127u ? 127u : nt];
-        uint32_t u = OPLL_P[n].kslm ? kl >> (3u - OPLL_P[n].kslm) : 0u, uc = OPLL_P[n].kslc ? kl >> (3u - OPLL_P[n].kslc) : 0u;       /* attenuations here are in the chip's 0.375 dB steps */
-        const uint32_t kfm = opll_kf(vc[c].note, OPLL_P[n].fl >> 4 & 1u);          /* the modulator's key scaled rates */
-        if (OPLL_P[n].dru) {                            /* the modulator falls from its level at its decay rate to the sustain level, then holds, or goes on at the release rate */
-            const uint32_t dru = (uint32_t)OPLL_P[n].dru * kfm >> 8, tsl = (uint32_t)OPLL_P[n].slu * 60u / (dru ? dru : 1u);
-            uint32_t d = age <= tsl ? dru * age / 60u : OPLL_P[n].eg ? OPLL_P[n].slu : OPLL_P[n].slu + ((uint32_t)OPLL_P[n].rru * kfm >> 8) * (age - tsl) / 60u;
-            u += d * 2u;
-        }
-        if (OPLL_P[n].mta) { const uint32_t ma = ((uint32_t)OPLL_P[n].mta << 8) / kfm + 1u; if (age < ma) u += 254u * (ma - age) / ma; }          /* a slow modulator attack (the VRC7 bells) */
-        {   const uint32_t fl = OPLL_P[n].fl, tp = tre_ph & 0xFFFFu, am = ((tp < 32768u ? tp : 65535u - tp) * 13u) >> 16;       /* the chip's tremolo (3.7 Hz, 4.9 dB) and vibrato (6.1 Hz, 11 cents), per operator flag */
-            const int32_t dp = ((int32_t)SIN_T[(vib_ph >> 6) & 1023u] * 28) >> 14;
-            if (fl & 1u) u += am;
-            if (fl & 4u) uc += am;
-            int32_t qc = (int32_t)pq + (fl & 8u ? dp : 0), qm = (int32_t)pq + (fl & 2u ? dp : 0);
-            qc = qc < 0 ? 0 : qc > (127 << 8) ? 127 << 8 : qc; qm = qm < 0 ? 0 : qm > (127 << 8) ? 127 << 8 : qm;
-            t = interp32(NOTE_INC, (uint32_t)qc);
-            osc[c].inc = (t >> 1) * OPLL_P[n].cm;
-            if (qm != qc) t = interp32(NOTE_INC, (uint32_t)qm);
-            osc[c].inc2 = (t >> 1) * OPLL_P[n].mm;
-        }
-        osc[c].idx = (OPLL_P[n].idx >> 6) * (att375(u) >> 6) >> 4; osc[c].fbm = OPLL_FB[OPLL_P[n].fb & 7u];
-        osc[c].alg = OPLL_P[n].ws & 1u; osc[c].duty = OPLL_P[n].ws >> 1 & 1u; osc[c].gain = (uint16_t)fm_gain_att(vol_q, uc); osc[c].wshift = 1; osc[c].vol = (uint8_t)vol;
-        break; }
+    case KD_OPL: case KD_OPL1: case KD_MD: case KD_PC98_FM: case KD_NEO_FM: case KD_OPN_FM: case KD_OPM: case KD_OPL3: case KD_OPZ: case KD_OPLL: case KD_VRC7: fm_osc(c, pq, vol); break;       /* the FM kinds: operator by operator (fm.c) */
     case KD_S5B: {                                      /* PERIOD 0 follows the note; 1..15 is the chip's noise period register (clock / 16 P), whatever the note */
         const uint32_t np = S5B_NP[chan[c].in.wf & 15u];
         osc[c].inc = interp32(S5B_INC, pq);
-        osc[c].inc2 = np ? 0xA2000000u / np : osc[c].inc > 0xA2000000u / NZ_M[chan[c].in.wave & 15u] ? 0xA2000000u : osc[c].inc * NZ_M[chan[c].in.wave & 15u];
-        osc[c].inc3 = osc[c].inc; osc[c].duty = chan[c].in.wave & 15u; osc[c].alg = chan[c].in.pan & 7u; osc[c].vol = (uint8_t)vol; break;
+        osc[c].inc2 = np ? 0xA2000000u / np : nz_clock(osc[c].inc, chan[c].in.wave, 0xA2000000u);
+        osc[c].inc3 = br_inc(osc[c].inc, chan[c].in.wc); osc[c].fb = chan[c].in.wt & 1u; osc[c].duty = chan[c].in.wave & 15u; osc[c].alg = chan[c].in.pan & 7u; osc[c].vol = (uint8_t)vol; break;
     }
-    default: osc[c].inc = K_SMS / interp(SMS_N, pq); osc[c].vol = (uint8_t)vol; break;
+    default: osc[c].inc = K_SMS / interp(SMS_N, pq); osc[c].vol = (uint8_t)vol; sn_noise(c, 0u); break;
     }
+    if (chan[c].wcus) osc[c].wav = chan[c].user;           /* a drawn wave (only a kind with a writable wave ever has one) */
 }
 
 /* the voices of a chip that sound now */
@@ -507,6 +564,39 @@ static int32_t nes_mix(int32_t psum, int32_t tsum)      /* the APU's two nonline
     int32_t p = psum <= 30 ? NES_PULSE[psum] : NES_PULSE[30] + (psum - 30) * (NES_PULSE[30] - NES_PULSE[29]);
     int32_t t = tsum <= 15 ? NES_TND[3 * tsum] : NES_TND[45] + (tsum - 15) * (NES_TND[45] - NES_TND[42]);
     return p + t;
+}
+static const uint16_t PCE_V[16] = {0, 13, 18, 25, 36, 51, 71, 101, 143, 201, 285, 402, 568, 802, 1133, 1600};       /* 3 dB a step (PCE_AMP, shared with the FM and the kits, is 8 bit: its lowest steps repeat) */
+static const uint8_t VB_TAP[8] = {14, 10, 13, 4, 8, 6, 9, 11};      /* the VSU's noise taps (Mednafen's table; from memory, not checked against hardware) */
+static uint32_t nz_step(uint32_t c, uint32_t k)     /* clock the voice's noise register as many times as this oscillator step owes; its bit 0 */
+{
+    uint32_t r = osc[c].rng;
+    osc[c].ph2 += osc[c].inc2;
+    while (osc[c].ph2 >= 65536u) {
+        osc[c].ph2 -= 65536u;
+        if (k == KD_NES_NOI) { if (!r) r = 1u; r = (r >> 1) | (((r ^ (r >> (osc[c].duty ? 6 : 1))) & 1u) << 14); }                       /* 15 bit: bit 0 xor bit 1 (long) or bit 6 (short) */
+        else if (k == KD_GB_NOI) { const uint32_t w = osc[c].duty ? 7u : 15u; if (!(r & ((1u << w) - 1u))) r = (1u << w) - 1u; r = ((r >> 1) | (((r ^ (r >> 1)) & 1u) << (w - 1u))) & ((1u << w) - 1u); }       /* 15 or 7 bit */
+        else if (k == KD_PCE_NOI) { if (!r) r = 1u; r = (r >> 1) | (((r ^ (r >> 1) ^ (r >> 11) ^ (r >> 12) ^ (r >> 17)) & 1u) << 17); }      /* 18 bit */
+        else { if (!r) r = 0x7FFFu; r = ((r << 1) | (((r >> 7) ^ (r >> VB_TAP[osc[c].duty & 7u])) & 1u)) & 0x7FFFu; }                      /* 15 bit: bit 7 xor the tap */
+    }
+    osc[c].rng = r;
+    return r & 1u;
+}
+static void r_nz(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the melodic noise voices of NES, Game Boy, PC Engine and Virtual Boy: each its chip's register, level and side */
+{
+    uint32_t i, s, k;
+    for (i = 0; i < n; i++) {
+        int32_t nes = 0, gl = 0, gr = 0, pl = 0, pr = 0, vl = 0, vr = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                const uint32_t c = act[k], kd = chan[c].kind, b = nz_step(c, kd);
+                if (kd == KD_NES_NOI) nes += NES_TND[2u * (b ? 0u : (osc[c].vol & 15u))];
+                else if (kd == KD_GB_NOI) { const int32_t v = b ? (int32_t)(osc[c].vol & 15u) : 0; if (osc[c].pan != 2u) gl += v; if (osc[c].pan != 0u) gr += v; }
+                else if (kd == KD_PCE_NOI) { const int32_t v = ((b ? 31 : 0) * 2 - 31) * (int32_t)PCE_V[osc[c].vol & 15u] >> 5; if (osc[c].pan != 2u) pl += v; if (osc[c].pan != 0u) pr += v; }
+                else { const int32_t v = ((b ? 63 : 0) * 2 - 63) * (int32_t)(osc[c].vol & 15u); if (osc[c].pan != 2u) vl += v; if (osc[c].pan != 0u) vr += v; }
+            }
+        out[2u * i] += (nes >> 2) + gl * 150 + 2 * pl + (pl >> 1) + vl + (vl >> 1);
+        out[2u * i + 1u] += (nes >> 2) + gr * 150 + 2 * pr + (pr >> 1) + vr + (vr >> 1);
+    }
 }
 static void r_nes(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
 {
@@ -551,7 +641,6 @@ static void r_gb(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         out[2u * i + 1u] += r * 150;
     }
 }
-static const uint16_t PCE_V[16] = {0, 13, 18, 25, 36, 51, 71, 101, 143, 201, 285, 402, 568, 802, 1133, 1600};       /* 3 dB a step (PCE_AMP, shared with the FM and the kits, is 8 bit: its lowest steps repeat) */
 static hpf_t hp_pc[2];                          /* the PC Engine's DC blocker: its wave editor can make a wave with a mean (like the other wave chips', whose post() has one) */
 static void r_pce(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
 {
@@ -596,12 +685,12 @@ static void r_vrc6(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
                 uint32_t c = act[k];
                 osc[c].ph += osc[c].inc;
                 if (chan[c].kind == KD_VRC6_PU) { if ((osc[c].ph >> 28) <= osc[c].duty) acc += (int32_t)osc[c].vol; }
-                else acc += (int32_t)((((osc[c].ph >> 16) * 7u >> 16) * ((osc[c].vol * 42u) / 15u) & 255u) >> 3);        /* 7 steps of the rate A up to 42, an 8 bit accumulator read from its top 5 bits: the saw peaks at 31, twice the pulse */
+                else acc += (int32_t)((((osc[c].ph >> 16) * 7u >> 16) * ((osc[c].vol * (42u + osc[c].alg * 21u / 15u)) / 15u) & 255u) >> 3);        /* 7 steps of the rate A up to 42, an 8 bit accumulator read from its top 5 bits: the saw peaks at 31, twice the pulse */
             }
         out[2u * i] += acc * 144; out[2u * i + 1u] += acc * 144;
     }
 }
-static void r_ay_t(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, const uint8_t *amp8, const uint16_t *amp16, uint32_t g)       /* the AY's tone and noise: 0 tone, 1..14 the tone gated by noise (AND, as the chip's mixer does), 15 noise alone */
+static void r_ay_plain(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, const uint8_t *amp8, const uint16_t *amp16, uint32_t g)       /* the AY's tone and noise: 0 tone, 1..14 the tone gated by noise (AND, as the chip's mixer does), 15 noise alone */
 {
     uint32_t i, s, k;
     int32_t lv[MAXCH];
@@ -621,6 +710,46 @@ static void r_ay_t(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, co
             }
         out[2u * i] += acc; out[2u * i + 1u] += acc;
     }
+}
+static void r_ay_buzz(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, const uint8_t *amp8, const uint16_t *amp16, uint32_t g)       /* the envelope generator as the level (16 steps, the volume scales it): the saws, the triangle, the one-shot plucks, as the 5B's, the tone off in the mixer */
+{
+    uint32_t i, s, k, j;
+    int32_t at[MAXCH][16];
+    for (k = 0; k < na; k++)                            /* each voice's level at each of the envelope's 16 steps, once a block */
+        for (j = 0; j < 16u; j++) { const uint32_t ei = j * (osc[act[k]].vol & 15u) / 15u; at[k][j] = (amp16 ? (int32_t)amp16[ei] : 16 * (int32_t)amp8[ei]) * (int32_t)g >> 4; }
+    for (i = 0; i < n; i++) {
+        int32_t acc = 0;
+        for (s = 0; s < OS; s++)
+            for (k = 0; k < na; k++) {
+                uint32_t c = act[k], nz = osc[c].duty, old = osc[c].ph2, e;
+                int32_t b, v, lv;
+                osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc2;
+                if (osc[c].alg == 3u) { e = osc[c].ph3 >> 26; if (e > 31u) e = 63u - e; }
+                else if (osc[c].alg < 3u) { e = osc[c].ph3 >> 27; if (osc[c].alg == 1u) e = 31u - e; }
+                else {
+                    const uint32_t p = osc[c].ph3, end = p == 0xFFFFFFFFu;
+                    e = p >> 27;
+                    osc[c].ph3 = end || p + 81000u < p ? 0xFFFFFFFFu : p + 81000u;
+                    e = osc[c].alg == 4u ? (end ? 0u : 31u - e) : osc[c].alg == 5u ? (end ? 31u : e) : osc[c].alg == 6u ? (end ? 31u : 31u - e) : (end ? 0u : e);
+                }
+                if (osc[c].alg < 4u) osc[c].ph3 += osc[c].inc3;
+                lv = at[k][e >> 1];
+                if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 3) & 1u) << 16));
+                if (!osc[c].rng) osc[c].rng = 1u;
+                b = osc[c].rng & 1u ? 1 : 0;
+                v = nz == 0u ? 1 : nz == 15u ? b : b;
+                acc += v ? lv : -lv;
+            }
+        out[2u * i] += acc; out[2u * i + 1u] += acc;
+    }
+}
+static void r_ay_t(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, const uint8_t *amp8, const uint16_t *amp16, uint32_t g)       /* voices with a buzz (the envelope) go their own way; the others cost what they did */
+{
+    uint8_t pl[MAXCH], bz[MAXCH];
+    uint32_t np = 0, nb = 0, k;
+    for (k = 0; k < na; k++) { if (osc[act[k]].alg) bz[nb++] = act[k]; else pl[np++] = act[k]; }
+    if (np) r_ay_plain(out, n, pl, np, amp8, amp16, g);
+    if (nb) r_ay_buzz(out, n, bz, nb, amp8, amp16, g);
 }
 static void r_ay(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na) { r_ay_t(out, n, act, na, 0, AY_AMP, 16u); }
 #define FMOS 2u
@@ -643,6 +772,7 @@ static void r_vb(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         out[2u * i] += l + (l >> 1); out[2u * i + 1u] += r + (r >> 1);
     }
 }
+static const uint16_t POKEY_HPK[16] = {0,198,280,395,558,788,1111,1566,2203,3094,4332,6042,8378,11526,15685,21025};       /* the high-pass's coefficient (Q16) for a cutoff of 60 x 2^(n / 2) Hz at 4 x 44.1 kHz */
 static void r_pokey(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* 0..3 run from bit cycles; 4..7 are shift registers: 17 bit, that gated by the 5 bit poly, 9 bit, that gated */
 {
     uint32_t i, s, k;
@@ -670,7 +800,11 @@ static void r_pokey(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)  
                     }
                     b = (uint32_t)osc[c].y2;
                 }
-                acc += b ? a : -a;
+                if (osc[c].alg) {                                                           /* the high-pass filter: one pole, the cutoff by HPF */
+                    const int32_t x = b ? a : -a;
+                    osc[c].y1 += (int32_t)(((int64_t)(x - osc[c].y1) * POKEY_HPK[osc[c].alg]) >> 16);
+                    acc += x - osc[c].y1;
+                } else acc += b ? a : -a;
             }
         out[2u * i] += acc * 9; out[2u * i + 1u] += acc * 9;
     }
@@ -693,28 +827,8 @@ static void r_spk(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
     }
 }
 static int32_t opl_wave(int32_t x, uint32_t type) { return type == 1u ? (x > 0 ? x : 0) : type == 2u ? (x < 0 ? -x : x) : x; }       /* the OPL2's sine, half sine, absolute sine */
-static void r_opl(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* two operators: A modulates C (alg 0..2: C's wave), or both play (3); the feedback carries A's level, like the chips */
-{
-    uint32_t i, s, k;
-    for (i = 0; i < n; i++) {
-        int32_t acc = 0;
-        for (s = 0; s < FMOS; s++)
-            for (k = 0; k < na; k++) {
-                uint32_t c = act[k];
-                int32_t a, o;
-                osc[c].ph += osc[c].inc << 1; osc[c].ph2 += osc[c].inc2 << 1;
-                a = FMS(osc[c].ph2, (uint32_t)((osc[c].y1 + osc[c].y2) >> 1) * osc[c].fbm << 2);
-                if (osc[c].duty && a < 0) a = 0;                                     /* a half sine modulator */
-                osc[c].y2 = osc[c].y1; osc[c].y1 = osc[c].alg == 3u ? a : (a * (int32_t)(osc[c].idx >> 4)) >> 14;
-                if (osc[c].alg < 3u) o = opl_wave(FMS(osc[c].ph, FMM(a, osc[c].idx)), osc[c].alg);
-                else o = (a + FMS(osc[c].ph, 0u)) >> 1;
-                { const int32_t d = (int32_t)osc[c].gain - (int32_t)osc[c].rng; osc[c].rng += (uint32_t)(d > 0 ? (d + 31) >> 5 : d >> 5); }      /* rng is free here: the level glides to its target */
-                { const int32_t x = (o * (int32_t)osc[c].rng) >> 16; acc += osc[c].wshift ? (x * 23) >> 4 : x; }       /* (the OPLL's voices are 3 dB up) */
-            }
-        out[2u * i] += acc; out[2u * i + 1u] += acc;
-    }
-}
-#define N163_W4(c) ((((int32_t)osc[c].wav[osc[c].ph >> 27] * 2 - 15) * (int32_t)osc[c].vol * 77) / 4)       /* one voice's DAC level (a 163 voice at full level: about 12 dB over an APU pulse, nesdev +11, NSFPlay / Mesen 6x) */
+#define N163_I(c) (osc[c].alg ? ((osc[c].ph >> 16) * osc[c].alg >> 16) : osc[c].ph >> 27)       /* the wave's step: LENGTH steps round (alg 0: the usual 32) */
+#define N163_W4(c) ((((int32_t)osc[c].wav[N163_I(c)] * 2 - 15) * (int32_t)osc[c].vol * 77) / 4)       /* one voice's DAC level (a 163 voice at full level: about 12 dB over an APU pulse, nesdev +11, NSFPlay / Mesen 6x) */
 static void r_wave4(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, uint32_t n163)       /* the Namco chips: 4 bit waves, linear volume. The 163 has one DAC that takes its voices in turn, 15 CPU clocks each: a voice is 1/N of the time (so 1/N of the level, N = the voices sounding) and is heard 119 kHz / N times a second, the way the chip's output is a stream of short slices (images of that rate fold into the band) */
 {
     static uint32_t pos;                                /* where the DAC is: slots, Q16 */
@@ -763,53 +877,7 @@ static int32_t fm4_wave(uint32_t p, uint32_t w)       /* an operator's wave at a
     }
     }
 }
-static void r_fm4(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, uint32_t mode)       /* the YM2151 / OPN / TX81Z (8 algorithms), the YM2612 (the same, through its 9 bit DAC), the OPL3 (4 connections); mode 0 stereo, 1 mono, 2 YM2612. One step a sample, two while the modulation is deep (it would alias) */
-{
-    static const uint8_t NORM[12] = {255, 255, 255, 255, 128, 85, 85, 64, 166, 165, 180, 100};         /* one over the number of carriers (OPM family); the OPL3's four follow the chip's own levels, measured */
-    uint32_t i, s, k;
-    for (i = 0; i < n; i++) {
-        int32_t l = 0, r = 0;
-        for (k = 0; k < na; k++) {
-            uint32_t c = act[k], alg = osc[c].alg, ix = osc[c].idx, w = osc[c].duty, ns = ix > FM_IDX[10] ? 2u : 1u, sh = 3u - ns;
-            const int16_t *wt = !w ? SIN_T : (w & 8u) ? ((w & 7u) ? OPZ_T + ((w & 7u) - 1u) * 1024u : SIN_T) : 0;       /* the OPZ's waves are tables like the sine; the OPL3's are computed */
-            int32_t v = 0, g;
-            { const int32_t d = (int32_t)osc[c].gain - (int32_t)osc[c].rng; osc[c].rng += (uint32_t)(d > 0 ? (d + 31) >> 5 : d >> 5); } g = (int32_t)osc[c].rng;      /* rng is free here: the level glides to its target (no steps at the 60 Hz tick) */
-#define OPW(p) (wt ? (int32_t)wt[((p) >> 22) & 1023u] : fm4_wave((p), w))
-#define OPX(ph, x) OPW((ph) + FMM(x, ix))
-            for (s = 0; s < ns; s++) {
-                int32_t a, o, o2, o3;
-                osc[c].ph += osc[c].inc << sh; osc[c].ph2 += osc[c].inc2 << sh; osc[c].ph3 += osc[c].inc3 << sh; osc[c].ph4 += osc[c].inc4 << sh;
-                a = OPW(osc[c].ph2 + ((uint32_t)((osc[c].y1 + osc[c].y2) >> 1) * osc[c].fbm << 2));
-                osc[c].y2 = osc[c].y1;
-                osc[c].y1 = (alg == 7u || alg == 9u || alg == 11u) ? a : (a * (int32_t)(ix >> 4)) >> 14;     /* the feedback is the operator's output with its level: a modulator's TL shrinks it */
-                switch (alg) {
-                case 0: case 8: o = OPX(osc[c].ph, OPX(osc[c].ph4, OPX(osc[c].ph3, a))); break;                                       /* 1 > 2 > 3 > 4 */
-                case 1: o = OPX(osc[c].ph, OPX(osc[c].ph4, a + OPX(osc[c].ph3, 0u))); break;                                          /* (1 + 2) > 3 > 4 */
-                case 2: o = OPX(osc[c].ph, a + OPX(osc[c].ph4, OPX(osc[c].ph3, 0u))); break;                                          /* (1 + (2 > 3)) > 4 */
-                case 3: o = OPX(osc[c].ph, OPX(osc[c].ph3, a) + OPX(osc[c].ph4, 0u)); break;                                          /* ((1 > 2) + 3) > 4 */
-                case 4: case 10: o = OPX(osc[c].ph3, a) + OPX(osc[c].ph, OPX(osc[c].ph4, 0u)); break;                                 /* (1 > 2) + (3 > 4) */
-                case 5: o = OPX(osc[c].ph3, a) + OPX(osc[c].ph4, a) + OPX(osc[c].ph, a); break;                                       /* 1 > 2, 3, 4 */
-                case 6: o = OPX(osc[c].ph3, a) + OPX(osc[c].ph4, 0u) + OPX(osc[c].ph, 0u); break;                                     /* 1 > 2, then 3 and 4 */
-                case 7: o = a + OPX(osc[c].ph3, 0u) + OPX(osc[c].ph4, 0u) + OPX(osc[c].ph, 0u); break;                                /* all four */
-                case 9: o = a + OPX(osc[c].ph, OPX(osc[c].ph4, OPX(osc[c].ph3, 0u))); break;                                          /* 1 + (2 > 3 > 4) */
-                default: o2 = OPX(osc[c].ph3, 0u); o3 = OPX(osc[c].ph4, o2); o = a + o3 + OPX(osc[c].ph, 0u); break;                  /* 1 + (2 > 3) + 4 */
-                }
-                o = (o * NORM[alg < 12u ? alg : 0u] >> 8) * g >> 16;
-                v += o;
-            }
-#undef OPX
-#undef OPW
-            if (mode == 2u) {                                   /* the YM2612's 9 bit DAC: full scale is 255 steps; it truncates, clips, and leaves a gap of 7 steps at zero (+4 / -3, the ladder effect) */
-                int32_t d = (ns == 1u ? v : v / 2) * 41 >> 10;
-                if (d > 255) d = 255; if (d < -256) d = -256;
-                v = (d ? d * 25 + (d > 0 ? 100 : -75) : 0) * 3;
-            } else v = ns == 1u ? v * 3 : v * 3 / 2;
-            if (mode == 1u || osc[c].pan != 2u) l += v;
-            if (mode == 1u || osc[c].pan != 0u) r += v;
-        }
-        out[2u * i] += l; out[2u * i + 1u] += r;
-    }
-}
+#include "fm.c"
 static void r_ws(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the WonderSwan: 4 bit waves, a volume and a side each; the mix is sampled at 24 kHz */
 {
     static uint32_t cnt;
@@ -833,6 +901,19 @@ static void r_ws(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)     
         out[2u * i] += al; out[2u * i + 1u] += ar;
     }
 }
+static uint32_t saa_env(uint32_t shape, uint32_t st, uint32_t res3)       /* the envelope generator's level 0..15 at step 0..63 (it loops steps 32..63): single / repeating decay, triangle, attack (MAME's table) */
+{
+    uint32_t e, r = st & 31u;
+    switch (shape) {
+    case 1: e = st < 16u ? 15u - st : 0u; break;
+    case 2: e = 15u - (st & 15u); break;
+    case 3: e = st < 16u ? st : st < 32u ? 31u - st : 0u; break;
+    case 4: e = r < 16u ? r : 31u - r; break;
+    case 5: e = st < 16u ? st : 0u; break;
+    default: e = st & 15u; break;
+    }
+    return res3 ? e & 14u : e;
+}
 static void r_saa(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the Sam Coupe's chip: a square gated by the noise, noise (15 = noise alone), linear 4 bit levels, a side each */
 {
     uint32_t i, s, k;
@@ -841,8 +922,14 @@ static void r_saa(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
         for (s = 0; s < OS; s++)
             for (k = 0; k < na; k++) {
                 uint32_t c = act[k], nz = osc[c].duty, old = osc[c].ph2;
+                const uint32_t oph = osc[c].ph;
                 int32_t tb = osc[c].ph >> 31 ? 1 : -1, nb, v, a = (int32_t)(osc[c].vol & 15u) * 80;
                 osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc2;
+                if (osc[c].alg) {                                       /* the envelope steps at every half wave of the tone */
+                    uint32_t st = (uint32_t)osc[c].y1 & 63u;
+                    if ((oph ^ osc[c].ph) >> 31) { st = ((st + 1u) & 63u) | (st & 32u); osc[c].y1 = (int32_t)st; }
+                    a = a * (int32_t)saa_env(osc[c].alg, st, osc[c].fb) / 15;
+                }
                 if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 7) & 1u) << 17));      /* 18 bit */
                 if (!osc[c].rng) osc[c].rng = 1u;
                 nb = osc[c].rng & 1u ? 1 : -1;
@@ -919,8 +1006,7 @@ static void r_lynx(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)   
             sum = lynx_cum(cum, len, p1) - lynx_cum(cum, len, p0) + (p1 < p0 ? (uint32_t)cum[len] << 16 : 0u);
             v = (int32_t)(osc[c].vol & 15u) * 80;
             v = v * (int32_t)OS * ((int32_t)((sum << 8) / osc[c].inc2) * 2 - 256) / 256;       /* (the other waves add their level on each of the OS steps) */
-            if (osc[c].pan != 2u) l += v;
-            if (osc[c].pan != 0u) r += v;
+            l += v * (int32_t)osc[c].idx >> 3; r += v * (int32_t)osc[c].fbm >> 3;
         }
         for (s = 0; s < OS; s++)
             for (k = 0; k < na; k++) {
@@ -931,7 +1017,7 @@ static void r_lynx(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)   
                 if (!osc[c].rng) osc[c].rng = 0xFFFu;
                 if (osc[c].duty) {
                     if (osc[c].ph < old) {
-                        uint32_t x = osc[c].rng & LYNX_MASK[osc[c].duty];
+                        uint32_t x = osc[c].rng & (osc[c].alg ? LYNX_XM[osc[c].alg - 1u] : LYNX_MASK[osc[c].duty]);
                         x ^= x >> 8; x ^= x >> 4; x ^= x >> 2; x ^= x >> 1;
                         osc[c].rng = (osc[c].rng << 1 | (x & 1u)) & 0xFFFu;
                     }
@@ -939,8 +1025,13 @@ static void r_lynx(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)   
                 } else b = osc[c].ph >> 31;
                 v = (int32_t)(osc[c].vol & 15u) * 80;
                 if (!b) v = -v;
-                if (osc[c].pan != 2u) l += v;
-                if (osc[c].pan != 0u) r += v;
+                if (osc[c].fb) {                                                    /* integrate: each step adds or takes a bit, up to the level either way (so a low note is a ramp, a high one small) */
+                    const int32_t a = v < 0 ? -v : v, st = a / 160 + 1;
+                    osc[c].y1 += v < 0 ? -st : st;
+                    if (osc[c].y1 > a) osc[c].y1 = a; else if (osc[c].y1 < -a) osc[c].y1 = -a;
+                    v = osc[c].y1;
+                }
+                l += v * (int32_t)osc[c].idx >> 3; r += v * (int32_t)osc[c].fbm >> 3;
             }
         out[2u * i] += l; out[2u * i + 1u] += r;
     }
@@ -950,7 +1041,7 @@ static void r_two(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na, uin
     uint8_t a[MAXCH], b[MAXCH];
     uint32_t k, nf = 0, ns = 0;
     for (k = 0; k < na; k++) { if (chan[act[k]].kind == kfm) a[nf++] = act[k]; else b[ns++] = act[k]; }
-    if (nf) r_fm4(out, n, a, nf, 0);
+    if (nf) r_fm4x(out, n, a, nf, 0);
     if (ns) r_ay_t(out, n, b, ns, 0, YM_AMP, 25u);          /* the SSG is a YM2149: 3 dB a step; 4 dB up, to sit with the AY */
 }
 static void r_ngp(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)       /* the Neo Geo Pocket's SN76489 twin: tones with a side each */
@@ -962,8 +1053,8 @@ static void r_ngp(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
             for (k = 0; k < na; k++) {
                 uint32_t c = act[k];
                 int32_t v;
-                osc[c].ph += osc[c].inc;
-                v = osc[c].ph >> 31 ? SMS_AMP[osc[c].vol] : -SMS_AMP[osc[c].vol];
+                if (osc[c].duty) v = sn_run(c) ? SMS_AMP[osc[c].vol] : -SMS_AMP[osc[c].vol];
+                else { osc[c].ph += osc[c].inc; v = osc[c].ph >> 31 ? SMS_AMP[osc[c].vol] : -SMS_AMP[osc[c].vol]; }
                 if (osc[c].pan != 2u) l += v;
                 if (osc[c].pan != 0u) r += v;
             }
@@ -982,15 +1073,18 @@ static void r_sn77(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)   
                 if (osc[c].alg) {
                     uint32_t tp = osc[c].ph3 >> 16;
                     int32_t tri = (int32_t)(tp < 32768u ? tp : 65535u - tp) - 16384;     /* -16384 .. 16383 */
-                    step += ((int32_t)(osc[c].inc >> 15) * tri) * (osc[c].fb ? 2 : 1);
+                    { const int32_t x = (int32_t)(osc[c].inc >> 15) * tri; step += (osc[c].idx == 4u ? x : (x >> 2) * (int32_t)osc[c].idx) * (osc[c].fb ? 2 : 1); }
                     osc[c].ph3 += osc[c].inc3;
                 }
                 osc[c].ph += (uint32_t)step; osc[c].ph2 += osc[c].inc2;
                 if (osc[c].ph2 < old) osc[c].rng = (osc[c].rng >> 1 | (((osc[c].rng ^ osc[c].rng >> 3) & 1u) << 30));          /* 31 bit, like the chip's */
                 if (!osc[c].rng) osc[c].rng = 0x7FFFFFFFu;
-                if (m == 2u) { osc[c].y1 += (((osc[c].rng & 1u ? a : -a) - osc[c].y1) * 5) >> 4; v = osc[c].y1; }       /* the noise goes through an RC filter */
-                else if (m == 1u) v = (osc[c].ph >> 31) && (osc[c].rng & 1u) ? a : -a;
-                else v = osc[c].ph >> 31 ? a : -a;
+                if (m == 2u) { osc[c].y1 += (((osc[c].rng & 1u ? a : -a) - osc[c].y1) * (int32_t)osc[c].gain) >> 4; v = osc[c].y1; }       /* the noise goes through an RC filter */
+                else {
+                    const uint32_t hi = osc[c].inc4 ? (osc[c].ph >> 28) < osc[c].inc4 : osc[c].ph >> 31;
+                    if (m == 1u) v = hi && (osc[c].rng & 1u) ? a : -a;
+                    else v = hi ? a : -a;
+                }
                 acc += v;
             }
         out[2u * i] += acc; out[2u * i + 1u] += acc;
@@ -1115,7 +1209,7 @@ static void r_s5b(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)    
         for (s = 0; s < OS; s++)
             for (k = 0; k < na; k++) {
                 uint32_t c = act[k], nz = osc[c].duty, old = osc[c].ph2, lv = osc[c].vol & 15u, amp;
-                int32_t t = osc[c].alg ? 1 : osc[c].ph >> 31 ? 1 : 0, b, v;          /* the buzz is the envelope alone: the tone is switched off in the mixer, as the chip's buzz basses do */
+                int32_t t = osc[c].alg && !osc[c].fb ? 1 : osc[c].ph >> 31 ? 1 : 0, b, v;          /* the buzz is the envelope alone (MIXENV: the tone gates it): the tone is switched off in the mixer, as the chip's buzz basses do */
                 osc[c].ph += osc[c].inc; osc[c].ph2 += osc[c].inc2;
                 if (osc[c].alg) {
                     uint32_t e;
@@ -1147,6 +1241,7 @@ static void r_sms(int32_t *out, uint32_t n, const uint8_t *act, uint32_t na)
         for (s = 0; s < OS; s++)
             for (k = 0; k < na; k++) {
                 uint32_t c = act[k];
+                if (osc[c].duty) { acc += sn_run(c) ? SMS_AMP[osc[c].vol] : -SMS_AMP[osc[c].vol]; continue; }
                 osc[c].ph += osc[c].inc;
                 acc += osc[c].ph >> 31 ? SMS_AMP[osc[c].vol] : -SMS_AMP[osc[c].vol];
             }
@@ -1262,7 +1357,7 @@ static void chip_clear(uint32_t chip)
 {
     uint32_t c;
     for (c = 0; c < chan_n; c++)
-        if (KIND_CHIP[chan[c].kind] == chip) { memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; memset(dv[c], 0, sizeof dv[c]); memset(&sid[c], 0, sizeof sid[c]); }
+        if (KIND_CHIP[chan[c].kind] == chip) { memset(&fmo[c], 0, sizeof fmo[c]); memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; memset(dv[c], 0, sizeof dv[c]); memset(&sid[c], 0, sizeof sid[c]); }
     switch (chip) {
     case CHIP_NES: memset(hp_nes, 0, sizeof hp_nes); memset(&lp_nes, 0, sizeof lp_nes); break;
     case CHIP_GB: memset(hp_gb, 0, sizeof hp_gb); break;
@@ -1275,23 +1370,22 @@ static void chip_clear(uint32_t chip)
     case CHIP_WSG: lp_ws = 0; memset(&hp_nx[3], 0, sizeof hp_nx[3]); break;
     case CHIP_MMC5: memset(hp_mm, 0, sizeof hp_mm); memset(&lp_mm, 0, sizeof lp_mm); memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
     case CHIP_FDS: memset(&lp_fds, 0, sizeof lp_fds); memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
-    case CHIP_OPL: case CHIP_N163: case CHIP_S5B: case CHIP_POKEY: case CHIP_SCC: case CHIP_OPLL: case CHIP_VRC7: case CHIP_OPL3: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
+    case CHIP_OPL: case CHIP_N163: case CHIP_S5B: case CHIP_POKEY: case CHIP_SCC: case CHIP_OPLL: case CHIP_VRC7: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
     case CHIP_VIC: case CHIP_TED: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
     case CHIP_OPZ: case CHIP_SN77: case CHIP_OPL1: case CHIP_MSM: case CHIP_ZX: case CHIP_OPN: case CHIP_SID: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); break;
-    case CHIP_OPM: case CHIP_WS: case CHIP_SAA: case CHIP_LYNX: case CHIP_PC98: case CHIP_NEO: case CHIP_NGP: case CHIP_C30: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); memset(&hp_nr[STEREO_IDX(chip)], 0, sizeof hp_nr[0]); break;
+    case CHIP_OPM: case CHIP_OPL3: case CHIP_WS: case CHIP_SAA: case CHIP_LYNX: case CHIP_PC98: case CHIP_NEO: case CHIP_NGP: case CHIP_C30: memset(&hp_nx[chip - CHIP_POKEY], 0, sizeof hp_nx[0]); memset(&hp_nr[STEREO_IDX(chip)], 0, sizeof hp_nr[0]); break;
     default: break;
     }
 }
 static volatile int32_t fx_pitch;                /* all voices, Q8 semitones: the pitch effects (fx.c) */
 static volatile uint8_t fx_solo_ch = 255;        /* solo (fx.c): the one channel left sounding (255: none) */
+static volatile uint32_t duck_lvl;              /* the sidechain: 256 on a kick, down to 0 over about 180 ms (tick) */
 static volatile uint8_t duck_ch = 255;           /* while recording: the channel being played stays loud, the others are ducked (255: none) */
 static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice still sounds */
 {
     const inst_t *in = &vc[c].in;
     int32_t pq, lfo = 0;
-    uint32_t vol, kf = 256u;
-    const uint32_t opll = IS_OPLL(chan[c].kind), pi = (in->wave > 14u ? 14u : in->wave) + (chan[c].kind == KD_VRC7 ? 15u : 0u);
-    if (opll) kf = opll_kf(vc[c].note, OPLL_P[pi].fl >> 5 & 1u);       /* the carrier's key scaled rates */
+    uint32_t vol;
     if (IS_DRUM(chan[c].kind)) {                    /* the hits ring on their own: the voice sounds while one does */
         uint32_t j, on = 0;
         for (j = 0; j < DVN; j++) on |= dv[c][j].on;
@@ -1299,36 +1393,26 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
         return on;
     }
     if (chan[c].kind == KD_SID) { vc[c].env = 3840u; vc[c].stage = vc[c].on || vc[c].trig || sid_busy(c) ? (vc[c].on ? ST_SUS : ST_REL) : ST_IDLE; }       /* the SID's own envelope runs in the renderer */
+    else if (IS_FMK(chan[c].kind)) {                    /* the FM kinds: every operator has its own envelope; the voice's level is the velocity and VOL */
+        if (fm_env(c)) { vc[c].env = 3840u; vc[c].stage = vc[c].on ? ST_SUS : ST_REL; }
+        else { vc[c].env = 0; vc[c].stage = ST_IDLE; }
+    }
     else switch (vc[c].stage) {
     case ST_ATK:
-        if (chan[c].kind == KD_OPL || chan[c].kind == KD_OPL1 || chan[c].kind == KD_OPL3 || opll) {      /* the OPL family's attack: the attenuation falls exponentially from silence (a late start, a fast middle, a long tail), ATK = the ticks to -3 dB */
-            const uint32_t n = in->atk & 15u, q = n * 1024u / kf;       /* the attack in quarter ticks (a higher note's key scaling shortens it) */
-            const uint32_t k = ATK_K[q > 63u ? 63u : q];
-            if (vc[c].age <= (n * 56u + 128u) / kf) break;
-            vc[c].env += ((3840u - vc[c].env) * k + 2048u) >> 12;
-            if (vc[c].env >= 3740u) { vc[c].env = 3840u; vc[c].stage = ST_DEC; }
-            break;
-        }
-        vc[c].env += (in->atk ? 3840u / in->atk : 3840u) * kf >> 8;
+        vc[c].env += (in->atk ? 3840u / in->atk : 3840u);
         if (vc[c].env >= 3840u) { vc[c].env = 3840u; vc[c].stage = ST_DEC; }
         break;
     case ST_DEC:
         if (vc[c].env > (uint32_t)in->sus * 256u) {
-            uint32_t d = opll ? ENV_EXP[in->dec & 15u] * kf >> 8 : 3840u / ((uint32_t)in->dec * 2u + 1u);       /* the ROM instruments fall in dB a second: the ear hears seconds, not ticks */
+            uint32_t d = 3840u / ((uint32_t)in->dec * 2u + 1u);
             vc[c].env = vc[c].env - (uint32_t)in->sus * 256u > d ? (uint16_t)(vc[c].env - d) : (uint16_t)(in->sus * 256u);
         }
         if (vc[c].env <= (uint32_t)in->sus * 256u) vc[c].stage = ST_SUS;
         break;
     case ST_REL: {
-        uint32_t d = opll ? ENV_EXP[(OPLL_P[pi].ceg || in->rel < 4u ? in->rel : 4u) & 15u] * kf >> 8 : 3840u / ((uint32_t)in->rel * 2u + 1u);     /* a percussive carrier lets go at the chip's fixed rate 7 (knob 4), whatever its ROM release */
+        uint32_t d = 3840u / ((uint32_t)in->rel * 2u + 1u);
         if (vc[c].env > d) vc[c].env = (uint16_t)(vc[c].env - d); else { vc[c].env = 0; vc[c].stage = ST_IDLE; }
         break; }
-    case ST_SUS:
-        if (opll && vc[c].on && !OPLL_P[pi].ceg) {     /* a percussive instrument never holds */
-            uint32_t d = ENV_EXP[in->rel & 15u] * kf >> 8;
-            if (vc[c].env > d) vc[c].env = (uint16_t)(vc[c].env - d); else { vc[c].env = 0; vc[c].stage = ST_IDLE; }
-        }
-        break;
     default: break;
     }
     if (vc[c].age < 65535u) vc[c].age++;
@@ -1347,6 +1431,7 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
     if (vol_q > 240u) vol_q = 240u;
     vol_q = (vol_q * ((in->vol > 15u ? 15u : (uint32_t)in->vol) + 1u)) >> 4;
     if (duck_ch != 255u && c != duck_ch) { vol = vol * 5u >> 4; vol_q = vol_q * 5u >> 4; }       /* about -10 dB */
+    if (in->duck && duck_lvl) { const uint32_t g = 256u - ((in->duck > 15u ? 15u : (uint32_t)in->duck) * 17u * duck_lvl >> 8); vol = vol * g >> 8; vol_q = vol_q * g >> 8; }       /* the sidechain: a kick pulls it down, it comes back in about 180 ms */
     if (fx_solo_ch != 255u && c != fx_solo_ch) { vol = 0; vol_q = 0; }
     set_osc(c, (uint32_t)pq, vol);
     if (chan[c].kind == KD_SID) vc[c].env = (uint16_t)(sid[c].env * 15u);       /* what the meter shows */
@@ -1358,6 +1443,7 @@ static void tick(void)
 {
     uint32_t chip, c;
     fx_tick();
+    duck_lvl = duck_lvl > 24u ? duck_lvl - 24u : 0u;
     tre_ph += 4041u; vib_ph += 6630u;
     for (chip = 0; chip < CHIPS; chip++) {
         uint32_t busy = 0;
@@ -1377,11 +1463,13 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
         awake[chip] = AWAKE;
         vc[c].in = chan[c].in;
         if (IS_DRUM(chan[c].kind)) dv_hit(c, a, b);
-        if (chan[c].kind == KD_S5B) osc[c].ph3 = 0;       /* the envelope starts with the note, as a write to the chip's register 13 does */
+        if (chan[c].kind == KD_SAA) osc[c].y1 = 0;
+        if (chan[c].kind == KD_S5B || chan[c].kind == KD_AY || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG) osc[c].ph3 = 0;       /* the envelope starts with the note, as a write to the chip's register 13 does */
         vc[c].on = 1; vc[c].trig = 1; vc[c].age = 0; vc[c].note = (uint8_t)a; vc[c].vel = (uint8_t)b; vc[c].bend = 0; vc[c].vph = 0;
         vc[c].arp_t = 0; vc[c].arp_k = 0; vc[c].arp_off = 0;
         vc[c].stage = ST_ATK; vc[c].env = 0;
         if (!vc[c].in.atk) { vc[c].env = 3840u; vc[c].stage = ST_DEC; }
+        if (IS_FMK(chan[c].kind)) fm_keyon(c);
         tick_voice(c);                           /* sound at once, not up to 16 ms later */
     } else if (awake[chip]) {
         vc[c].on = 0;
@@ -1391,14 +1479,6 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
 #include "seq.c"
 #include "fx.c"
 
-static void opll_set(inst_t *in, uint32_t kind, uint32_t n)      /* an instrument: the sound, and the envelope its ROM says (tweak it on the other pages after) */
-{
-    if (n > 14u) n = 14u;
-    in->wave = (uint8_t)n;
-    if (kind == KD_VRC7) n += 15u;
-    in->atk = OPLL_P[n].atk; in->dec = OPLL_P[n].dec; in->sus = OPLL_P[n].sus; in->rel = OPLL_P[n].rel;
-}
-
 /* ---- changing the channel list (main loop; the audio side waits) */
 static int chan_add(uint32_t kind)               /* the new channel's number, or -1 when full */
 {
@@ -1406,23 +1486,33 @@ static int chan_add(uint32_t kind)               /* the new channel's number, or
     if (chan_n >= MAXCH || kind >= KINDS) return -1;
     chan_lock = 1;
     c = chan_n;
-    chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind];
-    if (IS_OPLL(kind)) opll_set(&chan[c].in, kind, 0u);
-    memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE;
+    chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind]; fm_default(kind, &chan[c].fm); chan[c].wcus = 0;
+    memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&fmo[c], 0, sizeof fmo[c]);
     memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0; memset(dv[c], 0, sizeof dv[c]); memset(&sid[c], 0, sizeof sid[c]);
     chan_n++;
     chan_lock = 0;
     return (int)c;
+}
+static void chan_set_kind(uint32_t c, uint32_t kind)   /* the channel becomes another console's voice: a fresh patch, its notes stay (drum steps and note steps do not mix: those go) */
+{
+    uint32_t p;
+    if (c >= chan_n || kind >= KINDS) return;
+    chan_lock = 1;
+    if (IS_DRUM(chan[c].kind) != IS_DRUM(kind)) for (p = 0; p < SEQ_PAGES; p++) memset(pat[p][c], 0, sizeof pat[p][c]);
+    chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind]; fm_default(kind, &chan[c].fm); chan[c].wcus = 0;
+    memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&fmo[c], 0, sizeof fmo[c]);
+    memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0; memset(dv[c], 0, sizeof dv[c]); memset(&sid[c], 0, sizeof sid[c]);
+    chan_lock = 0;
 }
 static void chan_remove(uint32_t c)
 {
     uint32_t i;
     if (c >= chan_n) return;
     chan_lock = 1;
-    for (i = c; i + 1u < chan_n; i++) { chan[i] = chan[i + 1u]; vc[i] = vc[i + 1u]; osc[i] = osc[i + 1u]; memcpy(dv[i], dv[i + 1u], sizeof dv[i]); sid[i] = sid[i + 1u]; }
+    for (i = c; i + 1u < chan_n; i++) { chan[i] = chan[i + 1u]; vc[i] = vc[i + 1u]; osc[i] = osc[i + 1u]; fmo[i] = fmo[i + 1u]; memcpy(dv[i], dv[i + 1u], sizeof dv[i]); sid[i] = sid[i + 1u]; }
     for (i = 0; i < MAXCH; i++) wkey[i] = 0;
     chan_n--;
-    memset(&vc[chan_n], 0, sizeof vc[chan_n]); vc[chan_n].stage = ST_IDLE; memset(dv[chan_n], 0, sizeof dv[chan_n]); memset(&sid[chan_n], 0, sizeof sid[chan_n]);
+    memset(&vc[chan_n], 0, sizeof vc[chan_n]); vc[chan_n].stage = ST_IDLE; memset(&fmo[chan_n], 0, sizeof fmo[chan_n]); memset(dv[chan_n], 0, sizeof dv[chan_n]); memset(&sid[chan_n], 0, sizeof sid[chan_n]);
     seq_chan_removed(c);
     chan_lock = 0;
 }
@@ -1464,6 +1554,13 @@ static void chip_render(int32_t *out, uint32_t n)
             if (!awake[chip]) continue;
             na = active_of(chip, act, 0); nd = active_of(chip, actd, 1);
             memset(mix, 0, 8u * run);
+            { uint32_t nn = 0, kk, keep = 0;                    /* the noise voices (NES, Game Boy, PC Engine, Virtual Boy) go to r_nz, the rest to the chip's renderer */
+              uint8_t nzl[MAXCH];
+              if (chip == CHIP_NES || chip == CHIP_GB || chip == CHIP_PCE || chip == CHIP_VB) {
+                  for (kk = 0; kk < na; kk++) { if (IS_NZK(chan[act[kk]].kind)) nzl[nn++] = act[kk]; else act[keep++] = act[kk]; }
+                  na = keep;
+                  if (nn) r_nz(mix, run, nzl, nn);
+              } }
             if (na) switch (chip) {
             case CHIP_NES: r_nes(mix, run, act, na); break;
             case CHIP_GB: r_gb(mix, run, act, na); break;
@@ -1471,20 +1568,20 @@ static void chip_render(int32_t *out, uint32_t n)
             case CHIP_TIA: r_tia(mix, run, act, na); break;
             case CHIP_VRC6: r_vrc6(mix, run, act, na); break;
             case CHIP_AY: r_ay(mix, run, act, na); break;
-            case CHIP_MD: r_fm4(mix, run, act, na, 2); break;
+            case CHIP_MD: r_fm4x(mix, run, act, na, 2); break;
             case CHIP_VB: r_vb(mix, run, act, na); break;
             case CHIP_POKEY: r_pokey(mix, run, act, na); break;
             case CHIP_SPK: r_spk(mix, run, act, na); break;
-            case CHIP_OPL: r_opl(mix, run, act, na); break;
+            case CHIP_OPL: r_fm2x(mix, run, act, na); break;
             case CHIP_WSG: r_wave4(mix, run, act, na, 0); break;
             case CHIP_N163: r_wave4(mix, run, act, na, 1); break;
             case CHIP_S5B: r_s5b(mix, run, act, na); break;
             case CHIP_MMC5: r_mmc5(mix, run, act, na); break;
             case CHIP_FDS: r_fds(mix, run, act, na); break;
             case CHIP_SCC: r_scc(mix, run, act, na); break;
-            case CHIP_OPLL: case CHIP_VRC7: r_opl(mix, run, act, na); break;
-            case CHIP_OPM: r_fm4(mix, run, act, na, 0); break;
-            case CHIP_OPL3: r_fm4(mix, run, act, na, 1); break;
+            case CHIP_OPLL: case CHIP_VRC7: r_fm2x(mix, run, act, na); break;
+            case CHIP_OPM: r_fm4x(mix, run, act, na, 0); break;
+            case CHIP_OPL3: r_fm4x(mix, run, act, na, 0); break;
             case CHIP_WS: r_ws(mix, run, act, na); break;
             case CHIP_SAA: r_saa(mix, run, act, na); break;
             case CHIP_VIC: r_vic(mix, run, act, na); break;
@@ -1495,8 +1592,8 @@ static void chip_render(int32_t *out, uint32_t n)
             case CHIP_SID: r_sid(mix, run, act, na); break;
             case CHIP_NEO: r_two(mix, run, act, na, KD_NEO_FM); break;
             case CHIP_NGP: r_ngp(mix, run, act, na); break;
-            case CHIP_OPL1: r_opl(mix, run, act, na); break;
-            case CHIP_OPZ: r_fm4(mix, run, act, na, 1); break;
+            case CHIP_OPL1: r_fm2x(mix, run, act, na); break;
+            case CHIP_OPZ: r_fm4x(mix, run, act, na, 0); break;
             case CHIP_SN77: r_sn77(mix, run, act, na); break;
             case CHIP_C30: r_c30(mix, run, act, na); break;
             case CHIP_MSM: r_msm(mix, run, act, na); break;

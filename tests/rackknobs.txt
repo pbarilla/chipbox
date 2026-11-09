@@ -1,0 +1,13 @@
+200 held 0x100
+300 held 0
+600 shot
+700 enc 3 -4
+800 enc 5 6
+900 shot
+1700 shot
+2000 shot
+3200 shot
+3300 enc 5 -3
+3400 shot
+5200 shot
+end

@@ -69,6 +69,8 @@ static uint32_t bt_fx_cur;                                   /* the leader's pun
 /* the brothers' shared punch-in effects are pads 1-8, bit n = pad n + 1: stop, repeat, low-pass, high-pass, echo, reverb, crush, gate */
 static uint32_t fx_to_shared(uint32_t m) { return m & 0xFFu; }
 static uint32_t fx_from_shared(uint32_t s) { return s & 0xFFu; }
+static uint32_t chg_kind;                       /* the console a channel waits to change to, while the window asks (rack_rm == 2) */
+static uint32_t chg_ch = 255u;                  /* the channel whose console the Add list is changing (255: adding a new one) */
 static int add_aud_c = -1;                      /* the Add Channel audition's channel on loan (addmenu.c); -1 none */
 #include "proj.c"
 #include "projio.c"
@@ -188,16 +190,111 @@ static uint32_t has_fm(uint32_t c) { return chan[c].kind == KD_MD || chan[c].kin
 static uint32_t has_vol(uint32_t c) { return chan[c].kind != KD_NES_TRI && chan[c].kind != KD_SPK && chan[c].kind != KD_ZX; }                       /* the NES triangle has no level control */
 static uint32_t has_duty(uint32_t c) { return chan[c].kind == KD_NES_PU || chan[c].kind == KD_GB_PU || chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_MMC5 || chan[c].kind == KD_ZX; }
 static uint32_t has_buzz(uint32_t c) { return chan[c].kind == KD_S5B || chan[c].kind == KD_FDS || chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM; }                        /* knob 4 on the tone page picks one of four (the 5B's buzz, the Disk System's modulator) */
-static uint32_t pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : chan[c].kind == KD_SID ? 5u : chan[c].kind == KD_FDS ? 5u : has_wave(c) || has_fm(c) || chan[c].kind == KD_S5B ? 4u : 3u; }       /* the SID has two more: pulse and sync, filter */                  /* pages of knobs */
+#include "fmui.c"
+static uint32_t dr_cur, dr_brush, dr_sym;                        /* DRAW: the sample under the cursor, the brush (1, 2, 4, 8 samples: 0..3), the mirror (0 off, 1 mirror, 2 flipped, 3 repeat) */
+/* ---- extra pages: knobs a chip gained later, on inst_t fields an old project leaves at 0 (so the old sound is the knob's 0); label, field, largest value, how it is drawn */
+enum { XF_WAVE, XF_DUTY, XF_WF, XF_WC, XF_WT, XF_PAN, XF_VSPD, XF_SWEEP, XF_NONE };
+enum { XS_BAR, XS_SWEEP, XS_BOXES, XS_SWITCH, XS_LEN };             /* a bar; centred (the sweep); one of n + 1 boxes; off / on; the N163's length (duty 0 = 32) */
+typedef struct { const char *lab; uint8_t f, mx, st; } xk_t;
+typedef struct { xk_t k[4]; } xp_t;
+#define XK(l, f, m, s) {l, f, m, s}
+#define XNO {"", XF_NONE, 0, 0}
+static const xp_t XP_AY[1] = {{{XK("PERIOD", XF_WF, 15, XS_BAR), XK("BUZZ", XF_WC, 7, XS_BOXES), XK("BRATIO", XF_WT, 15, XS_BAR), XNO}}};
+static const xp_t XP_SAA[1] = {{{XK("ENV", XF_WF, 6, XS_BAR), XK("ERES", XF_WC, 1, XS_SWITCH), XK("NRATE", XF_WT, 3, XS_BOXES), XNO}}};
+static const xp_t XP_POK[1] = {{{XK("HPF", XF_WF, 15, XS_BAR), XK("CLOCK", XF_WC, 2, XS_BOXES), XNO, XNO}}};
+static const xp_t XP_LYN[1] = {{{XK("INTEG", XF_WF, 1, XS_SWITCH), XK("TAPS", XF_WC, 15, XS_BAR), XK("BAL", XF_WT, 9, XS_BAR), XNO}}};
+static const xp_t XP_SN7[1] = {{{XK("FILTER", XF_WF, 15, XS_BAR), XK("RATE", XF_WC, 15, XS_BAR), XK("DEPTH", XF_WT, 15, XS_BAR), XK("DUTY", XF_DUTY, 15, XS_BAR)}}};
+static const xp_t XP_N163[1] = {{{XK("LENGTH", XF_DUTY, 4, XS_LEN), XNO, XNO, XNO}}};
+static const xp_t XP_SW[1] = {{{XK("SWEEP", XF_SWEEP, 16, XS_SWEEP), XNO, XNO, XNO}}};
+static const xp_t *x_tab(uint32_t kind, uint32_t *n)
+{
+    *n = 1;
+    switch (kind) {
+    case KD_AY: case KD_PC98_SSG: case KD_NEO_SSG: case KD_OPN_SSG: return XP_AY;
+    case KD_SAA: return XP_SAA;
+    case KD_POKEY: return XP_POK;
+    case KD_LYNX: return XP_LYN;
+    case KD_SN77: return XP_SN7;
+    case KD_N163: return XP_N163;
+    case KD_GB_PU: case KD_GB_WAV: case KD_PCE: case KD_VB_WAV: case KD_NGP: return XP_SW;
+    default: *n = 0; return 0;
+    }
+}
+static uint32_t x_n(uint32_t kind) { uint32_t n; x_tab(kind, &n); return n; }
+static const int8_t SWT[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 20, 26, 34, 46, 64};      /* the sweep knob's steps: the old slope up to 8, then faster (a real 2A03 sweep moves several semitones a step) */
+static uint32_t sw_real(uint32_t kind) { return kind == KD_NES_PU || kind == KD_GB_PU || kind == KD_GB_WAV || kind == KD_PCE || kind == KD_VB_WAV || kind == KD_NGP; }
+static int32_t sw_pos(int32_t v)                    /* where on the knob a stored sweep sits: the nearest step */
+{
+    int32_t a = v < 0 ? -v : v, p = 0, i;
+    for (i = 1; i < 17; i++) if ((SWT[i] > a ? SWT[i] - a : a - SWT[i]) < (SWT[p] > a ? SWT[p] - a : a - SWT[p])) p = i;
+    return v < 0 ? -p : p;
+}
+static int8_t sw_step(int32_t v, int32_t d)
+{
+    int32_t p = sw_pos(v) + d;
+    p = p < -16 ? -16 : p > 16 ? 16 : p;
+    return (int8_t)(p < 0 ? -SWT[-p] : SWT[p]);
+}
+static uint8_t *xf_ptr(inst_t *in, uint32_t f)
+{
+    switch (f) {
+    case XF_WAVE: return &in->wave; case XF_DUTY: return &in->duty; case XF_WF: return &in->wf; case XF_WC: return &in->wc;
+    case XF_WT: return &in->wt; case XF_PAN: return &in->pan; case XF_VSPD: return &in->vib_spd; default: return (uint8_t *)&in->sweep;
+    }
+}
+static int32_t x_val(const inst_t *in, const xk_t *x)          /* the knob's position */
+{
+    const uint8_t *p = xf_ptr((inst_t *)in, x->f);
+    if (x->st == XS_SWEEP) return sw_pos(in->sweep);
+    if (x->st == XS_LEN) return *p ? (int32_t)*p - 1 : 3;
+    return *p;
+}
+static void x_knob(uint32_t c, uint32_t pg, uint32_t k, int32_t d)
+{
+    uint32_t n;
+    const xk_t *x = &x_tab(chan[c].kind, &n)[pg < n ? pg : 0].k[k];
+    uint8_t *p;
+    int32_t v;
+    if (x->f == XF_NONE) return;
+    p = xf_ptr(&chan[c].in, x->f);
+    if (chan[c].kind == KD_N163 && x->f == XF_DUTY) {                   /* LENGTH on a drawn wave: the samples are picked again */
+        const uint32_t ol = wd_n(c);
+        int32_t nv = x_val(&chan[c].in, x) + d;
+        nv = nv < 0 ? 0 : nv > (int32_t)x->mx ? (int32_t)x->mx : nv;
+        *p = (uint8_t)(nv + 1);
+        wd_resize(c, ol, wd_n(c));
+        return;
+    }
+    if (x->st == XS_SWEEP) { chan[c].in.sweep = sw_step(chan[c].in.sweep, d); return; }
+    v = x_val(&chan[c].in, x) + d;
+    v = v < 0 ? 0 : v > (int32_t)x->mx ? (int32_t)x->mx : v;
+    *p = (uint8_t)(x->st == XS_LEN ? v + 1 : v);
+}
+static uint32_t base_pages(uint32_t c) { return IS_DRUM(chan[c].kind) ? 1u : chan[c].kind == KD_SID ? 5u : chan[c].kind == KD_FDS ? 5u : has_wave(c) || has_fm(c) || chan[c].kind == KD_S5B ? 4u : 3u; }       /* the SID has two more: pulse and sync, filter */                  /* pages of knobs */
+static uint32_t wd_pg(uint32_t c) { return wd_ok(chan[c].kind) ? base_pages(c) + x_n(chan[c].kind) : 99u; }          /* the DRAW page: the last one, on a kind with a writable wave */
+static uint32_t pages(uint32_t c) { return IS_FMK(chan[c].kind) ? fm_pages(c, fm_foc) : base_pages(c) + x_n(chan[c].kind) + (wd_ok(chan[c].kind) ? 1u : 0u); }
+static uint32_t wd_cmax(uint32_t c) { return wd_n(c) - 1u; }
+static uint32_t wd_dsteps(uint32_t kind) { return wd_top(kind) > 63u ? 4u : 1u; }               /* a click: one step, four on the 8 bit wave */
 static uint32_t has_k1(uint32_t c)                                                               /* knob 1 does something on the tone page */
 {
-    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_SID || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B || IS_OPLL(chan[c].kind) || chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC || chan[c].kind == KD_LYNX || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM;
+    return has_wave(c) || has_duty(c) || has_fm(c) || chan[c].kind == KD_SID || chan[c].kind == KD_TIA || chan[c].kind == KD_AY || chan[c].kind == KD_POKEY || chan[c].kind == KD_S5B || IS_OPLL(chan[c].kind) || chan[c].kind == KD_SAA || chan[c].kind == KD_TED || chan[c].kind == KD_VIC || chan[c].kind == KD_LYNX || chan[c].kind == KD_PC98_SSG || chan[c].kind == KD_NEO_SSG || chan[c].kind == KD_OPN_SSG || chan[c].kind == KD_SN77 || chan[c].kind == KD_MSM || chan[c].kind == KD_VRC6_SAW || chan[c].kind == KD_SMS || chan[c].kind == KD_NGP || IS_NZK(chan[c].kind);
 }
 static uint32_t has_pan(uint32_t c) { uint32_t ch = KIND_CHIP[chan[c].kind]; return (ch == CHIP_GB || ch == CHIP_PCE || ch == CHIP_MD || ch == CHIP_VB || ch == CHIP_OPM || ch == CHIP_WS || ch == CHIP_SAA || ch == CHIP_LYNX || ch == CHIP_PC98 || ch == CHIP_NEO || ch == CHIP_NGP || ch == CHIP_C30) && chan[c].kind != KD_PC98_SSG && chan[c].kind != KD_NEO_SSG && !IS_DRUM(chan[c].kind); }
 static int8_t clamp_i(int32_t v, int32_t lo, int32_t hi) { return (int8_t)(v < lo ? lo : v > hi ? hi : v); }
+static void wd_knob(uint32_t c, uint32_t k, int32_t d)         /* the DRAW page: LEVEL of the sample under the cursor, BRUSH, MIRROR */
+{
+    if (dr_cur > wd_cmax(c)) dr_cur = wd_cmax(c);
+    if (k == 0u) wd_edit(c, dr_cur, d * (int32_t)wd_dsteps(chan[c].kind), 1u << dr_brush, dr_sym);
+    else if (k == 1u) dr_brush = (uint32_t)clamp_i((int32_t)dr_brush + d, 0, 3);
+    else if (k == 2u) dr_sym = (uint32_t)clamp_i((int32_t)dr_sym + d, 0, 3);
+}
 static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* knob k of a page of cards, on channel c */
 {
     inst_t *in = &chan[c].in;
+    if (IS_FMK(chan[c].kind)) { fm_knob(c, page, k, d); return; }
+    if (page == wd_pg(c)) { wd_knob(c, k, d); return; }
+    if (chan[c].wcus && wd_ok(chan[c].kind) && (page == 3u || (page == 0u && k == 0u))) chan[c].wcus = 0;       /* a knob of the generator: back to the generated wave (undo brings the drawing back) */
+    if (page >= base_pages(c) && !IS_DRUM(chan[c].kind)) { x_knob(c, page - base_pages(c), k, d); return; }
     if (chan[c].kind == KD_SID && (page >= 3u || (page == 0u && (k == 0u || k == 3u)))) {       /* the SID: waveform and chip on the tone page, pulse and sync, filter */
         static const uint8_t SPN[3][4] = {{SP_WAVE, 0, 0, SP_MODEL}, {SP_PW, SP_PWM, SP_SYNC, SP_RING}, {SP_CUT, SP_RES, SP_MODE, SP_FENV}};
         static const uint8_t SMX[3][4] = {{7, 0, 0, 1}, {15, 15, 15, 15}, {15, 15, 7, 15}};
@@ -213,6 +310,8 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
     }
     if (page == 3u && chan[c].kind == KD_S5B) {                 /* the noise: PERIOD alone (0 follows the note) */
         if (k == 0u) in->wf = (uint8_t)clamp_i((int32_t)in->wf + d, 0, 15);
+        else if (k == 1u) in->wc = (uint8_t)clamp_i((int32_t)in->wc + d, 0, 15);          /* RATE: the envelope's speed against the note (0 = the note) */
+        else if (k == 2u) in->wt = (uint8_t)clamp_i((int32_t)in->wt + d, 0, 1);           /* MIXENV: the tone together with the envelope */
         return;
     }
     if (page == 3u) {                                           /* the wave: shape, fold, crush, twist (the FM: ratio, index, feedback, decay) */
@@ -225,6 +324,7 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         if (k == 0u) in->arp = (uint8_t)clamp_i((int32_t)in->arp + d, 0, 8);
         else if (k == 1u) in->arp_rate = (uint8_t)clamp_i((int32_t)in->arp_rate + d, 0, 3);
         else if (k == 2u) in->arp_dir = (uint8_t)clamp_i((int32_t)in->arp_dir + d, 0, 2);
+        else in->vib_spd = (uint8_t)clamp_i((int32_t)in->vib_spd + d, 0, 15);                  /* VSPD: how fast the vibrato goes */
     } else if (k == 0u) {                                       /* the tone: wave or duty, volume, vibrato, sweep or pan */
         int32_t v;
         if (has_wave(c)) { v = ((int32_t)in->wave + 2) / 5 + (d < 0 ? -1 : 1); in->wave = (uint8_t)((v < 0 ? 0 : v > 3 ? 3 : v) * 5); }       /* pulse, saw, triangle, sine */
@@ -234,8 +334,12 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
         else if (chan[c].kind == KD_MSM) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 1, 15);          /* the footages, one bit each */
         else if (chan[c].kind == KD_SN77) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 3);          /* the mixer */          /* tone or noise */
         else if (chan[c].kind == KD_LYNX) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);         /* the sound */
+        else if (chan[c].kind == KD_VRC6_SAW) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 15);    /* OVER: the saw's rate past its usual top */
+        else if (chan[c].kind == KD_NES_NOI || chan[c].kind == KD_GB_NOI) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 1);        /* MODE / WIDTH: the long or the short register */
+        else if (chan[c].kind == KD_PCE_NOI) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 31);      /* RATE (0 follows the note) */
+        else if (chan[c].kind == KD_VB_NOI) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, 7);        /* TAP */
+        else if (chan[c].kind == KD_SMS || chan[c].kind == KD_NGP) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 8);       /* NOISE: tone, white or periodic on the note, three fixed rates of each */
         else if (chan[c].kind == KD_POKEY) in->wave = (uint8_t)clamp_i((int32_t)in->wave + d, 0, 7);        /* the distortion */
-        else if (IS_OPLL(chan[c].kind)) opll_set(in, chan[c].kind, (uint32_t)clamp_i((int32_t)in->wave + d, 0, 14));       /* the instrument, with its envelope */
         else if (has_fm(c)) in->duty = (uint8_t)clamp_i((int32_t)in->duty + d, 0, chan[c].kind == KD_OPL1 ? 1 : chan[c].kind == KD_OPM || chan[c].kind == KD_PC98_FM || chan[c].kind == KD_NEO_FM || chan[c].kind == KD_OPN_FM || chan[c].kind == KD_OPZ || chan[c].kind == KD_MD ? 7 : 3);          /* the algorithm */
         else if (has_duty(c)) { v = (int32_t)in->duty + d; in->duty = (uint8_t)(v < 0 ? 0 : v > (chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_ZX ? 7 : 3) ? (chan[c].kind == KD_VRC6_PU || chan[c].kind == KD_ZX ? 7 : 3) : v); }
     }
@@ -243,6 +347,9 @@ static void knob_set(uint32_t c, uint32_t page, uint32_t k, int32_t d)      /* k
     else if (k == 2u) in->vib_dep = (uint8_t)clamp_i((int32_t)in->vib_dep + d, 0, 15);
     else if (has_pan(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, 2);
     else if (has_buzz(c)) in->pan = (uint8_t)clamp_i((int32_t)in->pan + d, 0, chan[c].kind == KD_OPL3 || chan[c].kind == KD_OPZ || chan[c].kind == KD_S5B ? 7 : chan[c].kind == KD_FDS ? 15 : 3);          /* the buzz, the modulator */
+    else if (chan[c].kind == KD_NES_NOI) in->wf = (uint8_t)clamp_i((int32_t)in->wf + d, 0, 15);          /* PERIOD (0 follows the note) */
+    else if (chan[c].kind == KD_MMC5) {}                                  /* (the chip has no sweep) */
+    else if (sw_real(chan[c].kind)) in->sweep = sw_step(in->sweep, d);
     else in->sweep = clamp_i((int32_t)in->sweep + d, -16, 16);
 }
 
@@ -434,6 +541,7 @@ static void app_main(void)
         else if (!seq_run || seq_hold) rack_cur = seq_step;                  /* stopped or paused: the playhead is the cursor */
         nrows = chan_n + (view == 1u && chan_n < MAXCH ? 1u : 0u);
         if (sel >= nrows) sel = nrows ? nrows - 1u : 0u;
+        fm_fix(sel);
         if (sel < chan_n && chip_page >= pages(sel)) { chip_page = 0; redraw = 1; }
         ch_chip = sel < chan_n ? KIND_CHIP[chan[sel].kind] : CHIP_NES;
         t = &THEME[ch_chip];
@@ -570,11 +678,10 @@ static void app_main(void)
             else if (view == 2u) man_open(MC_SONG, seq_run ? 4u : 0u);                                  /* the page for what you are doing: playing, adding a channel, the knobs' second page ... */
             else if (view == 3u && sel < chan_n && IS_DRUM(chan[sel].kind)) man_open(MC_DRUM, 0);
             else if (view == 3u) man_open(MC_STEP, 0);
-            else if (view) man_open(MC_RACK, rack_rm ? MRP_REMOVE : sel >= chan_n ? MRP_ADD : rec_on ? MRP_REC : seq_run ? MRP_PLAY : MRP_PICK);
-            else man_open(MC_CHIP, chip_page ? 1u : 0u);
+            else if (view) man_open(MC_RACK, rack_rm == 2u ? MRP_CHANGE : rack_rm ? MRP_REMOVE : sel >= chan_n ? MRP_ADD : rec_on ? MRP_REC : seq_run ? MRP_PLAY : MRP_PICK);
+            else man_open_chip(sel, chip_page);
         } else if (home_tap) {
-            if (menu_on && menu_kind == MK_BT) sys_open(set.demo, 5);                                  /* back from the Bluetooth page to the menu */
-            else if (menu_on) menu_on = 0;
+            if (menu_on) menu_on = 0;                                                                  /* HOME closes any menu (the Brothers Link page too) */
             else if (fx_layer) { fx_layer = 0; fx_off(); anim_start(AN_VIEW, view); }       /* HOME leaves the punch-in layer first */
             else if (view == 3u) { view = 1; anim_start(AN_VIEW, 1u); }
             else { view = view == 1u ? (chan_n ? 0u : 2u) : view == 0u ? 2u : 1u; anim_start(AN_VIEW, view); }       /* HOME: the rack, the chip, the song, the rack ... */
@@ -625,6 +732,11 @@ static void app_main(void)
                 if (chan_n < MAXCH) { menu_open_pick(COPY_MENU, sizeof COPY_MENU / sizeof COPY_MENU[0]); menu_kind = MK_COPY; }       /* a window: patch only, patch and notes, cancel */
             }
         }
+        if ((b & (1u << BTN_SEL)) && view == 0u && sel < chan_n && IS_FMK(chan[sel].kind) && !menu_on && !pick_on && !fx_layer) {      /* SEL on an FM chip's screen: the knobs edit the channel, then each operator in turn */
+            fm_foc = (fm_foc + 1u) % fm_nfoc(sel);
+            if (chip_page >= pages(sel)) chip_page = 0;
+            redraw = 1;
+        }
         if ((b & (1u << BTN_ARP)) && !menu_on && !pick_on) {          /* ARP: note tails on or off */
             rack_tails ^= 1u; set.an[2] = (uint8_t)((set.an[2] & 127u) | rack_tails << 7); dirty = 1; t_change = fm1_ms; rack_inval = 1;
         }
@@ -660,11 +772,18 @@ static void app_main(void)
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                     if (menu_sel < 3u && sel < chan_n && chan_n < MAXCH && (c = chan_add(chan[sel].kind)) >= 0) {       /* 1 patch only, 2 patch and notes */
                         uint32_t p;
-                        chan[c].in = chan[sel].in;
+                        chan[c].in = chan[sel].in; chan[c].fm = chan[sel].fm; chan[c].wcus = chan[sel].wcus; memcpy(chan[c].user, chan[sel].user, sizeof chan[c].user);
                         if (menu_sel == 2u) for (p = 0; p < page_n; p++) memcpy(pat[p][c], pat[p][sel], sizeof pat[p][c]);
                         sel = (uint32_t)c; proj_edited(); rack_inval = 1;
                         anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8);
                     }
+                } else if (menu_kind == MK_ADD2 && chg_ch < chan_n) {                    /* change the channel's console: its notes stay */
+                    uint32_t kind = ADD_SUB[add_console].kind[menu_sel - 1u], p, any = 0;
+                    sel = chg_ch; chg_ch = 255u; menu_on = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1;
+                    if (IS_DRUM(kind) != IS_DRUM(chan[sel].kind))
+                        for (p = 0; p < page_n; p++) { uint32_t s; for (s = 0; s < SEQ_LEN; s++) if (pat[p][sel][s].note || pat[p][sel][s].vel) any = 1; }
+                    if (any) { chg_kind = kind; rack_rm = 2; }                                  /* notes would go: ask first */
+                    else { seq_stop(); chip_off(sel); chan_set_kind(sel, kind); proj_edited(); anim_start(AN_ADD, KIND_CHIP[kind] | sel << 8); }
                 } else if (menu_kind == MK_ADD2) {
                     int c = chan_add(ADD_SUB[add_console].kind[menu_sel - 1u]);
                     if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }
@@ -757,15 +876,22 @@ static void app_main(void)
             if ((uint32_t)(set.oct + 2) != oct_was) anim_cont(AN_OCT, oct_was << 4 | (uint32_t)(set.oct + 2), 900u);
         } else {
         if (view == 1u && sel == chan_n && chan_n < MAXCH && (b & (1u << BTN_OCT_UP))) {                 /* OCT+ (yes) on the "+" row: add a channel */
-            add_open(CHIPS); add_console = 0;
+            chg_ch = 255u; add_open(CHIPS); add_console = 0;
         } else if (rack_rm) {                           /* removing a channel: OCT+ yes, OCT- no */
-            if (b & (1u << BTN_OCT_UP)) { uint32_t gone = KIND_CHIP[chan[sel].kind]; seq_stop(); chan_remove(sel); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_REMOVE, gone | (uint32_t)sel << 8); }
+            if (rack_rm == 2u) {                        /* changing between notes and drums clears the track: OCT+ yes, OCT- no */
+                if (b & (1u << BTN_OCT_UP)) { seq_stop(); chip_off(sel); chan_set_kind(sel, chg_kind); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_ADD, KIND_CHIP[chg_kind] | sel << 8); }
+                else if (b & (1u << BTN_OCT_DOWN)) { rack_rm = 0; rack_inval = 1; }
+            }
+            else if (b & (1u << BTN_OCT_UP)) { uint32_t gone = KIND_CHIP[chan[sel].kind]; seq_stop(); chan_remove(sel); proj_edited(); rack_rm = 0; rack_inval = 1; anim_start(AN_REMOVE, gone | (uint32_t)sel << 8); }
             else if (b & (1u << BTN_OCT_DOWN)) { rack_rm = 0; rack_inval = 1; }
         } else {
             uint32_t oct_was = (uint32_t)(set.oct + 2);
             if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
             if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
             if ((uint32_t)(set.oct + 2) != oct_was) anim_cont(AN_OCT, oct_was << 4 | (uint32_t)(set.oct + 2), 900u);
+        }
+        if (view == 1u && sel < chan_n && edit_rel && !edit_used && !rack_rm && !rec_on && !fx_layer && !pick_on && !menu_on && !in_menu && !tip_on) {          /* tap EDIT on a channel: change its console */
+            add_aud_stop(); chg_ch = sel; add_open(KIND_CHIP[chan[sel].kind]); add_console = 0;
         }
         if (view == 1u && sel < chan_n && edit_now && !edit_used && !rack_rm && !rec_on && fm1_ms - edit_t0 >= 600u) { rack_rm = 1; rack_inval = 1; edit_used = 1; anim_start(AN_DELETE, 0); }     /* hold EDIT on a channel: remove it? */
         e = fm1_enc_take(ENC_PRESETS);                  /* always: down the list of channels */
@@ -787,14 +913,30 @@ static void app_main(void)
             else if (sel < chan_n) { uint32_t np = pages(sel); chip_page = (chip_page + (e < 0 ? np - 1u : 1u)) % np; redraw = 1; }
         }
         e = fm1_enc_take(ENC_SELECT);                   /* the tape dial: middle pauses, right goes on, left goes back; in the punch-in layer only while TAPE is held */
-        if (e && (!fx_layer || (fx_held & FXB(FX_TAPE)))) { seq_shuttle(e); anim_tape(); rack_inval = 1; }
+        if (e && view == 0u && !fx_layer && sel < chan_n && chip_page == wd_pg(sel)) {      /* on the DRAW page SELECT is the cursor along the samples (no wrap) */
+            int32_t v = (int32_t)(dr_cur > wd_cmax(sel) ? wd_cmax(sel) : dr_cur) + e;
+            dr_cur = (uint32_t)(v < 0 ? 0 : v > (int32_t)wd_cmax(sel) ? (int32_t)wd_cmax(sel) : v); redraw = 1;
+        } else if (e && (!fx_layer || (fx_held & FXB(FX_TAPE)))) { seq_shuttle(e); anim_tape(); rack_inval = 1; }
         for (k = 0; k < 4u; k++) {
             e = fm1_enc_take(ENC_KNOB1 + k);
             if (!e) continue;
             if (view == 1u) {
                 if (k == 0u) { int32_t v = (int32_t)seq_bpm + e; seq_bpm = (uint32_t)(v < 40 ? 40 : v > 240 ? 240 : v); rack_inval = 1; proj_edited(); anim_tempo(); }     /* knob 1: the tempo */
+                else if (sel < chan_n) {
+                    inst_t *ri = &chan[sel].in;
+                    if (k == 1u) { ri->vol = (uint8_t)clamp_i((int32_t)ri->vol + e, 0, 15); rack_bar_t = fm1_ms | 1u; rack_bar_row = sel; }                  /* knob 2: the channel's level */
+                    else if (k == 2u) {                                                                    /* knob 3: slide the channel's steps along this page (round the ends) */
+                        step_t tmp[SEQ_LEN];
+                        int32_t sh = e % (int32_t)SEQ_LEN, j;
+                        if (sh < 0) sh += (int32_t)SEQ_LEN;
+                        memcpy(tmp, pat[seq_view][sel], sizeof tmp);
+                        for (j = 0; j < (int32_t)SEQ_LEN; j++) pat[seq_view][sel][(j + sh) % (int32_t)SEQ_LEN] = tmp[j];
+                    } else if (!IS_DRUM(chan[sel].kind)) { ri->duck = (uint8_t)clamp_i((int32_t)ri->duck + e, 0, 15); rack_bar_t = fm1_ms | 1u; rack_bar_row = sel; }      /* knob 4: the sidechain, how far a kick pulls it down */
+                    rack_inval = 1; proj_edited();
+                }
             } else if (sel < chan_n) {
-                knob_set(sel, chip_page, k, e); redraw = 1; proj_edited();
+                knob_set(sel, chip_page, k, e); redraw = 1;
+                if (chip_page != wd_pg(sel) || k == 0u) proj_edited();       /* (the brush and the mirror are not part of the song) */
                 if (chip_page == 3u && has_wave(sel)) anim_cont(AN_WAVE, (uint32_t)sel, 1200u);
             }
         }
@@ -890,6 +1032,7 @@ static void app_main(void)
         fx_solo_ch = (fx_held & FXB(FX_SOLO)) && sel < chan_n ? (uint8_t)sel : 255u;
         fm1_led_glow(BTN_LFO, undo_cnt > 0u);
         fm1_led_key(BTN_ARP, rack_tails);
+        fm1_led_key(BTN_SEL, view == 0u && sel < chan_n && IS_FMK(chan[sel].kind) && fm_foc);
         fm1_led_glow(BTN_ENV, view == 3u && sel < chan_n && IS_DRUM(chan[sel].kind));          /* drums: ENV is the accent */
         fm1_led_key(BTN_SEQ, view == 3u);
         fm1_led_key(BTN_FX, fx_layer);

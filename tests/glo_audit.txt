@@ -1,0 +1,82 @@
+50 held 0x100
+80 held 0
+100 midi 0xB0 106 12
+200 enc 6 1
+260 enc 6 1
+320 enc 6 1
+380 enc 6 1
+600 held 0x100
+650 held 0
+1000 shot
+1100 btn 7
+1300 shot
+1400 held 0x100
+1460 held 0
+1660 enc 1 1
+1860 shot
+1960 btn 7
+2160 shot
+2260 held 0x100
+2320 held 0
+2520 enc 1 1
+2720 shot
+2820 btn 7
+3020 shot
+3120 held 0x100
+3180 held 0
+3380 enc 1 1
+3580 shot
+3680 btn 7
+3880 shot
+3980 held 0x100
+4040 held 0
+4240 enc 1 1
+4440 shot
+4540 btn 7
+4740 shot
+4840 held 0x100
+4900 held 0
+5100 enc 1 1
+5300 shot
+5400 btn 7
+5600 shot
+5700 held 0x100
+5760 held 0
+5960 enc 1 1
+6160 shot
+6260 btn 7
+6460 shot
+6560 held 0x100
+6620 held 0
+6820 enc 1 1
+7020 shot
+7120 btn 7
+7320 shot
+7420 held 0x100
+7480 held 0
+7680 enc 1 1
+7880 shot
+7980 btn 7
+8180 shot
+8280 held 0x100
+8340 held 0
+8540 enc 1 1
+8740 shot
+8840 btn 7
+9040 shot
+9140 held 0x100
+9200 held 0
+9400 enc 1 1
+9600 shot
+9700 btn 7
+9900 shot
+10000 held 0x100
+10060 held 0
+10260 enc 1 1
+10460 shot
+10560 btn 7
+10760 shot
+10860 held 0x100
+10920 held 0
+11120 enc 1 1
+11420 end

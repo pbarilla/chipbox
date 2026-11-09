@@ -221,6 +221,24 @@ arr("OPL_RAT", "uint8_t", [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30
 arr("DB_ATT", "uint32_t", [round(65536 * 10 ** (-0.0375 * i)) for i in range(128)], 8)
 arr("OPL3_SAW", "uint16_t", [round(16384 * 2 ** (-i / 32)) for i in range(32)], 8)       # the OPL3 wave 7: its level halves every 32 of 512 steps, exponentially
 arr("ATK_K", "uint16_t", [4096] + [round(4096 * (1 - math.exp(-3.47 * 4 / q))) for q in range(1, 64)], 8)       # the OPL attack: the share of the missing level gained a tick, by the attack in quarter ticks (the attenuation falls as e^(-3.47 t / T))
+# the real operator envelope (OPM / OPN / OPZ / OPL), at our 60 Hz tick. Rate r 0..63; the attenuation (0.09375 dB units, here Q8) moves (4 + m) 2^(n - 14) units per envelope tick, n = r >> 2, m = r & 3,
+# rates 0 and 1 stand still, 2 and 3 count as n = 0. The envelope clock: OPM / OPZ 18643 Hz, YM2612 17756, YM2203 / YM2608 / YM2610 18489, OPL 49716 (one of its 49716 samples a second).
+# Decay, sustain, release: a rise of DECQ (Q8 units) a tick. Attack: the attenuation is multiplied by (1 - K / 65536) a tick (exponential in attenuation, as the chips do it).
+EGHZ = [18643, 17756, 18489, 49716]
+def egn(r): return (0, 0) if r < 4 else (r >> 2, r & 3)
+def eg_units(g, r):                             # units per 60 Hz tick
+    if r < 2: return 0.0
+    n, m = egn(r)
+    return EGHZ[g] / 60.0 * (4 + m) * 2.0 ** (n - 14)
+arr("FMR_DEC", "uint32_t", [round(256 * eg_units(g, r)) for g in range(4) for r in range(64)], 8)
+arr("FMR_ATK", "uint16_t", [0 if r < 2 else min(65535, max(1, round(65536 * (1 - math.exp(-eg_units(g, r) / 16.0))))) for g in range(4) for r in range(64)], 8)
+arr("FM_FINE8", "uint32_t", [round(65536 * 10 ** (-0.09375 * j / 20)) for j in range(8)], 8)        # the eighth steps of a 0.75 dB step (an attenuation unit is 0.09375 dB)
+# detune DT1 (OPM, OPN family, OPZ): rows for DT1 = 0..3 (0 none), by key code 0..31: phase increment units, 1 unit = clock / 2^20 hertz (the YM2151 / YM2612 table)
+arr("FM_DT1", "uint8_t", [0] * 32 + [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 8, 8]
+    + [1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 10, 11, 12, 13, 14, 16, 16, 16, 16]
+    + [2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 20, 22, 22, 22, 22], 16)
+# one DT1 unit as our phase step (the chip's sample rate / 2^20 hertz): OPM / OPZ, YM2612, YM2203 / YM2608 / YM2610
+arr("FM_DTU", "uint32_t", [round(2 ** 32 * (fsr / 2.0 ** 20) / FSO) for fsr in (55930, 53267, 55467)], 3)
 arr("FM_DEC", "uint16_t", [0] + [round(30 * 2 ** ((n - 1) * 0.5) / 0.75) for n in range(1, 16)], 8)
 
 # punch-in filters: a one-pole low-pass / high-pass coefficient (Q14) for 16 cutoffs; 0 = open (bypassed)
@@ -253,6 +271,7 @@ VRC7_ROM = [
     (0xb5, 0x01, 0x0f, 0x0f, 0xa8, 0xa5, 0x51, 0x02), (0x17, 0xc1, 0x24, 0x07, 0xf8, 0xf8, 0x22, 0x12), (0x71, 0x23, 0x11, 0x06, 0x65, 0x74, 0x18, 0x16),
     (0x01, 0x02, 0xd3, 0x05, 0xc9, 0x95, 0x03, 0x02), (0x61, 0x63, 0x0c, 0x00, 0x94, 0xc0, 0x33, 0xf6), (0x21, 0x72, 0x0d, 0x00, 0xc1, 0xd5, 0x56, 0x06),
 ]
+arr("OPLL_RAW", "uint8_t", [b for d in OPLL_ROM + VRC7_ROM for b in d], 8)        # the 30 instruments as the chip's 8 bytes (15 YM2413, then 15 VRC7): the editable patch starts as a copy
 ML = [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30]
 def rate_ms(r): return 9820.0 * 2 ** (1 - r) if r else 1e9              # time for a full fall at a rate 0..15, about
 def to_ticks(ms): return max(0, min(15, round((ms / (1000 / 60) - 1) / 2)))
@@ -350,6 +369,10 @@ for want in (3, 7, 15, 31, 63, 127, 4095):
     LYNX.append((cyc[c], c))
 arr("LYNX_MASK", "uint16_t", [0] + [m for m, c in LYNX], 8)
 arr("LYNX_LEN", "uint16_t", [2] + [c for m, c in LYNX], 8)
+# the TAPS knob: fifteen more short cycles (a tone each), tap sets found above, the lengths between 5 and 51 that the seven sounds do not have
+XL = [c for c in sorted(cyc) if 5 <= c <= 51 and c not in (7, 15, 31)]
+arr("LYNX_XM", "uint16_t", [cyc[c] for c in XL][:15], 8)
+arr("LYNX_XL", "uint16_t", XL[:15], 8)
 # the long cycles (63, 126, 4095) are played tuned: the register's bit sequence as a running count of ones (so a frame's box average is two lookups)
 LYX = []
 for m, c in LYNX[4:]:
