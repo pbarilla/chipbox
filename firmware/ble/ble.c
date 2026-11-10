@@ -184,6 +184,7 @@ static void radio_up(void)
     addr[0] = (uint8_t)r; addr[1] = (uint8_t)(r >> 8); addr[2] = (uint8_t)(r >> 16); addr[3] = (uint8_t)(r >> 24);
     r = fm1_ble_rng32();
     addr[4] = (uint8_t)r; addr[5] = (uint8_t)((r >> 8) | 0xC0u);       /* a static random address */
+    fm1_ble_crumb_boot();                                               /* the breadcrumb (.noinit) from zero: the crash screen reads it */
     ble_init(addr, 1);
     f = irq_save();
     fm1_guard_unlock_top();
@@ -277,5 +278,25 @@ uint32_t brothers_snap(uint32_t note, uint32_t scale)
 }
 /* the leader's tempo, BPM, as the last packet said (0: none) */
 uint32_t brothers_bpm(void) { return fol.lock && fol.per_us ? (2500000u + fol.per_us / 2u) / fol.per_us : 0u; }
+/* the crash screen (platform.c): where the radio was. o[0] mode | up << 4 | last start-up group << 8 | scan found << 16; o[1] breadcrumb;
+ * o[2] interrupts since the radio went on; o[3] the last register touched; o[4] BBP | SPI timeouts << 16;
+ * o[5] scan rc | trim rc << 8 | mid bank << 16; o[6] start-up ops */
+void brothers_dbg(uint32_t *o)
+{
+    uint32_t i;
+    if (!brothers_state) {                                              /* never started: the breadcrumb is RAM noise */
+        for (i = 0; i < 8u; i++) o[i] = 0;
+        o[0] = brothers_mode;
+        return;
+    }
+    o[0] = (uint32_t)brothers_mode | (brothers_state ? 16u : 0u) | (uint32_t)fm1_ble_rf_stat.section << 8 | (uint32_t)fm1_ble_rf_stat.scan_found << 16;
+    o[1] = fm1_ble_crumb;
+    o[2] = fm1_ble_crumb_irqs;
+    o[3] = fm1_ble_bc.addr;
+    o[4] = fm1_ble_rf_stat.bbp_timeouts | fm1_ble_rf_stat.spi_timeouts << 16;
+    o[5] = ((uint32_t)fm1_rfc_scan_rc & 0xFFu) | ((uint32_t)fm1_rfc_trim_rc & 0xFFu) << 8 | (uint32_t)fm1_rfc.mid << 16;
+    o[6] = fm1_ble_rf_stat.ops;
+    o[7] = 0;
+}
 /* what the menu shows: 0 nothing heard, 1 a leader heard (locked), 2 playing along */
 uint32_t brothers_link(void) { return brothers_mode == 2u ? (fol.lock ? (fol.playing ? 2u : 1u) : 0u) : brothers_mode == 1u ? (lead_run ? 2u : 1u) : 0u; }

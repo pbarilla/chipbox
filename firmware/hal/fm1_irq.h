@@ -39,10 +39,14 @@ static inline void fm1_irq_off(void) { __asm__ volatile("cli" ::: "memory"); }
 static inline void fm1_irq_on(void) { __asm__ volatile("csync\n\tsti" ::: "memory"); }
 
 #define FM1_CRASH_MAGIC 0x43525348u          /* "CRSH" */
+#define FM1_REPORT_MAGIC 0x52455054u         /* "REPT" */
 typedef struct {
     uint32_t magic, count, vec, pc, rets, emu, dbg, sp, psr, icfg, uptime_ms;
     uint32_t etm[4];
     uint32_t early;                          /* consecutive crashes < 3 s after boot */
+    uint32_t nested, pc2, rets2, emu2, dbg2; /* a fault while reporting: the first one stays above, this is the last */
+    uint32_t armed;                          /* FM1_REPORT_MAGIC until a button ack'd the report: a reset in between shows it again at boot */
+    uint32_t bl_ok, bl[8];                   /* the radio's state when the report was first drawn (platform.c brothers_dbg) */
 } fm1_crash_t;
 /* Not static: .noinit holds whatever the last run (or power-on) left, and a
  * file-local object would let the compiler assume its zero initial value and
@@ -87,6 +91,14 @@ static void fm1_irq_enable_all(void)
     fm1_irq_on();
 }
 
+static void fm1_fault_clear(void)
+{
+    if (!(FM1_DBG_WR_EN & 1u))
+        FM1_DBG_WR_EN = 0xE7u;
+    FM1_DBG_MSG_CLR = 0xFFFFFFFFu;
+    FM1_EMU_MSG = 0xFFFFFFFFu;
+}
+
 /* called from fm1_fatal_common (fm1_vec.S) with the saved frame:
  * f[0..15] r0..r15, f[16] reti, f[17] rete, f[18] retx, f[19] stub+6,
  * f[20] psr, f[21] icfg, f[22] usp, f[23] ssp, f[24] sp, f[25] interrupted rets */
@@ -96,8 +108,25 @@ void fm1_fault_c(uint32_t *f)
     uint32_t i, count = fm1_crash.magic == FM1_CRASH_MAGIC ? fm1_crash.count : 0;
     uint32_t early = fm1_crash.magic == FM1_CRASH_MAGIC ? fm1_crash.early : 0;
     fm1_irq_off();
-    if (in_fault++)                           /* fault while reporting: reset at once */
-        *(volatile uint32_t *)0x10000u |= 1u << 4;
+    if (in_fault++) {                         /* a fault while reporting: keep the first, note this one, report again */
+        fm1_crash.nested = in_fault - 1u;
+        fm1_crash.pc2 = f[16];
+        fm1_crash.rets2 = f[25];
+        fm1_crash.emu2 = FM1_EMU_MSG;
+        fm1_crash.dbg2 = FM1_DBG_MSG;
+        if (in_fault > 4u) {                  /* it keeps happening: reset at once */
+            *(volatile uint32_t *)0x10000u |= 1u << 4;
+            for (;;)
+                ;
+        }
+        fm1_fault_clear();
+        fm1_fault(&fm1_crash);
+        for (;;)
+            ;
+    }
+    fm1_crash.nested = 0;
+    fm1_crash.armed = FM1_REPORT_MAGIC;
+    fm1_crash.bl_ok = 0;
     fm1_crash.magic = FM1_CRASH_MAGIC;
     fm1_crash.count = count + 1u;
     fm1_crash.vec = (f[19] - (uint32_t)(uintptr_t)fm1_fatal_stubs) / 6u - 1u;
@@ -112,6 +141,7 @@ void fm1_fault_c(uint32_t *f)
     for (i = 0; i < 4u; i++)
         fm1_crash.etm[i] = FM1_ETM_PC(i);
     fm1_crash.early = fm1_crash.uptime_ms < 3000u ? early + 1u : 0u;
+    fm1_fault_clear();                        /* the guards' causes stay latched: they would fault the report itself */
     fm1_fault(&fm1_crash);
     for (;;)
         ;

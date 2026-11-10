@@ -54,6 +54,9 @@ enum { ENC_SELECT = 0, ENC_ALGORITHM = 1, ENC_KNOB1 = 2, ENC_KNOB2 = 3, ENC_KNOB
 #ifndef APP_VER
 #define APP_VER "0.0"
 #endif
+#ifndef APP_REPO
+#define APP_REPO "github.com/pbarilla/chipbox"
+#endif
 
 bootguard_t bootguard __attribute__((section(".noinit")));
 static volatile uint32_t fm1_ms;                /* milliseconds since power-on (TIMER5) */
@@ -78,6 +81,7 @@ static volatile uint32_t fm1_ms;                /* milliseconds since power-on (
 #define FL_RANGE_OK(off, n) (FL_IN(off, n, FL_OTA_LO, FL_OTA_HI) || FL_IN(off, n, SETTINGS_AT, SETTINGS_AT + 0x1000u) || FL_IN(off, n, PROJ_AT, PROJ_AT + PROJ_LEN))
 #include "fm1_flash.h"
 static uint8_t flash_ok;
+static uint32_t flash_id;                       /* JEDEC id, for the crash screen */
 static int st_read(uint32_t off, void *dst, uint32_t n)
 {
     uint8_t *d = dst;
@@ -317,22 +321,109 @@ static void platform_poll(void)
     }
 }
 
+/* The crash screen: 15 rows of 30 characters, all of it for the report that comes back to us. Any button restarts. */
+extern void brothers_dbg(uint32_t *o);          /* ble/ble.c: where the radio was */
+extern char _etext[];
+static char *fm1_cat(char *p, const char *s) { while (*s) *p++ = *s++; return p; }
+static char *fm1_cath(char *p, uint32_t v, uint32_t n)
+{
+    uint32_t k;
+    for (k = 0; k < n; k++) *p++ = "0123456789ABCDEF"[(v >> (4u * (n - 1u - k))) & 15u];
+    return p;
+}
+static char *fm1_catd(char *p, uint32_t v)
+{
+    char t[10];
+    uint32_t n = 0;
+    do { t[n++] = (char)('0' + v % 10u); v /= 10u; } while (v && n < 10u);
+    while (n) *p++ = t[--n];
+    return p;
+}
+static char *fm1_cats(char *p, uint32_t b)       /* a signed byte */
+{
+    if (b & 0x80u) { *p++ = '-'; b = 256u - b; }
+    return fm1_catd(p, b);
+}
+static void fm1_row(uint32_t i, const char *s, uint16_t c, int centre)
+{
+    cv_begin(240, 16, RGB(160, 0, 0));
+    cv_text(centre ? (240 - text_w(&FONT_S, s)) / 2 : 4, 0, &FONT_S, s, c);
+    cv_blit(0, i * 16u);
+    lcd_sync();
+}
+
 static void fm1_fault(const fm1_crash_t *c)
 {
-    char b[12];
-    uint32_t i, t0, v[3] = {c->vec, c->pc, c->rets};
+    char r[34], *p;
+    const uint32_t *bl = fm1_crash.bl;
+    uint32_t t0, armed = 0, up = c->uptime_ms;
+    const uint16_t PINK = RGB(255, 185, 185), AMBER = RGB(255, 205, 40);
     fm1_audio_stop();
     lcd_fill(0, 0, 240, 240, RGB(160, 0, 0));
-    draw_text_box(0, 20, 240, &FONT_S, APP_NAME " CRASH", C_WHITE, 1);
-    for (i = 0; i < 3u; i++) {
-        uint32_t k;
-        for (k = 0; k < 8u; k++) b[k] = "0123456789ABCDEF"[(v[i] >> (28u - 4u * k)) & 15u];
-        b[8] = 0;
-        draw_text_box(10, 60 + i * 20, 220, &FONT_S, b, C_WHITE, 0);
+    if (!fm1_crash.bl_ok) {                     /* the radio as it was at the fault, kept for a redraw after a reset */
+        brothers_dbg(fm1_crash.bl);
+        fm1_crash.bl_ok = 1;
     }
+    fm1_row(0, APP_NAME " CRASH", C_WHITE, 1);
+    p = fm1_cat(r, "v" APP_VER " T"); p = fm1_cath(p, (uint32_t)(uintptr_t)_etext, 6);
+    p = fm1_cat(p, " #"); p = fm1_catd(p, c->count); p = fm1_cat(p, " EARLY "); p = fm1_catd(p, c->early); *p = 0;
+    fm1_row(1, r, PINK, 0);
+    p = fm1_cat(r, "UP "); p = fm1_catd(p, up / 1000u); *p++ = '.'; p = fm1_catd(p, up / 100u % 10u);
+    p = fm1_cat(p, "S RST "); p = fm1_cath(p, fm1_boot.p3_rst, 2); p = fm1_cat(p, " FL "); p = fm1_cath(p, flash_id, 6); *p = 0;
+    fm1_row(2, r, PINK, 0);
+    p = fm1_cat(r, "VEC "); p = fm1_cath(p, c->vec, 2); p = fm1_cat(p, "  PC "); p = fm1_cath(p, c->pc, 8); *p = 0;
+    fm1_row(3, r, C_WHITE, 0);
+    p = fm1_cat(r, "RETS "); p = fm1_cath(p, c->rets, 8); p = fm1_cat(p, " SP "); p = fm1_cath(p, c->sp, 8); *p = 0;
+    fm1_row(4, r, C_WHITE, 0);
+    p = fm1_cat(r, "DBG "); p = fm1_cath(p, c->dbg, 8); p = fm1_cat(p, " EMU "); p = fm1_cath(p, c->emu, 8); *p = 0;
+    fm1_row(5, r, C_WHITE, 0);
+    p = r;
+    if (c->dbg & (1u << 12)) p = fm1_cat(p, "PC LIMIT ");
+    if (c->dbg & (1u << 13)) p = fm1_cat(p, "WRITE LIMIT ");
+    if (c->dbg & ((3u << 4) | (0x3Fu << 16))) p = fm1_cat(p, "BUS ");
+    if (c->emu & 8u) p = fm1_cat(p, "STACK ");
+    if (p == r) p = fm1_cat(p, "CPU FAULT");
+    *p = 0;
+    fm1_row(6, r, AMBER, 0);
+    p = fm1_cat(r, "ETM "); p = fm1_cath(p, c->etm[0], 8); *p++ = ' '; p = fm1_cath(p, c->etm[1], 8); *p = 0;
+    fm1_row(7, r, C_WHITE, 0);
+    p = fm1_cat(r, "    "); p = fm1_cath(p, c->etm[2], 8); *p++ = ' '; p = fm1_cath(p, c->etm[3], 8); *p = 0;
+    fm1_row(8, r, C_WHITE, 0);
+    if (c->nested) {
+        p = fm1_cat(r, "2ND PC "); p = fm1_cath(p, c->pc2, 8); p = fm1_cat(p, " R "); p = fm1_cath(p, c->rets2, 8); *p = 0;
+        fm1_row(9, r, AMBER, 0);
+    } else {
+        p = fm1_cat(r, "PSR "); p = fm1_cath(p, c->psr, 8); p = fm1_cat(p, " ICFG "); p = fm1_cath(p, c->icfg, 8); *p = 0;
+        fm1_row(9, r, C_WHITE, 0);
+    }
+    if (bl[0] & 16u) {
+        p = fm1_cat(r, "BL "); p = fm1_cat(p, (bl[0] & 15u) == 1u ? "LEAD" : (bl[0] & 15u) == 2u ? "FOLLOW" : "OFF");
+        p = fm1_cat(p, " GRP "); p = fm1_catd(p, bl[0] >> 8 & 255u); p = fm1_cat(p, " OPS "); p = fm1_catd(p, bl[6]); *p = 0;
+    } else {
+        p = fm1_cat(r, "BL RADIO NEVER STARTED"); *p = 0;
+    }
+    fm1_row(10, r, C_WHITE, 0);
+    p = fm1_cat(r, "ADDR "); p = fm1_cath(p, bl[3], 8); p = fm1_cat(p, " IRQ "); p = fm1_cath(p, bl[2], 8); *p = 0;
+    fm1_row(11, r, C_WHITE, 0);
+    p = fm1_cat(r, "SCAN "); p = fm1_cats(p, bl[5] & 255u);
+    p = fm1_cat(p, " TRIM "); p = fm1_cats(p, bl[5] >> 8 & 255u);
+    p = fm1_cat(p, " MID "); p = fm1_catd(p, bl[5] >> 16 & 255u);
+    p = fm1_cat(p, " TO "); p = fm1_catd(p, bl[4] & 0xFFFFu); *p++ = '/'; p = fm1_catd(p, bl[4] >> 16); *p = 0;
+    fm1_row(12, r, C_WHITE, 0);
+    fm1_row(13, "PRESS ANY BUTTON TO RESTART", C_WHITE, 1);
+    fm1_row(14, APP_REPO, PINK, 1);
+    lcd_sync();
     t0 = fm1_ticks();
-    while ((uint32_t)(fm1_ticks() - t0) < 8000u * 1000u * FM1_TICKS_PER_US)
+    for (;;) {                                  /* interrupts are off: read the panel by hand */
         fm1_wdt_feed();
+        fm1_input_tick();
+        fm1_delay_us(200);
+        if (!(fm1_in.buttons | fm1_in.notes))
+            armed = 1;
+        else if (armed && (uint32_t)(fm1_ticks() - t0) > 1000u * 1000u * FM1_TICKS_PER_US)
+            break;
+    }
+    fm1_crash.armed = 0;
     fm1_reboot();
 }
 
@@ -360,11 +451,14 @@ void fm1_cstart(void)
     fm1_boot.p3_rst = (uint8_t)p3;
     if (boot_mode == BOOT_RECOVERY || recovery_key())
         recovery_main();                        /* OCT- at power-on: the USB rescue */
-    flash_ok = FL_JEDEC_OK(FL_FAR(fl_jedec_ram)());
+    flash_id = FL_FAR(fl_jedec_ram)();
+    flash_ok = FL_JEDEC_OK(flash_id);
     ota_boot_cleanup();
     lcd_init();
     lcd_fill(0, 0, 240, 240, C_BLACK);
     fm1_input_init();
+    if (fm1_crash.magic == FM1_CRASH_MAGIC && fm1_crash.armed == FM1_REPORT_MAGIC)
+        fm1_fault(&fm1_crash);                  /* a report nobody ack'd (a reset cut it short): show it now */
     fm1_adc_init();
     fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);   /* (abuf is zero: .bss) */
     usb_start();
