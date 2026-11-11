@@ -462,6 +462,29 @@ static void app_install_mark(void)
 {
     if (inst_flag) { *inst_flag |= QS_INSTALLED; settings_save(inst_set, inst_n); }
 }
+/* MIDI notes held, per MIDI channel: a chip channel is one voice, so the last key down sounds; letting it go brings the one before it back */
+static uint8_t mk_n[16], mk_s[16][8];
+static uint32_t mrec_t0[128];                   /* recording from the keyboard: when each note went down (0 = not recording it), and where it landed */
+static uint8_t mrec_pg[128], mrec_st[128], mrec_ch[128];
+static uint32_t midi_pad;                       /* the keyboard's 16 pads held (bit n = pad n): the FX pads, in the punch-in layer */
+static void mk_on(uint32_t c, uint32_t note, uint32_t vel)
+{
+    uint32_t i, n = mk_n[c];
+    for (i = 0; i < n; i++) if (mk_s[c][i] == note) { for (n--; i < n; i++) mk_s[c][i] = mk_s[c][i + 1u]; break; }
+    if (n == 8u) { for (i = 1; i < 8u; i++) mk_s[c][i - 1u] = mk_s[c][i]; n = 7u; }
+    mk_s[c][n] = (uint8_t)note;
+    mk_n[c] = (uint8_t)(n + 1u);
+    chip_note(c, note, vel);
+}
+static void mk_off(uint32_t c, uint32_t note)
+{
+    uint32_t i, n = mk_n[c];
+    for (i = 0; i < n; i++) if (mk_s[c][i] == note) break;
+    if (i == n) return;
+    for (n--; i < n; i++) mk_s[c][i] = mk_s[c][i + 1u];
+    mk_n[c] = (uint8_t)n;
+    if (i == n) { if (n) chip_slide(c, mk_s[c][n - 1u]); else chip_off(c); }      /* it was the one sounding */
+}
 static void app_main(void)
 {
     struct { int8_t oct; uint8_t an[3], proj, demo, unlocked; } set = {0, {AN_HW, AN_HW, 0}, 0, 0, 0};
@@ -559,7 +582,7 @@ static void app_main(void)
             uint32_t mask = 0, p, now;
             if (!menu_on && !pick_on) {
                 uint32_t edge;
-                for (p = 0; p < FXN; p++) if (keys >> FX_KEY[p] & 1u) mask |= FXB(p);
+                for (p = 0; p < FXN; p++) if ((keys >> FX_KEY[p] | midi_pad >> p) & 1u) mask |= FXB(p);
                 edge = mask & ~fx_raw; fx_raw = mask;
                 if (edge & FXB(FX_LATCH)) { fx_lat ^= 1u; if (!fx_lat) fx_tog = 0; }       /* LATCH: pads stay on when tapped, tap again to turn off */
                 if (fx_lat) { fx_tog ^= edge & ~FXB(FX_LATCH); mask = fx_tog | FXB(FX_LATCH); }
@@ -984,8 +1007,9 @@ static void app_main(void)
         bt_scale = (uint8_t)(brothers_mode == 2u && bt_key ? brothers_scale() : 0u);                    /* a follower with Key on: the leader's key */
         { uint32_t want = brothers_mode == 2u && bt_fxsync ? fx_from_shared(brothers_fx()) : 0u; bt_fx_cur = want; if (!fx_layer && fx_held != want) fx_apply(want); }       /* the leader's punch-in pads, held as ours */
         if (menu_on && menu_kind == MK_BT) { static uint32_t bt_ms; if (fm1_ms - bt_ms > 300u) { bt_ms = fm1_ms; bt_texts(); menu_dirty = 1; } }
+        { static uint32_t mk_sel; if (sel != mk_sel) { mk_sel = sel; memset(mk_n, 0, sizeof mk_n); for (k = 0; k < MAXCH; k++) { live_bend[k] = 0; live_mod[k] = 0; } } }       /* another channel: the held keys are forgotten */
         while (midi_get(&st, &d1, &d2) || bt_get(&st, &d1, &d2)) {
-            uint32_t mt = st & 0xFu;                         /* MIDI channel n plays channel n */
+            uint32_t mt = midi_src ? sel : st & 0xFu;        /* USB: MIDI channel n plays channel n; the TRS jack plays the selected channel */
             if (st >= 0xF8u) {                              /* real time: the clock and the transport (only when MIDI Clock is Follow; from the brothers' link, when it follows) */
                 if (d1 == 0x55u ? brothers_mode != 2u : clk_mode != 2u) continue;
                 if (st == 0xF8u) {
@@ -1009,7 +1033,25 @@ static void app_main(void)
                 continue;
             }
             if ((st & 0xF0u) == 0xC0u) {                    /* program change: pick the channel */
-                if (chan_n) { if (sel < chan_n) chip_off(sel); sel = d1 % chan_n; last_note = 255u; rack_inval = 1; }
+                if (chan_n) { if (sel < chan_n) chip_off(sel); sel = d1 % chan_n; last_note = 255u; mk_n[sel] = 0; rack_inval = 1; }
+                continue;
+            }
+            if ((st & 0xF0u) == 0xB0u && midi_src && d1 >= 100u && d1 <= 119u) {       /* the test controls (CC 100-119) are for USB only: a keyboard's buttons send these numbers. The MiniLab's transport: 107 Play, 106 Stop, 108 Rec (127 down, 0 up) */
+                if (d2 >= 64u && !menu_on && !pick_on) {
+                    if (d1 == 107u) {                                              /* Play: as PLAY (paused on the tape: go on; already playing: nothing, Stop is the other button) */
+                        if (seq_run && seq_hold) { seq_rate = 2; seq_hold = 0; anim_start(AN_PLAY, 0); }
+                        else if (!seq_run) {
+                            uint32_t s = 0;
+                            while (s < song_len && song[s] != seq_view) s++;
+                            if (view == 2u) seq_play(song_cur < song_len ? song_cur : 0u, 0); else if (view == 1u && s < song_len) seq_play(s, 0); else seq_play(0, 1);
+                            anim_start(AN_PLAY, 0);
+                        }
+                    } else if (d1 == 106u) { if (seq_run) { seq_stop(); rec_on = 0; duck_ch = 255; anim_start(AN_PAUSE, 0); } }
+                    else if (d1 == 108u && view != 2u && view != 3u && sel < chan_n && !IS_DRUM(chan[sel].kind)) {      /* Rec: as REC */
+                        if (rec_on) { rec_on = 0; duck_ch = 255; seq_stop(); anim_start(AN_REC, 1); }
+                        else { rec_on = 1; duck_ch = (uint8_t)sel; if (!seq_run) seq_play(0, 1); anim_start(AN_REC, 0); }
+                    }
+                }
                 continue;
             }
             if ((st & 0xF0u) == 0xB0u && d1 == 102u) { if (d2 >= 64u) seq_play(0, 0); else if (seq_run) seq_stop(); continue; }
@@ -1021,8 +1063,85 @@ static void app_main(void)
             if ((st & 0xF0u) == 0xB0u && d1 == 109u) { static uint32_t arm; if (d2 == 127u) arm = fm1_ms | 1u; else if (d2 == 1u && arm && fm1_ms - arm < 3000u) { arm = 0; FACTORY_RESET(); } continue; }                   /* test: Factory Reset: CC 109 = 127, then CC 109 = 1 within 3 s (so a controller's stray CC cannot wipe projects) */
             if ((st & 0xF0u) == 0xB0u && d1 == 107u) { if (chan_n) { seq_stop(); chan_remove(chan_n - 1u); proj_edited(); } continue; }     /* test: remove the last channel */
             if ((st & 0xF0u) == 0xB0u && d1 == 105u && d2 < PROJ_SLOTS) { proj_open(d2); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; continue; }
-            if ((st & 0xF0u) == 0x90u && d2) { if (mt < chan_n) chip_note(mt, d1, d2); }
-            else if ((st & 0xF0u) == 0x80u || (st & 0xF0u) == 0x90u) { if (mt < chan_n) chip_off(mt); }
+            if ((st & 0xF0u) == 0xE0u) { if (mt < chan_n) live_bend[mt] = (int32_t)(d1 | d2 << 7) - 8192 >> 4; continue; }       /* pitch wheel: +-2 semitones */
+            {                                                /* the keyboard's pads (MiniLab 3, TRS): notes 36-51 on channel 10, or in its CC pad mode CC 56-63 (127 down, 0 up); the FX pads, and on a drum channel outside the layer the kit */
+                static const uint8_t PC[8] = {0, 1, 2, 3, 6, 7, 4, 5};      /* CC 56..63 -> the pad's place in the bank */
+                uint32_t pn = 99u, pon = 0u, pv = d2;
+                if (midi_src && (st & 0xFu) == 9u && d1 >= 36u && d1 < 52u && ((st & 0xF0u) == 0x90u || (st & 0xF0u) == 0x80u)) { pn = d1 - 36u; pon = (st & 0xF0u) == 0x90u && d2; }
+                else if (midi_src && (st & 0xF0u) == 0xB0u && d1 >= 56u && d1 <= 63u) { pn = PC[d1 - 56u]; pon = d2 >= 64u; pv = 127u; }
+                if (pn < 16u) {
+                    if (pon) {
+                        midi_pad |= 1u << pn;
+                        if (!fx_layer && !menu_on && !pick_on && sel < chan_n && IS_DRUM(chan[sel].kind) && pn < 11u) { if (view == 3u) ed_lane = pn; chip_note(sel, DR_LANE_TYPE[pn], pv); }
+                    } else midi_pad &= ~(1u << pn);
+                    continue;
+                }
+            }
+            if ((st & 0xF0u) == 0xB0u && (d1 == 82u || d1 == 83u || d1 == 85u || d1 == 17u)) {       /* the keyboard's four faders (MiniLab 3, absolute 0-127): the level of channels 1 to 4. Pickup: a fader does nothing until it passes the channel's level, so it never jumps */
+                static const uint8_t FC[4] = {82, 83, 85, 17};
+                static uint8_t fl[4] = {255, 255, 255, 255}, fe[4], fs[4] = {255, 255, 255, 255};       /* last position, engaged, the level we set last */
+                uint32_t j = 0, lv = d2 >> 3;
+                while (FC[j] != d1) j++;
+                if (j < chan_n) {
+                    inst_t *fi = &chan[j].in;
+                    if (fe[j] && fi->vol != fs[j]) fe[j] = 0;                                   /* the level was changed elsewhere: pick it up again */
+                    if (!fe[j] && fl[j] != 255u && ((fl[j] <= fi->vol && fi->vol <= lv) || (lv <= fi->vol && fi->vol <= fl[j]))) fe[j] = 1;
+                    if (!fe[j] && lv == fi->vol) fe[j] = 1;
+                    if (fe[j] && fi->vol != lv) {
+                        fi->vol = (uint8_t)lv; fs[j] = (uint8_t)lv;
+                        live_dirty[j] = 1; rack_bar_t = fm1_ms | 1u; rack_bar_row = j; rack_inval = 1; redraw = 1; proj_edited();
+                    } else if (fe[j]) fs[j] = fi->vol;
+                }
+                fl[j & 3u] = (uint8_t)lv;
+                continue;
+            }
+            if ((st & 0xF0u) == 0xB0u) {                    /* the keyboard's eight knobs (MiniLab 3 set to Relative: 64 + clicks, 62 = two clicks down): the Chip view's page on screen, and the one after it */
+                static const uint8_t KC[8] = {74, 71, 76, 77, 93, 18, 19, 16};
+                static int32_t ka[8];
+                uint32_t j = 0;
+                while (j < 8u && KC[j] != d1) j++;
+                if (j < 8u) {
+                    if (view == 0u && !fx_layer && !menu_on && sel < chan_n) {
+                        int32_t n;
+                        ka[j] += (int32_t)d2 - 64;
+                        n = ka[j] / 3;
+                        if (n) {
+                            int32_t sg = n < 0 ? -1 : 1;
+                            uint32_t pg = chip_page + (j >> 2);
+                            ka[j] -= n * 3;
+                            if (pg < pages(sel) && pg != wd_pg(sel)) {
+                                for (n = n < 0 ? -n : n; n > 0; n--) knob_set(sel, pg, j & 3u, sg);
+                                live_dirty[sel] = 1; redraw = 1; proj_edited();
+                                if (pg == 3u && has_wave(sel)) anim_cont(AN_WAVE, (uint32_t)sel, 1200u);
+                            }
+                        }
+                    } else ka[j] = 0;
+                    continue;
+                }
+            }
+            if ((st & 0xF0u) == 0xB0u && d1 == 1u) { if (mt < chan_n) live_mod[mt] = d2; continue; }                      /* mod wheel: vibrato */
+            if ((st & 0xF0u) == 0x90u && d2) {
+                if (mt < chan_n) {
+                    mk_on(mt, d1, d2);
+                    if (rec_on && seq_run && !seq_hold && view < 2u && mt == sel && !IS_DRUM(chan[mt].kind)) {      /* recording: the note goes on the step nearest the playhead, at the key's velocity */
+                        uint32_t a, sb, stp, pg;
+                        do { a = seq_step; sb = seq_sub; } while (a != seq_step);
+                        stp = (a * SEQ_PPS + sb + SEQ_PPS / 2u) / SEQ_PPS % SEQ_LEN; pg = seq_pat;
+                        { step_t *x = &pat[pg][mt][stp]; x->note = (uint8_t)d1; x->vel = (uint8_t)d2; x->gate = 5; }
+                        mrec_t0[d1] = seq_ticks | 1u; mrec_pg[d1] = (uint8_t)pg; mrec_st[d1] = (uint8_t)stp; mrec_ch[d1] = (uint8_t)mt;
+                        rack_inval = 1; proj_edited();
+                    }
+                }
+            }
+            else if ((st & 0xF0u) == 0x80u || (st & 0xF0u) == 0x90u) {
+                if (mt < chan_n) mk_off(mt, d1);
+                if (d1 < 128u && mrec_t0[d1]) {                    /* a recorded note: its length is how long the key was down */
+                    step_t *x = &pat[mrec_pg[d1]][mrec_ch[d1]][mrec_st[d1]];
+                    uint32_t g = seq_ticks - (mrec_t0[d1] & ~1u);
+                    if (x->note == d1) x->gate = (uint8_t)(g < 1u ? 1u : g > 96u ? 96u : g);
+                    mrec_t0[d1] = 0; rack_inval = 1;
+                }
+            }
         }
 
         for (k = 0; k < 27u; k++)

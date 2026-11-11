@@ -75,6 +75,7 @@ static volatile uint32_t fm1_ms;                /* milliseconds since power-on (
 #define FELUCCA_UAC 1
 #define FELUCCA_UART 0
 #include "usb.c"
+#include "midi_uart.c"                  /* MIDI IN on the TRS jack, into the same queue as USB's */
 
 /* ---- flash: read anywhere; erase / program only the update's staging area and the settings sector */
 #define SETTINGS_AT 0x000FC000u                 /* one 4 KiB sector of Felucca's globals area */
@@ -199,13 +200,16 @@ static int settings_save(const void *p, uint32_t n)   /* p in RAM, n <= 256 */
 }
 
 /* ---- MIDI over USB: 4-byte USB-MIDI packets, cable 0 */
+static uint8_t midi_src;                         /* 1: the last message came in on the TRS jack */
 static int midi_get(uint8_t *st, uint8_t *d1, uint8_t *d2)   /* 1: a message (status, data 1, data 2) */
 {
     uint32_t pk;
+    midi_src = 0;
     if (mi_r == mi_w)
         return 0;
     pk = midi_in_q[mi_r % MQ];
     mi_r++;
+    midi_src = (uint8_t)(pk >> 4 & 1u);
     *st = (uint8_t)(pk >> 8);
     *d1 = (uint8_t)(pk >> 16);
     *d2 = (uint8_t)(pk >> 24);
@@ -246,8 +250,10 @@ void fm1_timer5_irq(void)
             uac_service();
         return;
     }
-    if (owed)
+    if (owed) {
         usb_poll();
+        uart_midi_poll();
+    }
     owed = 0;
 }
 extern void isr_timer5(void);
@@ -462,6 +468,7 @@ void fm1_cstart(void)
     fm1_adc_init();
     fm1_audio_init(abuf, HALF_WORDS, isr_alnk0, 3);   /* (abuf is zero: .bss) */
     usb_start();
+    uart_midi_init();                           /* before TIMER5: it read-modify-writes port H too */
     fm1_timer5_start(isr_timer5, 4);
     fm1_guard_lock_top();
     fm1_irq_enable_all();

@@ -153,7 +153,7 @@ static uint32_t chan_n;
 static volatile uint32_t chan_lock;             /* set while the main loop changes the channel list: the audio side stands still */
 
 /* ---- the event queue: main loop -> audio ISR (one writer each side) */
-enum { EV_ON, EV_OFF };
+enum { EV_ON, EV_OFF, EV_LEG };
 static struct { uint8_t op, ch, a, b; } evq[32];
 static volatile uint32_t ev_w, ev_r;
 static void ev_push(uint32_t op, uint32_t ch, uint32_t a, uint32_t b)
@@ -165,6 +165,11 @@ static void ev_push(uint32_t op, uint32_t ch, uint32_t a, uint32_t b)
 }
 static void chip_note(uint32_t c, uint32_t note, uint32_t vel) { ev_push(EV_ON, c, note, vel); }
 static void chip_off(uint32_t c) { ev_push(EV_OFF, c, 0, 0); }
+static void chip_slide(uint32_t c, uint32_t note) { ev_push(EV_LEG, c, note, 0); }      /* a new pitch under the sounding note: no new attack */
+
+static volatile int32_t live_bend[MAXCH], live_mod[MAXCH];   /* the keyboard's pitch wheel (1/256 semitone) and mod wheel (0..127), per channel: the main loop writes, the tick reads */
+static uint8_t live_ph[MAXCH];
+static volatile uint8_t live_dirty[MAXCH];      /* set by the main loop after a live knob: the voice takes the channel's sound again (it keeps a copy from the note's start) */
 
 /* ---- per-channel note state (tick) and oscillator (render) */
 enum { ST_ATK, ST_DEC, ST_SUS, ST_REL, ST_IDLE };
@@ -1385,6 +1390,7 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
 {
     const inst_t *in = &vc[c].in;
     int32_t pq, lfo = 0;
+    if (live_dirty[c]) { live_dirty[c] = 0; vc[c].in = chan[c].in; }
     uint32_t vol;
     if (IS_DRUM(chan[c].kind)) {                    /* the hits ring on their own: the voice sounds while one does */
         uint32_t j, on = 0;
@@ -1422,7 +1428,8 @@ static uint32_t tick_voice(uint32_t c)           /* returns 1 while the voice st
         if (++vc[c].arp_t >= ARP_TICKS[in->arp_rate & 3u]) { vc[c].arp_t = 0; vc[c].arp_k++; }
         vc[c].arp_off = (uint8_t)arp_offset(in->arp, in->arp_dir, vc[c].arp_k);
     }
-    pq = (((int32_t)vc[c].note + vc[c].arp_off) << 8) + vc[c].bend + lfo + fx_pitch;
+    if (live_mod[c]) { live_ph[c] = (uint8_t)(live_ph[c] + 24u); lfo += (VIB[live_ph[c] >> 3] * live_mod[c]) >> 6; }      /* the mod wheel: vibrato */
+    pq = (((int32_t)vc[c].note + vc[c].arp_off) << 8) + vc[c].bend + lfo + live_bend[c] + fx_pitch;
     pq = pq < 0 ? 0 : pq > (127 << 8) ? 127 << 8 : pq;
     vol = ((uint32_t)vc[c].env * ((uint32_t)vc[c].vel + 1u)) >> 15;
     if (vol > 15u) vol = 15u;
@@ -1471,6 +1478,8 @@ static void ev_do(uint32_t op, uint32_t c, uint32_t a, uint32_t b)
         if (!vc[c].in.atk) { vc[c].env = 3840u; vc[c].stage = ST_DEC; }
         if (IS_FMK(chan[c].kind)) fm_keyon(c);
         tick_voice(c);                           /* sound at once, not up to 16 ms later */
+    } else if (op == EV_LEG) {
+        if (vc[c].on && !IS_DRUM(chan[c].kind)) vc[c].note = (uint8_t)a;
     } else if (awake[chip]) {
         vc[c].on = 0;
         vc[c].stage = vc[c].stage == ST_IDLE ? ST_IDLE : ST_REL;
