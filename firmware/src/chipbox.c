@@ -466,6 +466,7 @@ static void app_install_mark(void)
 static uint8_t mk_n[16], mk_s[16][8];
 static uint32_t mrec_t0[128];                   /* recording from the keyboard: when each note went down (0 = not recording it), and where it landed */
 static uint8_t mrec_pg[128], mrec_st[128], mrec_ch[128];
+static int32_t mpre, malg;                       /* the keyboard's main knob, as PRESETS in the rack and ALGORITHM on the chip screen (clicks waiting) */
 static uint32_t midi_pad;                       /* the keyboard's 16 pads held (bit n = pad n): the FX pads, in the punch-in layer */
 static void mk_on(uint32_t c, uint32_t note, uint32_t vel)
 {
@@ -478,12 +479,13 @@ static void mk_on(uint32_t c, uint32_t note, uint32_t vel)
 }
 static void mk_off(uint32_t c, uint32_t note)
 {
-    uint32_t i, n = mk_n[c];
+    uint32_t i, n = mk_n[c], top;
     for (i = 0; i < n; i++) if (mk_s[c][i] == note) break;
     if (i == n) return;
+    top = i + 1u == n;
     for (n--; i < n; i++) mk_s[c][i] = mk_s[c][i + 1u];
     mk_n[c] = (uint8_t)n;
-    if (i == n) { if (n) chip_slide(c, mk_s[c][n - 1u]); else chip_off(c); }      /* it was the one sounding */
+    if (top) { if (n) chip_slide(c, mk_s[c][n - 1u]); else chip_off(c); }      /* it was the one sounding */
 }
 static void app_main(void)
 {
@@ -933,6 +935,8 @@ static void app_main(void)
         }
         if (view == 1u && sel < chan_n && edit_now && !edit_used && !rack_rm && !rec_on && fm1_ms - edit_t0 >= 600u) { rack_rm = 1; rack_inval = 1; edit_used = 1; anim_start(AN_DELETE, 0); }     /* hold EDIT on a channel: remove it? */
         e = fm1_enc_take(ENC_PRESETS);                  /* always: down the list of channels */
+        if (!e) e = mpre;
+        mpre = 0;
         if (e && nrows) {
             if (sel < chan_n) chip_off(sel);
             sel = e < 0 ? (sel ? sel - 1u : 0u) : (sel + 1u < nrows ? sel + 1u : nrows - 1u);       /* no wrap: the last row is a turn away */
@@ -941,6 +945,8 @@ static void app_main(void)
             if (rec_on) duck_ch = (uint8_t)(sel < chan_n ? sel : 255u);
         }
         e = fm1_enc_take(ENC_ALGORITHM);                /* the rack: the page; the chip screen: the knobs' page */
+        if (!e) e = malg;
+        malg = 0;
         if (e) {
             if (view == 1u) {
                 uint32_t pn = page_n, was = seq_view;
@@ -1034,6 +1040,10 @@ static void app_main(void)
             }
             if ((st & 0xF0u) == 0xC0u) {                    /* program change: pick the channel */
                 if (chan_n) { if (sel < chan_n) chip_off(sel); sel = d1 % chan_n; last_note = 255u; mk_n[sel] = 0; rack_inval = 1; }
+                continue;
+            }
+            if ((st & 0xF0u) == 0xB0u && midi_src && d1 == 114u) {                      /* the keyboard's main knob (MiniLab 3, Relative): the channel in the rack (PRESETS), the knobs' page on the chip screen (ALGORITHM) */
+                if (!menu_on && !pick_on && !fx_layer) { if (view == 1u) mpre += (int32_t)d2 - 64; else if (view == 0u) malg += (int32_t)d2 - 64; }
                 continue;
             }
             if ((st & 0xF0u) == 0xB0u && midi_src && d1 >= 100u && d1 <= 119u) {       /* the test controls (CC 100-119) are for USB only: a keyboard's buttons send these numbers. The MiniLab's transport: 107 Play, 106 Stop, 108 Rec (127 down, 0 up) */
