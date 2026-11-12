@@ -193,7 +193,10 @@ static void radio_up(void)
     fm1_guard_lock_top();
     irq_restore(f);
     fm1_rf_cal_on = 1;                                                  /* the radio's own calibration at every start */
+    f = irq_save();                                                     /* about 210 ms with none of our interrupts (audio, USB, timer): on a bench pair, with them on, the start-up hung or faulted
+                                                                         * (a corrupted return, a bus fault) about 1 start in 20 on one unit and none in 270 with them off (2026-11-12) */
     ble_hw_wl82_start(&OWN_TRIMS_);
+    irq_restore(f);
     fm1_ble_irqs_hold(0);
     brothers_state = 1;
 }
