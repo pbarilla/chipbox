@@ -1073,7 +1073,7 @@ static void app_main(void)
             if ((st & 0xF0u) == 0xB0u && d1 == 109u) { static uint32_t arm; if (d2 == 127u) arm = fm1_ms | 1u; else if (d2 == 1u && arm && fm1_ms - arm < 3000u) { arm = 0; FACTORY_RESET(); } continue; }                   /* test: Factory Reset: CC 109 = 127, then CC 109 = 1 within 3 s (so a controller's stray CC cannot wipe projects) */
             if ((st & 0xF0u) == 0xB0u && d1 == 107u) { if (chan_n) { seq_stop(); chan_remove(chan_n - 1u); proj_edited(); } continue; }     /* test: remove the last channel */
             if ((st & 0xF0u) == 0xB0u && d1 == 105u && d2 < PROJ_SLOTS) { proj_open(d2); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; continue; }
-            if ((st & 0xF0u) == 0xE0u) { if (mt < chan_n) live_bend[mt] = (int32_t)(d1 | d2 << 7) - 8192 >> 4; continue; }       /* pitch wheel: +-2 semitones */
+            if ((st & 0xF0u) == 0xE0u) { if (mt < chan_n) live_bend[mt] = ((int32_t)(d1 | d2 << 7) - 8192) >> 4; continue; }       /* pitch wheel: +-2 semitones */
             {                                                /* the keyboard's pads (MiniLab 3, TRS): notes 36-51 on channel 10, or in its CC pad mode CC 56-63 (127 down, 0 up); the FX pads, and on a drum channel outside the layer the kit */
                 static const uint8_t PC[8] = {0, 1, 2, 3, 6, 7, 4, 5};      /* CC 56..63 -> the pad's place in the bank */
                 uint32_t pn = 99u, pon = 0u, pv = d2;
