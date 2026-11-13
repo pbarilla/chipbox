@@ -47,7 +47,7 @@
   <nav class="gbnav" aria-label="Pages"><a class="hot" href="../install.html">Install</a><a href="../play/">Play online</a><a href="../manual/">Tutorials</a><a href="../guide/" aria-current="page">Manual</a><a href="../projects/">Projects</a><a href="../cheatsheet/">Cheat sheet</a><a href="https://github.com/pbarilla/chipbox/releases/latest">Download</a><a href="https://github.com/pbarilla/chipbox">Source</a></nav>
 
 
-  <div class="toc"><a href="#views">Views</a><a href="#channels">Channels</a><a href="#rack">Rack</a><a href="#notes">Writing notes</a><a href="#patch">Chip screen</a><a href="#consoles">Consoles</a><a href="#drums">Drums</a><a href="#song">Song</a><a href="#projects">Projects</a><a href="#undo">Undo</a><a href="#fx">Effects</a><a href="#limits">Numbers</a><a href="#bluetooth">Bluetooth</a><a href="#keyboard">MIDI keyboard</a><a href="#rescue">Rescue</a></div>
+  <div class="toc"><a href="#views">Views</a><a href="#lessons">Lessons</a><a href="#channels">Channels</a><a href="#rack">Rack</a><a href="#notes">Writing notes</a><a href="#patch">Chip screen</a><a href="#consoles">Consoles</a><a href="#drums">Drums</a><a href="#song">Song</a><a href="#meter">Meter and tempo</a><a href="#projects">Projects</a><a href="#undo">Undo</a><a href="#fx">Effects</a><a href="#limits">Numbers</a><a href="#bluetooth">Bluetooth</a><a href="#keyboard">MIDI keyboard</a><a href="#rescue">Rescue</a></div>
 
   <section class="step" id="views">
     <h2><b>1</b>The main views</h2>
@@ -58,14 +58,26 @@
     <div class="item"><div class="t"><div>The top bar shows the console of the current channel, the page you're on, the note under the cursor and the tempo.</div></div></div>
     <div class="item"><div class="t"><div>Hold <code>HOME</code> to open the project view.</div></div></div>
     <div class="item"><div class="t"><div><code>GLO</code> shows the help for whatever view you're on.</div></div></div>
-    <div class="item"><div class="t"><div><code>GLO</code> + <code>HOME</code> opens the menu.</div></div></div>
+    <div class="item"><div class="t"><div><code>GLO</code> + <code>HOME</code> opens the menu. Its first line opens the lessons: turn <code>SELECT</code> to pick one and press <code>OCT+</code>. A tick marks the ones you finished. A card over the bottom of the screen says what to do next and goes green when you have done it. <code>GLO</code> hides the card and brings it back. The lesson works on a scratch project and your own comes back when it ends. The menu has four groups: Lessons, Settings (Quick Start Always, Projects At Start, Show Tips, Dancing Animations, Show Battery), Sync and Link (MIDI Clock, Brothers Link) and Reset (Restore Demos, Factory Reset). <code>OCT+</code> opens a group, <code>OCT-</code> goes back.</div></div></div>
     <div class="item"><div class="t"><div><code>SEQ</code> opens step entry for a channel (or the drum lanes).</div></div></div>
     <div class="item"><div class="t"><div><code>FX</code> is used for punch-in effects.</div></div></div>
     <div class="item"><div class="t"><div><code>HOME</code> will always 'go back' when you're in a submenu.</div></div></div>
   </section>
 
+  <section class="step" id="lessons">
+    <h2><b>2</b>Lessons</h2>
+    <div class="block"><p>The lessons walk you through the whole workflow, one instruction at a time. GLO + HOME opens the menu; its first line is Lessons, a list with a tick on the ones you finished. Turn SELECT to pick one and press OCT+.</p></div>
+    <div class="item"><div class="t"><div>A card on the screen names the next thing to do and the control to use. It goes green when you have done it, then the next step shows.</div></div></div>
+    <div class="item"><div class="t"><div><code>GLO</code> puts the card away and brings it back. Your own project is set aside while a lesson runs and comes back when it ends. Nothing a lesson does is saved.</div></div></div>
+    <div class="item"><div class="t"><div>On the last card, <code>OCT+</code> starts the next lesson and <code>OCT-</code> ends this one.</div></div></div>
+    <div class="item"><div class="t"><div>There is a lesson for every chip. The four masterclasses, in gold in the list, go deep into why a sound behaves as it does: FM, the SID, wave tables and drums. Pages to read (a window: <code>OCT+</code> goes on, <code>HOME</code> puts it away, <code>GLO</code> brings it back) alternate with things to do on the screen.</div></div></div>
+    <div class="block"><table><tr><th>#</th><th>Lesson</th><th>You learn</th></tr><tr><td>1</td><td>Get Around</td><td>Views, the rack, a first play.</td></tr><tr><td>2</td><td>First Notes</td><td>Write a tune in step entry.</td></tr><tr><td>3</td><td>Rests</td><td>Skip a step to leave a gap.</td></tr><tr><td>4</td><td>Length and Erase</td><td>Shorten a page, wipe a step.</td></tr><tr><td>5</td><td>Play and Tape</td><td>Loop a page, record the tape.</td></tr><tr><td>6</td><td>Record Live</td><td>Play the keys into a running page.</td></tr><tr><td>7</td><td>Pages</td><td>Add pages and move between them.</td></tr><tr><td>8</td><td>Make a Song</td><td>Order the pages in the song.</td></tr><tr><td>9</td><td>Copy a Page</td><td>Repeat a page in the song.</td></tr><tr><td>10</td><td>Tempo</td><td>The song's speed.</td></tr><tr><td>11</td><td>Change the Sound</td><td>Pick a patch and shape it.</td></tr><tr><td>12</td><td>Envelope</td><td>Attack and decay.</td></tr><tr><td>13</td><td>Arpeggio</td><td>Play a chord as a run of notes.</td></tr><tr><td>14</td><td>Vibrato and Sweep</td><td>Move the pitch.</td></tr><tr><td>15</td><td>Add a Channel</td><td>A second voice.</td></tr><tr><td>16</td><td>Add Drums</td><td>A drum channel and its lanes.</td></tr><tr><td>17</td><td>Drum Accents</td><td>Louder hits.</td></tr><tr><td>18</td><td>Masterclass: Drums</td><td>How drums are built, the backbeat, hats, syncopation, accents, choke, odd groupings.</td></tr><tr><td>19</td><td>Mixing</td><td>Levels between channels.</td></tr><tr><td>20</td><td>Punch-in FX</td><td>Effects you play with your hands.</td></tr><tr><td>21</td><td>Undo</td><td>Take a change back.</td></tr><tr><td>22</td><td>Copy a Channel</td><td>Duplicate a voice.</td></tr><tr><td>23</td><td>New Console</td><td>Swap a channel's chip.</td></tr><tr><td>24</td><td>Draw a Wave</td><td>Make your own waveform.</td></tr><tr><td>25</td><td>Masterclass: Waves</td><td>Wave tables: harmonics, shape, fold, steps, twist, drawing, why old chips sound old.</td></tr><tr><td>26</td><td>Odd Meters</td><td>3/4, 5/4, 7/8 and friends.</td></tr><tr><td>27</td><td>Long Pages</td><td>Pages of up to four bars.</td></tr><tr><td>28</td><td>Tempo Changes</td><td>A tempo for one page.</td></tr><tr><td>29</td><td>Glide</td><td>Slide the tempo between pages.</td></tr><tr><td>30</td><td>Slide Steps</td><td>Move a channel's steps along the page.</td></tr><tr><td>31</td><td>Note Tails</td><td>See how long each note rings.</td></tr><tr><td>32</td><td>FX Latch</td><td>Keep a punch-in effect on.</td></tr><tr><td>33</td><td>The NES Pulse</td><td>The controls it has: DUTY, SWEEP, VIB, ATK, REL.</td></tr><tr><td>34</td><td>The Game Boy</td><td>The controls it has: DUTY, PAN, SWEEP.</td></tr><tr><td>35</td><td>The Master System</td><td>The controls it has: NOISE, VIB, SWEEP, DEC.</td></tr><tr><td>36</td><td>The PC Engine</td><td>The controls it has: WAVE, PAN, FOLD, TWIST, SWEEP.</td></tr><tr><td>37</td><td>The Atari TIA</td><td>The controls it has: TYPE, SWEEP, VIB, ATK.</td></tr><tr><td>38</td><td>The VRC6 Saw</td><td>The controls it has: OVER, VIB, SWEEP, SUS.</td></tr><tr><td>39</td><td>The AY Chip</td><td>The controls it has: NOISE, PERIOD, BUZZ, BRATIO.</td></tr><tr><td>40</td><td>The Mega Drive</td><td>The controls it has: ALGO, PAN, TL, AR, D1L.</td></tr><tr><td>41</td><td>The Virtual Boy</td><td>The controls it has: WAVE, PAN, TWIST, SWEEP.</td></tr><tr><td>42</td><td>The Atari POKEY</td><td>The controls it has: DIST, SWEEP, HPF, CLOCK.</td></tr><tr><td>43</td><td>The PC Speaker</td><td>The controls it has: DUTY, VIB, SWEEP, SHAPE, RATE.</td></tr><tr><td>44</td><td>The AdLib</td><td>The controls it has: CNT, FB, TREMD, VIBD, WAVE.</td></tr><tr><td>45</td><td>Namco WSG</td><td>The controls it has: WAVE, SWEEP, FOLD, STEP.</td></tr><tr><td>46</td><td>The Namco 163</td><td>The controls it has: WAVE, STEP, LENGTH, BRUSH.</td></tr><tr><td>47</td><td>Sunsoft 5B</td><td>The controls it has: NOISE, BUZZ, PERIOD, MIXENV.</td></tr><tr><td>48</td><td>The NES MMC5</td><td>The controls it has: DUTY, VIB, DEC.</td></tr><tr><td>49</td><td>The Famicom Disk</td><td>The controls it has: WAVE, DEPTH, RATIO, SWEEP, SHAPE.</td></tr><tr><td>50</td><td>The MSX SCC</td><td>The controls it has: WAVE, SWEEP, FOLD, TWIST, BRUSH.</td></tr><tr><td>51</td><td>MSX Music</td><td>The controls it has: INST, FB, PEDAL, TL, MUL.</td></tr><tr><td>52</td><td>The VRC7</td><td>The controls it has: INST, FB, PEDAL, TL, AR.</td></tr><tr><td>53</td><td>FM Synthesis</td><td>The controls it has: ALGO, FB, PAN, SPEED, PMD, PMS, TL, MUL.</td></tr><tr><td>54</td><td>Masterclass: FM</td><td>Why FM sounds as it does: operators, index, ratio, envelopes, feedback, every algorithm, detune, the LFO.</td></tr><tr><td>55</td><td>The OPL3</td><td>The controls it has: CONN, PAN, TREMD, WAVE.</td></tr><tr><td>56</td><td>The WonderSwan</td><td>The controls it has: WAVE, PAN, FOLD, BRUSH.</td></tr><tr><td>57</td><td>The SAA1099</td><td>The controls it has: NOISE, PAN, ENV, ERES, NRATE.</td></tr><tr><td>58</td><td>The VIC-20</td><td>The controls it has: TYPE, SWEEP, VIB, ATK.</td></tr><tr><td>59</td><td>The Plus/4 TED</td><td>The controls it has: TYPE, SWEEP, SHAPE, RATE.</td></tr><tr><td>60</td><td>The Atari Lynx</td><td>The controls it has: TYPE, PAN, INTEG, TAPS, BAL.</td></tr><tr><td>61</td><td>The PC-98</td><td>The controls it has: ALGO, FB, PAN, TL, AR.</td></tr><tr><td>62</td><td>The Neo Geo</td><td>The controls it has: ALGO, FB, LFO, PMS, MUL.</td></tr><tr><td>63</td><td>The Neo Geo Pocket</td><td>The controls it has: NOISE, PAN, SWEEP.</td></tr><tr><td>64</td><td>The OPL</td><td>The controls it has: CNT, FB, TREMD, TL, KSL.</td></tr><tr><td>65</td><td>The OPZ</td><td>The controls it has: ALGO, SPEED, WAVE, TL, FINE, DT2.</td></tr><tr><td>66</td><td>The SN76477</td><td>The controls it has: MIX, SLF, FILTER, RATE, DEPTH, DUTY.</td></tr><tr><td>67</td><td>Namco C30</td><td>The controls it has: WAVE, PAN, FOLD, BRUSH.</td></tr><tr><td>68</td><td>The MSM5232 Organ</td><td>The controls it has: FOOT, QUINT, VIB, ATK.</td></tr><tr><td>69</td><td>The ZX Beeper</td><td>The controls it has: DUTY, VIB, SWEEP, SHAPE, RATE.</td></tr><tr><td>70</td><td>The YM2203</td><td>The controls it has: ALGO, FB, TL, MUL, AR.</td></tr><tr><td>71</td><td>The SID</td><td>The controls it has: WAVE, CHIP, PW, SYNC, CUT, RES, MODE.</td></tr><tr><td>72</td><td>Masterclass: SID</td><td>Subtractive synthesis: waves, pulse width, the filter and its modes, sync, ring modulation, the two chips.</td></tr><tr><td>73</td><td>Your First Song</td><td></td></tr></table></div>
+    <h3>Drumlab</h3>
+    <div class="item"><div class="t"><div>Drumlab has lessons too, in the same menu line: a first beat, accents, tempo and swing, patterns, chains, mute and solo, punch-in <code>FX</code>, undo, the sound lab, patches A and B, kits and the PO-32 send window.</div></div></div>
+  </section>
+
   <section class="step" id="channels">
-    <h2><b>2</b>Channels</h2>
+    <h2><b>3</b>Channels</h2>
     <div class="item"><div class="t"><div>A channel is one voice of one chip.</div></div></div>
     <div class="item"><div class="t"><div>You can have up to 16 channels, in any mix.</div></div></div>
     <div class="item"><div class="t"><div>Select the + row at the bottom of the rack with <code>PRESETS</code>, then press <code>OCT+</code> to add a channel.</div></div><div class="pic"><img src="../manual/img/pn-s2-octplus.png" alt="s2-octplus"></div></div>
@@ -86,7 +98,7 @@
   </section>
 
   <section class="step" id="rack">
-    <h2><b>3</b>The rack</h2>
+    <h2><b>4</b>The rack</h2>
     <div class="item"><div class="t"><div>Each row is a channel.</div></div></div>
     <div class="item"><div class="t"><div>A page is 16 steps, which is one bar.</div></div></div>
     <div class="item"><div class="t"><div><code>KNOB 1</code> sets the tempo, from 40 to 240 bpm.</div></div><div class="pic"><img src="../manual/img/pn-s3-tempo.png" alt="s3-tempo"></div></div>
@@ -101,14 +113,15 @@
   </section>
 
   <section class="step" id="notes">
-    <h2><b>4</b>Writing notes</h2>
+    <h2><b>5</b>Writing notes</h2>
     <div class="block"><p>There are three ways to write notes. You can mix them.</p></div>
     <h3>Step entry</h3>
-    <div class="item"><div class="t"><div><code>SEQ</code> opens the current page as 16 blocks.</div></div><div class="pic"><img src="../manual/img/pn-q-seq.png" alt="q-seq"></div></div>
+    <div class="item"><div class="t"><div><code>SEQ</code> opens the current page as blocks, 16 to a screen.</div></div><div class="pic"><img src="../manual/img/pn-q-seq.png" alt="q-seq"></div></div>
     <div class="item"><div class="t"><div>A key sets the block under the cursor and moves to the next one.</div></div><div class="pic"><img src="../manual/img/pn-q-notes.png" alt="q-notes"></div></div>
     <div class="item"><div class="t"><div><code>SELECT</code> moves the cursor, so you can leave rests.</div></div></div>
     <div class="item"><div class="t"><div><code>EDIT</code> clears the block.</div></div></div>
     <div class="item"><div class="t"><div><code>KNOB 2</code> sets the length of a note, in steps. Turn it while you hold a key, or while the cursor is on a note.</div></div><div class="pic"><img src="../manual/img/pn-q-len.png" alt="q-len"></div></div>
+    <div class="item"><div class="t"><div><code>KNOB 3</code> sets the meter of the page and <code>KNOB 4</code> sets its length in bars. <code>KNOB 1</code> sets the tempo of this page alone, and <code>SEL</code> glides it into the next page's. See Meter and tempo.</div></div></div>
     <div class="item"><div class="t"><div><code>PLAY</code> loops the page while you work.</div></div></div>
     <h3>Recording</h3>
     <div class="item"><div class="t"><div><code>REC</code> loops the page and starts recording.</div></div><div class="pic"><img src="../manual/img/pn-r-rec.png" alt="r-rec"></div></div>
@@ -120,7 +133,7 @@
   </section>
 
   <section class="step" id="patch">
-    <h2><b>5</b>The chip screen</h2>
+    <h2><b>6</b>The chip screen</h2>
     <div class="item"><div class="t"><div><code>CHIP</code> shows the patch of the selected channel.</div></div><div class="pic"><img src="../manual/img/pn-t-chip.png" alt="t-chip"></div></div>
     <div class="item"><div class="t"><div><code>KNOB 1</code> to <code>KNOB 4</code> change the four cards on screen.</div></div></div>
     <div class="item"><div class="t"><div><code>ALGORITHM</code> flips between the pages of cards.</div></div><div class="pic"><img src="../manual/img/pn-c-algo.png" alt="c-algo"></div></div>
@@ -153,7 +166,7 @@
   </section>
 
   <section class="step" id="consoles">
-    <h2><b>6</b>The consoles</h2>
+    <h2><b>7</b>The consoles</h2>
     <div class="block"><table><tr><th>Console</th><th>Notes</th></tr><tr><td>NES</td><td>Pulse has four duties: 12.5, 25, 50 and 75 percent. Triangle has no volume knob. Noise has MODE, the long or the short shift register, and PERIOD: 0 follows the note, 1 to 15 fix the rate. The output goes through the NES's own filters.</td></tr><tr><td>Game Boy</td><td>Pulse has four duties. Wave has four volume steps and stereo. Noise has WIDTH, the long or the short register, and stereo; each note picks the nearest of the chip's noise rates. Pulse and wave have a <code>SWEEP</code> page. The output goes through the Game Boy's high-pass filter.</td></tr><tr><td>Master System</td><td>Tone is a square wave with 16 volume levels. <code>NOISE</code> picks tone, white or periodic noise that follows the note, or the chip's three fixed noise rates of each.</td></tr><tr><td>PC Engine</td><td>Wave has 16 volume levels and stereo. Noise has <code>RATE</code>: 0 follows the note, 1 to 31 fix it. Wave has a <code>SWEEP</code> page.</td></tr><tr><td>Atari 2600</td><td>TYPE picks one of eleven sound types, from clean tones to buzzes to white noise.</td></tr><tr><td>Konami VRC6</td><td>Pulse has eight duties. Saw is a stepped saw wave, twice as loud as the pulse at the same volume. OVER raises its rate past the usual top, so the saw wraps and turns rough.</td></tr><tr><td>AY-3-8910</td><td>Tone is a square wave with 16 volume levels. <code>NOISE</code> 0 is tone only. 1 to 14 gate the tone with noise, a faster noise the higher you go. 15 is noise alone, which is useful for hats and snares. A fourth page has PERIOD, which fixes the noise rate, and <code>BUZZ</code>, which plays the chip's envelope as the sound, with BRATIO setting its speed against the note.</td></tr><tr><td>Mega Drive</td><td>FM has four operators and eight algorithms, through the chip's grainy 9 bit output. See FM chips.</td></tr><tr><td>Virtual Boy</td><td>Wave has 32 steps of 6 bits, which is finer than the Game Boy. It has stereo. Noise has TAP, which picks the shift register's feedback tap. Wave has a <code>SWEEP</code> page. Notes below about D2 play at the chip's lowest pitch.</td></tr><tr><td>Atari 8-bit</td><td>DIST picks one of eight distortions, from a clean tone through buzzes to noise. A fourth page has <code>HPF</code>, the high-pass filter, and CLOCK, which runs the noise from the 15 kHz or the 1.79 MHz clock.</td></tr><tr><td>PC Speaker</td><td>One square wave with no volume. Notes are a little out of tune, like the real timer. The sound goes through a small speaker's filter.</td></tr><tr><td>AdLib</td><td>FM has two operators. See FM chips.</td></tr><tr><td>Namco WSG</td><td>Wave has 32 steps of 4 bits and 15 volume levels. The output goes through a low-pass filter.</td></tr><tr><td>Namco 163</td><td>Wave works like the WSG, and LENGTH sets how many steps the wave has, from 4 to 64. The chip shares one converter between its voices, so more channels playing at once sound grittier and quieter.</td></tr><tr><td>Sunsoft 5B</td><td>Tone and <code>NOISE</code> work like the AY-3-8910, with 3 dB volume steps. <code>BUZZ</code> runs the envelope as the sound: off, falling, rising, triangle or a pluck. <code>RATE</code> sets its speed against the note, and MIXENV plays the tone together with it.</td></tr><tr><td>NES MMC5</td><td>Pulse works like the NES pulse: four duties and the NES's own mixer. There is no triangle and no sweep.</td></tr><tr><td>Famicom Disk</td><td>Wave has 32 steps of 6 bits and goes through a low-pass filter. MOD sets how hard the chip's modulator bends the wave, from off to deep.</td></tr><tr><td>Konami SCC</td><td>Wave has 32 steps of 8 bits. Like all the chips with a divider, high notes land on the chip's steps and can be a little out of tune.</td></tr><tr><td>MSX Music</td><td>INST picks one of the chip's 15 built-in instruments, or your own. See FM chips.</td></tr><tr><td>Konami VRC7</td><td>Works like MSX Music, with the VRC7's own 15 instruments. See FM chips.</td></tr><tr><td>Arcade FM</td><td>FM has four operators and a <code>LFO</code>. <code>ALGO</code> picks one of eight ways to connect them. It has stereo. See FM chips.</td></tr><tr><td>Sound Blaster</td><td>FM has four operators. CONN picks one of four connections, and every operator has its own wave. It has stereo. See FM chips.</td></tr><tr><td>WonderSwan</td><td>Wave has 32 steps of 4 bits and stereo. The chip's output is sampled at 24 kHz, so it sounds crunchier than the Namco chips. Notes below about G1 play at the chip's lowest pitch.</td></tr><tr><td>Sam Coupe</td><td>Tone and <code>NOISE</code> work like the AY-3-8910, with linear volume and stereo. While the noise is high the tone is half as loud. A fourth page has the envelope generator: <code>ENV</code> picks a shape, ERES makes the steps coarser, NRATE fixes the noise rate.</td></tr><tr><td>VIC-20</td><td>The pitch is a 7 bit divide, so high notes are a little out of tune, like the real chip. TYPE 1 swaps the square wave for the noise voice.</td></tr><tr><td>Plus/4</td><td>TYPE 1 swaps the square wave for noise. Notes below A2 play an octave higher, because the chip can't go lower.</td></tr><tr><td>Atari Lynx</td><td>TYPE 1 is a square wave. The rest run the chip's shift register with different taps: short ones sound like buzzy tones, long ones like noise. It has stereo. A fourth page has INTEG, which integrates the output, TAPS, which picks another short cycle, and BAL, a finer balance than <code>PAN</code>.</td></tr><tr><td>PC-98</td><td>FM works like Arcade FM, with stereo. SSG works like the AY-3-8910.</td></tr><tr><td>Neo Geo</td><td>The same as PC-98: FM with stereo, and an SSG like the AY-3-8910.</td></tr><tr><td>Neo Geo Pocket</td><td>Tone is a square wave with stereo. It works like the Master System's, noise included. It has a <code>SWEEP</code> page.</td></tr><tr><td>MSX-Audio</td><td>FM has two operators, A and C. <code>ALGO</code> picks FM or both playing. It has no wave choices, unlike the AdLib.</td></tr><tr><td>Yamaha TX81Z</td><td>FM has four operators and the eight Arcade FM algorithms. Each operator has its own wave, one of eight: sine, sine squared, half sine, half sine squared, alternating sine, alternating sine squared, camel sine and camel sine squared.</td></tr><tr><td>SN76477</td><td>MIX picks tone, tone with noise, noise, or siren. SLF swings the pitch up and down, from off to fast. The siren swings it twice as far. A fourth page has FILTER, <code>RATE</code>, DEPTH and <code>DUTY</code> for the noise filter, the noise rate, how deep the slow oscillator swings and the square's width.</td></tr><tr><td>Namco System 1</td><td>Wave works like the WSG, with stereo.</td></tr><tr><td>Korg Poly-800</td><td>An organ. FOOT turns four pitches on or off: 16' (an octave down), 8' (the note), 4' and 2' (one and two octaves up). QUINT adds a fifth above the note, or a fifth above the octave, or both.</td></tr><tr><td>ZX Spectrum</td><td>A pulse wave with no volume. <code>DUTY</code> sets how thin the pulse is. The speaker is one bit, so every voice shares it and chords crunch.</td></tr><tr><td>NEC PC-88</td><td>FM works like Arcade FM, with one speaker. SSG works like the AY-3-8910.</td></tr><tr><td>Commodore 64</td><td>One voice of the SID, with its own filter. It has five pages of knobs. See below.</td></tr></table></div>
     <h3>FM chips</h3>
     <div class="item"><div class="t"><div>Press <code>SEL</code> on an FM chip's screen to pick what the knobs edit: the channel, then each operator in turn. The picture lights the operator you are on.</div></div></div>
@@ -200,7 +213,7 @@
   </section>
 
   <section class="step" id="drums">
-    <h2><b>7</b>Drums</h2>
+    <h2><b>8</b>Drums</h2>
     <div class="item"><div class="t"><div>Every console has its own drum kit.</div></div><div class="pic"><img src="../manual/img/pn-a-cons.png" alt="a-cons"></div></div>
     <div class="item"><div class="t"><div>The drums are <code>BD</code> (kick), <code>SD</code> (snare), <code>LT</code>, <code>MT</code> and <code>HT</code> (toms), <code>RS</code> (rimshot), <code>CP</code> (clap), <code>CH</code> (closed hat), <code>OH</code> (open hat), <code>CR</code> (crash) and <code>RD</code> (ride).</div></div></div>
     <div class="item"><div class="t"><div><code>SEQ</code> opens the drum lanes, with one row per drum and 16 steps across.</div></div><div class="pic"><img src="../manual/img/pn-a-lanes0.png" alt="a-lanes0"></div></div>
@@ -211,7 +224,7 @@
   </section>
 
   <section class="step" id="song">
-    <h2><b>8</b>The song</h2>
+    <h2><b>9</b>The song</h2>
     <div class="item"><div class="t"><div><code>SONG</code> shows a row of slots. Each slot holds a page.</div></div><div class="pic"><img src="../manual/img/pn-s4-song.png" alt="s4-song"></div></div>
     <div class="item"><div class="t"><div>A page can be used in more than one slot.</div></div></div>
     <div class="item"><div class="t"><div><code>SELECT</code> moves the cursor.</div></div></div>
@@ -223,8 +236,39 @@
     <div class="item"><div class="t"><div><code>PLAY</code> plays the song from the current slot.</div></div></div>
   </section>
 
+  <section class="step" id="meter">
+    <h2><b>10</b>Meter and tempo</h2>
+    <div class="block"><p>Every page has a meter, a length and, if you want one, a tempo of its own. A new page starts in 4/4, one bar long, at the song's tempo.</p></div>
+    <h3>Meter and length</h3>
+    <div class="item"><div class="t"><div>Open a page with <code>SEQ</code> and turn <code>KNOB 3</code> to pick the meter: 2/4, 3/4, 4/4, 5/4, 6/8 or 7/8.</div></div><div class="pic"><img src="../manual/img/pn-m1-meter.png" alt="m1-meter"></div></div>
+    <div class="item"><div class="t"><div>The page is as long as its meter says: 16 steps in 4/4, 12 in 3/4 and 6/8, 14 in 7/8, 20 in 5/4. Steps past the end are crossed out and skipped.</div></div><div class="pic"><img src="../manual/img/pn-m1-crossed.png" alt="m1-crossed"></div></div>
+    <div class="item"><div class="t"><div>A note on a crossed-out step stays, greyed out. Make the page longer and it returns.</div></div></div>
+    <div class="item"><div class="t"><div>The stripes on the steps show where each group of beats starts. The dots under the tempo count them while it plays.</div></div><div class="pic"><img src="../manual/img/pn-m1-play.png" alt="m1-play"></div></div>
+    <div class="item"><div class="t"><div>A new page starts with the meter of the page before it. A copy keeps the meter of the original.</div></div></div>
+    <h3>Long pages</h3>
+    <div class="item"><div class="t"><div>Turn <code>KNOB 4</code> to add bars. A page can have up to 64 steps: four bars in 4/4, five in 3/4.</div></div><div class="pic"><img src="../manual/img/pn-m2-bars.png" alt="m2-bars"></div></div>
+    <div class="item"><div class="t"><div>A page of more than 16 steps shows 16 at a time. The line under the top bar has a piece for each screen, and the one you are on is lit.</div></div><div class="pic"><img src="../manual/img/pn-m2-map.png" alt="m2-map"></div></div>
+    <div class="item"><div class="t"><div>In step entry, <code>SELECT</code> moves the cursor onto the next screen. On a drum channel, <code>SELECT</code> turns whole screens.</div></div><div class="pic"><img src="../manual/img/pn-m2-select.png" alt="m2-select"></div></div>
+    <div class="item"><div class="t"><div>In the <code>RACK</code> the screen follows the playhead while the page plays.</div></div><div class="pic"><img src="../manual/img/pn-m2-play.png" alt="m2-play"></div></div>
+    <div class="item"><div class="t"><div>Change the length of a page while it plays and the new length starts the next time round.</div></div></div>
+    <h3>A tempo for a page</h3>
+    <div class="item"><div class="t"><div>In step entry, turn <code>KNOB 1</code>. The page gets a tempo of its own and the tempo turns amber.</div></div><div class="pic"><img src="../manual/img/pn-m3-tempo.png" alt="m3-tempo"></div></div>
+    <div class="item"><div class="t"><div>Turn it back to the song's tempo and the page lets go.</div></div></div>
+    <div class="item"><div class="t"><div>Outside step entry, <code>KNOB 1</code> changes the tempo you see: the page's own if it has one, the song's if it doesn't.</div></div></div>
+    <div class="item"><div class="t"><div>A page without a tempo of its own plays at the song's. A new page starts with the tempo of the page before it.</div></div></div>
+    <div class="item"><div class="t"><div>When you follow an outside MIDI clock or a Brothers Link leader, the page tempos are ignored. Their clock rules.</div></div></div>
+    <h3>Glide</h3>
+    <div class="item"><div class="t"><div>Tap <code>SEL</code> in step entry. The page glides from its tempo into the tempo of the next page in the song. A little curve by the tempo shows how, going down for a slower page and up for a faster one.</div></div><div class="pic"><img src="../manual/img/pn-m4-sel.png" alt="m4-sel"></div></div>
+    <div class="item"><div class="t"><div>Tap <code>SEL</code> again for the next shape. Straight moves at a steady pace. Ease in waits and changes late, which is how a ritardando digs in at the end. Ease out changes early and settles. One more tap and the glide is off.</div></div></div>
+    <div class="item"><div class="t"><div>The tempo moves a little at every step, so the number counts while it plays.</div></div><div class="pic"><img src="../manual/img/pn-m4-play.png" alt="m4-play"></div></div>
+    <div class="item"><div class="t"><div>A page in the last slot has nowhere to glide to, and a page you loop never glides.</div></div></div>
+    <div class="item"><div class="t"><div>Want a ritardando at the end? Glide the last page into a slower one after it.</div></div></div>
+    <h3>Try it</h3>
+    <div class="item"><div class="t"><div>Projects has a sample called <b>Meters waltz</b>: an original waltz that goes through 3/4, 6/8, 5/4, 7/8, 4/4 and 2/4, with a 64 step page and two glides. <b>Test: meters and a waltz</b> is a plain version for trying the controls.</div></div></div>
+  </section>
+
   <section class="step" id="projects">
-    <h2><b>9</b>Projects</h2>
+    <h2><b>11</b>Projects</h2>
     <div class="item"><div class="t"><div>Hold <code>HOME</code> to open the project view. It has twelve tiles, each with a small picture of the first page.</div></div><div class="pic"><img src="../manual/img/pn-s1-hold-home.png" alt="s1-hold-home"></div></div>
     <div class="item"><div class="t"><div><code>SELECT</code> or <code>PRESETS</code> moves between tiles. <code>OCT+</code> opens a tile. <code>OCT-</code> goes back.</div></div></div>
     <div class="item"><div class="t"><div>The first two tiles are the demos. They don't save changes, so copy one before you edit it.</div></div></div>
@@ -238,31 +282,31 @@
   </section>
 
   <section class="step" id="undo">
-    <h2><b>10</b>Undo</h2>
+    <h2><b>12</b>Undo</h2>
     <div class="item"><div class="t"><div>At any time, you can undo changes with the <code>LFO</code> key.</div></div><div class="pic"><img src="../manual/img/pn-u-lfo.png" alt="u-lfo"></div></div>
     <div class="item"><div class="t"><div>NOTE: you can't redo an undone change, so be careful!</div></div></div>
   </section>
 
   <section class="step" id="fx">
-    <h2><b>11</b>Effects</h2>
+    <h2><b>13</b>Effects</h2>
     <div class="item"><div class="t"><div><code>FX</code> turns the 16 white keys into effects pads.</div></div><div class="pic"><img src="../manual/img/pn-x-fx.png" alt="x-fx"></div></div>
     <div class="block"><table><tr><th>Pad</th><th>Effect</th><th>What it does</th></tr><tr><td>1</td><td><code>TAPE</code> (shared)</td><td>Controls the tape with <code>SELECT</code>.</td></tr><tr><td>2</td><td><code>RPT</code> (shared)</td><td>Repeats the current step every sixteenth note.</td></tr><tr><td>3</td><td><code>LPF</code> (shared)</td><td>Low-pass filter.</td></tr><tr><td>4</td><td><code>HPF</code> (shared)</td><td>High-pass filter.</td></tr><tr><td>5</td><td><code>ECHO</code> (shared)</td><td>Tape echo.</td></tr><tr><td>6</td><td><code>VERB</code> (shared)</td><td>Reverb.</td></tr><tr><td>7</td><td><code>CRSH</code> (shared)</td><td>Reduces the number of levels.</td></tr><tr><td>8</td><td><code>GATE</code> (shared)</td><td>Chops the sound at the sixteenth notes.</td></tr><tr><td>9</td><td><code>RPT</code></td><td>Repeats the current step every eighth note.</td></tr><tr><td>10</td><td><code>RPT</code></td><td>Repeats the current step every thirty-second note.</td></tr><tr><td>11</td><td><code>DECI</code></td><td>Drops the sample rate.</td></tr><tr><td>12</td><td><code>DIVE</code></td><td>The pitch dives an octave.</td></tr><tr><td>13</td><td><code>WOB</code></td><td>A slow pitch wobble.</td></tr><tr><td>14</td><td><code>SOLO</code></td><td>Plays the channel you are on, alone.</td></tr><tr><td>15</td><td><code>KILL</code></td><td>Silences everything.</td></tr><tr><td>16</td><td><code>LATCH</code></td><td>The latch: tap a pad to keep it on, tap it again to turn it off.</td></tr></table></div>
     <div class="item"><div class="t"><div>Pads 1 to 8 are the same on Chipbox, Smileyface and Drumlab, and they are the ones that travel over Bluetooth. Pads 9 to 15 only exist on Chipbox and don't travel.</div></div></div>
   </section>
 
   <section class="step" id="limits">
-    <h2><b>12</b>The numbers</h2>
-    <div class="block"><table><tr><th></th><th></th></tr><tr><td>Channels</td><td>16</td></tr><tr><td>Steps in a page</td><td>16</td></tr><tr><td>Pages</td><td>64</td></tr><tr><td>Slots in a song</td><td>128</td></tr><tr><td>Projects</td><td>10, and two demos</td></tr><tr><td>Undo</td><td>6 changes</td></tr><tr><td>Notes in a project</td><td>About 2000</td></tr><tr><td>Tempo</td><td>40 to 240 bpm</td></tr></table></div>
+    <h2><b>14</b>The numbers</h2>
+    <div class="block"><table><tr><th></th><th></th></tr><tr><td>Channels</td><td>16</td></tr><tr><td>Steps in a page</td><td>Up to 64, 16 to a screen</td></tr><tr><td>Pages</td><td>64</td></tr><tr><td>Slots in a song</td><td>128</td></tr><tr><td>Projects</td><td>10, and two demos</td></tr><tr><td>Undo</td><td>About 30 changes</td></tr><tr><td>Notes in a project</td><td>About 2000</td></tr><tr><td>Tempo</td><td>40 to 240 bpm, for the song or a page</td></tr><tr><td>Meters</td><td>2/4, 3/4, 4/4, 5/4, 6/8 and 7/8</td></tr></table></div>
   </section>
 
   <section class="step" id="bluetooth">
-    <h2><b>13</b>Bluetooth sync</h2>
+    <h2><b>15</b>Bluetooth sync</h2>
     <div class="item"><div class="t"><div>Chipbox, Smileyface and Drumlab can play together over Bluetooth. One leads, the others follow. No cables, no pairing.</div></div></div>
     <div class="item"><div class="t"><div>Hit <code>GLO</code> + <code>HOME</code> and pick <b>Bluetooth</b>. On the leader, set <b>Sync</b> to Lead. On the others, set it to Follow. <code>OCT+</code> changes it.</div></div></div>
     <div class="item"><div class="t"><div>The status line says <b>Searching</b> while it looks for a leader, <b>Linked</b> when it hears one, and <b>In sync</b> once it is playing along.</div></div></div>
     <div class="item"><div class="t"><div>Hit <code>PLAY</code> on the leader. The followers start at the next bar and take its tempo. Stop the leader and they stop.</div></div></div>
     <div class="item"><div class="t"><div><b>Sidechain</b>: the leader tells the followers where its kicks are. The followers duck on every one, so the notes pump against the beat. Chipbox ducks its notes and leaves its own drums alone.</div></div></div>
-    <div class="item"><div class="t"><div><b>Patterns</b>: when the leader changes pattern, a following Chipbox moves to that page when the one it plays ends. It plays the page round and round. The leader's swing comes with it where there is a swing to follow.</div></div></div>
+    <div class="item"><div class="t"><div><b>Patterns</b>: when the leader changes pattern, a following Chipbox moves to that page when the one it plays ends. A page with nothing in it is skipped. It plays the page round and round. The leader's swing comes with it where there is a swing to follow.</div></div></div>
     <div class="item"><div class="t"><div><b>Punch-in FX</b>: hold one of pads 1 to 8 on the leader and every follower does it too: TAPE, RPT, LPF, HPF, ECHO, VERB, CRSH and GATE. Pads 9 to 15 are different on each FM-1 and don't travel.</div></div></div>
     <div class="item"><div class="t"><div><b>Key</b>: Chipbox works out the key of what it plays and tells the others. A following Chipbox moves its notes to the nearest note of the leader's key, so nothing clashes. This one only does something when the leader has notes. A leading Drumlab has none.</div></div></div>
     <div class="item"><div class="t"><div><b>Demo</b> loads a locked project to play along with the other two: D minor, 124 BPM, two pages. Nothing in it is saved. Open any project to leave it.</div></div></div>
@@ -271,13 +315,13 @@
   </section>
 
   <section class="step" id="keyboard">
-    <h2><b>14</b>MIDI keyboard</h2>
+    <h2><b>16</b>MIDI keyboard</h2>
     <div class="item"><div class="t"><div>Plug a keyboard's 5-pin MIDI out into the FM-1's 3.5 mm midi. Use an adaptor. Get a good one lmao, break a $10 note to get it haha.</div></div></div>
     <div class="item"><div class="t"><div>Have fun and experiment! I'm planning on making a way to map the controls, but for the most part controls like this work: PLAY, STOP, REC, KNOBS, SLIDERS, the PITCH and MOD wheels. OH! and the actual keys!</div></div></div>
   </section>
 
   <section class="step" id="rescue">
-    <h2><b>15</b>Updates and rescue</h2>
+    <h2><b>17</b>Updates and rescue</h2>
     <div class="item"><div class="t"><div>Install and update firmware with the <a href="../install.html">install page</a>.</div></div></div>
     <div class="item"><div class="t"><div>If your FM-1 gets bricked or stuck in a weird place, hold <code>OCT-</code> while plugging it in. The <a href="../install.html">install page</a> will fix it from there.</div></div></div>
   </section>

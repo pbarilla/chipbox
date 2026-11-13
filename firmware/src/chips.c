@@ -1507,7 +1507,7 @@ static void chan_set_kind(uint32_t c, uint32_t kind)   /* the channel becomes an
     uint32_t p;
     if (c >= chan_n || kind >= KINDS) return;
     chan_lock = 1;
-    if (IS_DRUM(chan[c].kind) != IS_DRUM(kind)) for (p = 0; p < SEQ_PAGES; p++) memset(pat[p][c], 0, sizeof pat[p][c]);
+    if (IS_DRUM(chan[c].kind) != IS_DRUM(kind)) for (p = 0; p < SEQ_PAGES; p++) seq_track_clear(p, c);
     chan[c].kind = (uint8_t)kind; chan[c].in = INST_DEF[kind]; fm_default(kind, &chan[c].fm); chan[c].wcus = 0;
     memset(&vc[c], 0, sizeof vc[c]); vc[c].stage = ST_IDLE; memset(&fmo[c], 0, sizeof fmo[c]);
     memset(&osc[c], 0, sizeof osc[c]); osc[c].pan = 1; wkey[c] = 0; memset(dv[c], 0, sizeof dv[c]); memset(&sid[c], 0, sizeof sid[c]);

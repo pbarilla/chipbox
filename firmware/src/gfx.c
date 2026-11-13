@@ -13,6 +13,7 @@ typedef struct {               /* proportional, see tools/gen_font.py */
     const uint8_t *data;
 } felucca_font_t;
 #include "felucca_font.h"
+#include "font_m.h"
 
 #ifndef CV_MAX
 #define CV_MAX (240u * 124u)      /* the graph strip is 240 x 124 */
@@ -56,8 +57,14 @@ static void palette_set(uint32_t i)
 
 static inline uint16_t swap16(uint32_t c) { return (uint16_t)(((c >> 8) & 0xFFu) | ((c & 0xFFu) << 8)); }
 
+#ifdef LABEL_TRACE
+static char lt_buf[600];
+#endif
 static void cv_begin(uint32_t w, uint32_t h, uint16_t bg)
 {
+#ifdef LABEL_TRACE
+    lt_buf[0] = 0;
+#endif
     uint32_t i, n;
     if (w * h > CV_MAX)
         h = CV_MAX / w;
@@ -86,6 +93,9 @@ static void gfx_dim_run(uint16_t *p, uint32_t n)
 }
 static void cv_blit(uint32_t x, uint32_t y)
 {
+#ifdef LABEL_TRACE
+    if (lt_buf[0]) printf("LT %u:%s\n", y, lt_buf);
+#endif
     if (gfx_dim) gfx_dim_run(cv_px, cv_w * cv_h);
     lcd_blit(x, y, cv_w, cv_h, cv_px);
 }
@@ -161,6 +171,9 @@ static uint32_t glyph(const felucca_font_t *f, uint32_t ch)
 /* text, alpha-blended onto black with colour c; returns the end x */
 static int32_t cv_text(int32_t x, int32_t y, const felucca_font_t *f, const char *s, uint16_t c)
 {
+#ifdef LABEL_TRACE
+    { size_t n = strlen(lt_buf); if (n + strlen(s) + 2 < sizeof lt_buf) { strcpy(lt_buf + n, s); strcat(lt_buf, "|"); } }
+#endif
     uint16_t ramp[16];
     uint32_t r = c >> 11, g = (c >> 5) & 63u, b = c & 31u, a;
     for (a = 0; a < 16u; a++)

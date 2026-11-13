@@ -65,7 +65,8 @@ static void lcd_window(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)
 
 static uint16_t lcd_fillbuf[240];
 
-static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
+static int32_t lcd_wy0, lcd_wy1;                /* the lesson card's rectangle (see lcd_fill) */
+static void lcd_fill_raw(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
 {
     uint32_t i, n, k, sw = (uint16_t)((c >> 8) | (c << 8));
     if (!w || !h || x >= 240u || y >= 240u)
@@ -86,12 +87,43 @@ static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
     }
 }
 
-static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px)
+static void lcd_blit_raw(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px)
 {
     if (!w || !h)
         return;
     lcd_window(x, y, x + w - 1u, y + h - 1u);
     lcd_data(px, w * h * 2u);
+}
+
+/* A clip rectangle the lesson card keeps (lcd_wx0 .. lcd_wx1, lcd_wy0 .. lcd_wy1; empty when the two y are equal): nothing the screen paints touches it, so the card is never painted over
+ * and painted again (that was the flash). The card itself paints with the rectangle off. */
+static int32_t lcd_wx0, lcd_wx1;
+static void lcd_blit_s(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px, uint32_t stride)       /* a piece of a blit: rows w apart in px, stride apart in the source */
+{
+    uint32_t j;
+    if (!w || !h) return;
+    if (stride == w) { lcd_blit_raw(x, y, w, h, px); return; }
+    for (j = 0; j < h; j++) lcd_blit_raw(x, y + j, w, 1u, px + j * stride);
+}
+static void lcd_fill(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint16_t c)
+{
+    int32_t x1 = (int32_t)(x + w), y1 = (int32_t)(y + h), ry0, ry1;
+    if (lcd_wy1 <= lcd_wy0 || (int32_t)x >= lcd_wx1 || x1 <= lcd_wx0 || (int32_t)y >= lcd_wy1 || y1 <= lcd_wy0) { lcd_fill_raw(x, y, w, h, c); return; }
+    if ((int32_t)y < lcd_wy0) lcd_fill_raw(x, y, w, (uint32_t)(lcd_wy0 - (int32_t)y), c);
+    if (y1 > lcd_wy1) lcd_fill_raw(x, (uint32_t)lcd_wy1, w, (uint32_t)(y1 - lcd_wy1), c);
+    ry0 = (int32_t)y > lcd_wy0 ? (int32_t)y : lcd_wy0; ry1 = y1 < lcd_wy1 ? y1 : lcd_wy1;
+    if ((int32_t)x < lcd_wx0) lcd_fill_raw(x, (uint32_t)ry0, (uint32_t)(lcd_wx0 - (int32_t)x), (uint32_t)(ry1 - ry0), c);
+    if (x1 > lcd_wx1) lcd_fill_raw((uint32_t)lcd_wx1, (uint32_t)ry0, (uint32_t)(x1 - lcd_wx1), (uint32_t)(ry1 - ry0), c);
+}
+static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px)
+{
+    int32_t x1 = (int32_t)(x + w), y1 = (int32_t)(y + h), ry0, ry1;
+    if (lcd_wy1 <= lcd_wy0 || (int32_t)x >= lcd_wx1 || x1 <= lcd_wx0 || (int32_t)y >= lcd_wy1 || y1 <= lcd_wy0) { lcd_blit_raw(x, y, w, h, px); return; }
+    if ((int32_t)y < lcd_wy0) lcd_blit_s(x, y, w, (uint32_t)(lcd_wy0 - (int32_t)y), px, w);
+    if (y1 > lcd_wy1) lcd_blit_s(x, (uint32_t)lcd_wy1, w, (uint32_t)(y1 - lcd_wy1), px + (uint32_t)(lcd_wy1 - (int32_t)y) * w, w);
+    ry0 = (int32_t)y > lcd_wy0 ? (int32_t)y : lcd_wy0; ry1 = y1 < lcd_wy1 ? y1 : lcd_wy1;
+    if ((int32_t)x < lcd_wx0) lcd_blit_s(x, (uint32_t)ry0, (uint32_t)(lcd_wx0 - (int32_t)x), (uint32_t)(ry1 - ry0), px + (uint32_t)(ry0 - (int32_t)y) * w, w);
+    if (x1 > lcd_wx1) lcd_blit_s((uint32_t)lcd_wx1, (uint32_t)ry0, (uint32_t)(x1 - lcd_wx1), (uint32_t)(ry1 - ry0), px + (uint32_t)(ry0 - (int32_t)y) * w + (uint32_t)(lcd_wx1 - (int32_t)x), w);
 }
 
 /* ST7789V init: reset, then 16-bit colour, scan direction and IPS inversion;

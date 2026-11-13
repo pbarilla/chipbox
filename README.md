@@ -12,6 +12,8 @@ Chiptune 'grovebox' thing for the FM-1, with more that 35 sound chips!
 
 A simple (to me) workflow for making music.
 
+Every page can have its own meter (2/4, 3/4, 4/4, 5/4, 6/8 or 7/8), its own length (up to 64 steps) and its own tempo, and a page can glide into the tempo of the next one: straight, ease in or ease out. So waltzes, jigs, 7/8 grooves and a ritardando at the end of a song are all a knob turn away. There's a sample called *Meters waltz* in [Projects](https://ihavenocluewhatimdoing.com/chipbox/projects/) that goes through all of it, and the [tutorials](https://ihavenocluewhatimdoing.com/chipbox/manual/) show you how.
+
 The FM chips have their real operators (`SEL` picks one), the wavetable chips have a wave you can draw, and `GLO` explains every knob of the chip you are on.
 
 ## Links
@@ -27,9 +29,9 @@ The FM chips have their real operators (`SEL` picks one), the wavetable chips ha
 
 Chipbox, [Smileyface](https://ihavenocluewhatimdoing.com/smileyface/) and Drumlab can play together over Bluetooth. We call it Brothers Link: Bluetooth Low Energy underneath, but not standard BLE-MIDI. No cables, no pairing: one leads, the others follow. Any of them can lead.
 
-- Tempo, play and stop follow the leader. Followers start at the next bar.
-- Sidechain: followers duck on the leader's kicks. Chipbox ducks its notes, not its own drums.
-- Patterns: when the leader changes page, followers change at the end of their loop.
+- Tempo, play and stop follow the leader. Followers start at the next bar. A leader that changes tempo from page to page, or glides, takes the followers with it.
+- Sidechain: followers duck on the leader's kicks. Chipbox ducks its notes, not its own drums. It only travels from 16 step pages.
+- Patterns: when the leader changes page, followers change at the end of their loop. A follower skips a page it has nothing in.
 - Punch-in FX: hold pads 1 to 8 on the leader and the followers do it too.
 - Key: a following Chipbox moves its notes to the leader's key.
 

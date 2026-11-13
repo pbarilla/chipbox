@@ -5,7 +5,7 @@ import re, subprocess, sys, tempfile
 from pathlib import Path
 root = Path(__file__).resolve().parent.parent
 src = (root / "firmware/src/proj.c").read_text()
-i = src.index("static uint32_t proj_pack(")
+i = src.index("static uint32_t pack_evat;")
 j = src.index("/* undo:")
 d = Path(tempfile.mkdtemp())
 (d / "proj_core.h").write_text(src[i:j])

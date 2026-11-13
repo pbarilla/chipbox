@@ -23,8 +23,10 @@ static uint32_t proj_crc(const uint8_t *p, uint32_t n)
 }
 static uint32_t undo_open, undo_t;               /* a group of edits is open: it closes after a quiet moment */
 static void undo_push(void);
-static void proj_edited(void) { if (!undo_open) undo_push(); undo_open = 1; undo_t = fm1_ms; proj_dirty = 1; proj_t_edit = fm1_ms; }
+static uint32_t les_on, les_hide, les_kclk;               /* a lesson is running on a scratch project (lessons.c): nothing it does is an edit of the user's project */
+static void proj_edited(void) { if (les_on) { if (!undo_open) undo_push(); undo_open = 1; undo_t = fm1_ms; return; } blk_gc(); if (!undo_open) undo_push(); undo_open = 1; undo_t = fm1_ms; proj_dirty = 1; proj_t_edit = fm1_ms; }
 
+static uint32_t pack_evat;                      /* where the last pack put the note count: the undo compares the part before it and the part after it apart */
 static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the length, or 0 when it does not fit a bank */
 {
     uint32_t n = 0, pg, c, s, ev = 0, evat;
@@ -45,11 +47,11 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
             else if (x->duck) { p[n++] = 1; p[n++] = x->duck; } else p[n++] = 0;
         }
     }
-    evat = n; n += 2;
+    evat = n; pack_evat = n; n += 2;
     for (pg = 0; pg < page_n; pg++)
         for (c = 0; c < chan_n; c++)
-            for (s = 0; s < SEQ_LEN; s++) {
-                const step_t *x = &pat[pg][c][s];
+            for (s = 0; s < SEQ_MAXLEN; s++) {
+                const step_t *x = STEP_R(pg, c, s);
                 if (!x->note && !(IS_DRUM(chan[c].kind) && (x->vel & 7u))) continue;
                 if (n + PROJ_EV > PROJ_BANK - PROJ_HDR) return 0;
                 p[n++] = (uint8_t)pg; p[n++] = (uint8_t)c; p[n++] = (uint8_t)s; p[n++] = x->note; p[n++] = x->vel; p[n++] = x->gate;
@@ -59,12 +61,28 @@ static uint32_t proj_pack(uint8_t *p)           /* the project to bytes: the len
     if (n + 1u + song_len > PROJ_BANK - PROJ_HDR) return 0;
     p[n++] = (uint8_t)song_len;                 /* the song: a page for each slot */
     for (s = 0; s < song_len; s++) p[n++] = song[s];
+    {   uint32_t any = 0, tmp = 0;              /* version 6: a byte for each page after the song, its meter, bars less one and glide (bit 7); version 7: and then a byte each for the page's own tempo (0: the song's).
+                                                 * Only a project that uses them says so: every other project stays version 5 */
+        for (pg = 0; pg < page_n; pg++) { any |= (uint32_t)(page_sig[pg] | page_xb[pg] | page_gl[pg]); tmp |= page_tmp[pg]; }
+        if (any || tmp) {
+            if (n + page_n * (tmp ? 2u : 1u) > PROJ_BANK - PROJ_HDR) return 0;
+            p[0] = tmp ? 7 : 6;
+            for (pg = 0; pg < page_n; pg++) p[n++] = (uint8_t)(page_sig[pg] | page_xb[pg] << 4 | (page_gl[pg] & 1u) << 7 | (page_gl[pg] >> 1 & 1u) << 3);       /* the glide: bit 7 straight, bit 3 ease in, both ease out */
+            if (tmp) for (pg = 0; pg < page_n; pg++) p[n++] = page_tmp[pg];
+        }
+    }
+    return n;
+}
+static uint32_t pack_evat_of(const uint8_t *p, uint32_t len)      /* where the note count sits in a payload this firmware packed */
+{
+    uint32_t n = 5u, c;
+    for (c = 0; c < p[4] && n < len; c++) { n += 1u + PROJ_INST; if (p[0] >= 4u && n < len) n += 1u + p[n]; }
     return n;
 }
 static int proj_check(const uint8_t *p, uint32_t len)       /* 0: these bytes are a project this firmware can load */
 {
     uint32_t n, i, c, ev, pages, chans, isz;
-    if (len < 7u || p[0] < 2u || p[0] > 5u) return -1;
+    if (len < 7u || p[0] < 2u || p[0] > 7u) return -1;
     isz = p[0] == 2u ? 14u : PROJ_INST;
     pages = p[3]; chans = p[4];
     if (pages < 1u || pages > SEQ_PAGES || chans > MAXCH) return -1;
@@ -80,7 +98,29 @@ static int proj_check(const uint8_t *p, uint32_t len)       /* 0: these bytes ar
     if (len < n + ev * PROJ_EV) return -1;
     for (i = 0; i < ev; i++) {
         const uint8_t *e = p + n + i * PROJ_EV;
-        if (e[0] >= pages || e[1] >= chans || e[2] >= SEQ_LEN) return -1;
+        if (e[0] >= pages || e[1] >= chans || e[2] >= SEQ_MAXLEN) return -1;
+    }
+    {   static uint8_t seen[SEQ_PAGES * MAXCH * (SEQ_MAXLEN / SEQ_LEN) / 8u];      /* the blocks the steps need must fit */
+        uint32_t nb = 0;
+        memset(seen, 0, sizeof seen);
+        for (i = 0; i < ev; i++) {
+            const uint8_t *e = p + n + i * PROJ_EV;
+            const uint32_t k = ((uint32_t)e[0] * MAXCH + e[1]) * (SEQ_MAXLEN / SEQ_LEN) + e[2] / SEQ_LEN;
+            if (!(seen[k >> 3] >> (k & 7u) & 1u)) { seen[k >> 3] |= (uint8_t)(1u << (k & 7u)); nb++; }
+        }
+        if (nb > SEQ_NBLK) return -1;
+    }
+    if (p[0] >= 6u) {                                   /* version 6: the song, then a meter byte for each page */
+        const uint32_t se = n + ev * PROJ_EV;
+        if (se >= len || p[se] < 1u || p[se] > SONG_MAX || se + 1u + p[se] + pages > len) return -1;
+        for (i = 0; i < pages; i++) {
+            const uint32_t b = p[se + 1u + p[se] + i], sg = b & 7u, xb = b >> 4 & 7u;
+            if (sg >= 6u || (xb + 1u) * METER_STEPS[sg] > SEQ_MAXLEN) return -1;
+        }
+        if (p[0] >= 7u) {                               /* version 7: then a tempo for each page */
+            if (se + 1u + p[se] + pages * 2u > len) return -1;
+            for (i = 0; i < pages; i++) { const uint32_t t = p[se + 1u + p[se] + pages + i]; if (t && (t < 40u || t > 240u)) return -1; }
+        }
     }
     return 0;
 }
@@ -96,7 +136,7 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
     n += 2u;
     seq_stop();
     seq_clear();                                /* (the voices are silent while this runs; a sound is read when a note starts) */
-    seq_bpm = (uint32_t)p[1] | (uint32_t)p[2] << 8;
+    seq_bpm = (uint32_t)p[1] | (uint32_t)p[2] << 8; seq_bpm_play = seq_bpm;
     page_n = pages;
     for (c = 0, q0 = 5u; c < chans; c++) {
         const uint8_t *q = p + q0;
@@ -119,44 +159,96 @@ static int proj_unpack(const uint8_t *p, uint32_t len)      /* 0: loaded; else n
     }
     for (i = 0; i < ev; i++) {
         const uint8_t *e = p + n + i * PROJ_EV;
-        step_t *x = &pat[e[0]][e[1]][e[2]];
+        step_t *x = STEP_W(e[0], e[1], e[2]);
         x->note = e[3]; x->vel = e[4]; x->gate = e[5];
     }
     n += ev * PROJ_EV;
     if (n < len && p[n] >= 1u && p[n] <= SONG_MAX && n + 1u + p[n] <= len) {       /* the song (older projects have none: the pages in order) */
         song_len = p[n];
         for (i = 0; i < song_len; i++) song[i] = p[n + 1u + i] < pages ? p[n + 1u + i] : (uint8_t)(pages - 1u);
+        if (p[0] >= 6u) for (i = 0; i < pages; i++) { const uint32_t b = p[n + 1u + song_len + i]; page_sig[i] = (uint8_t)(b & 7u); page_xb[i] = (uint8_t)(b >> 4 & 7u); page_gl[i] = (uint8_t)((b >> 7 & 1u) | (b >> 3 & 1u) << 1); }
+        if (p[0] >= 7u) for (i = 0; i < pages; i++) page_tmp[i] = p[n + 1u + song_len + pages + i];
     } else {
         song_len = pages < SONG_MAX ? pages : SONG_MAX;
         for (i = 0; i < song_len; i++) song[i] = (uint8_t)i;
     }
     return 0;
 }
-/* undo: the project as bytes before each group of edits, the last UNDO_N of them. LFO steps back one. */
-#define UNDO_N 6u
-static uint8_t undo_buf[UNDO_N][PROJ_BANK - PROJ_HDR] POOL, undo_base[PROJ_BANK - PROJ_HDR] POOL;
-static uint32_t undo_len[UNDO_N], undo_cnt, undo_head, undo_base_len, undo_base_ok;
-static void undo_push(void)                     /* a new group of edits begins: how it was goes on the stack */
+/* undo: LFO steps back one group of edits. `undo_base` is the project as bytes when the last group closed; each closed group leaves a reverse delta (what its edits
+ * changed, as the old bytes) in `undo_ring`, the newest last. Two parts are compared apart, the head up to the note count (the sounds, tempo) and the rest (the notes, the
+ * song, the meters), so an added note is a few bytes and not everything behind it. An open group has no delta yet: undo goes back to the base. */
+#define UNDO_RING 16384u
+#define UNDO_MAX 32u
+static uint8_t undo_base[PROJ_BANK - PROJ_HDR] POOL, undo_ring[UNDO_RING] POOL;
+static uint32_t undo_elen[UNDO_MAX], undo_cnt, undo_used, undo_base_len, undo_base_ok, undo_base_evat;
+static void undo_push(void) { }                 /* (a group opens: the base already is how it was) */
+static uint32_t undo_part(const uint8_t *o, uint32_t lo, const uint8_t *n, uint32_t ln, uint32_t *pre, uint32_t *suf)     /* the common start and end of two byte strings */
 {
-    if (!undo_base_ok) return;
-    memcpy(undo_buf[undo_head], undo_base, undo_base_len); undo_len[undo_head] = undo_base_len;
-    undo_head = (undo_head + 1u) % UNDO_N;
-    if (undo_cnt < UNDO_N) undo_cnt++;
+    uint32_t a = 0, z = 0;
+    while (a < lo && a < ln && o[a] == n[a]) a++;
+    while (z < lo - a && z < ln - a && o[lo - 1u - z] == n[ln - 1u - z]) z++;
+    *pre = a; *suf = z;
+    return (lo - a - z) + (ln - a - z);
 }
-static void undo_tick(void)                     /* main loop: a quiet moment closes the group; the project as it is then is the base */
+static void undo_close(void)                    /* a quiet moment: the project as it is now; what changed since the base is one more step back */
+{
+    uint32_t ln = proj_pack(proj_buf), en = pack_evat, pa, za, pb, zb, oa, na, ob, nb, need, i;
+    uint8_t *e;
+    if (!ln) { undo_base_ok = 0; undo_cnt = 0; undo_used = 0; return; }
+    {   const uint32_t eo = undo_base_evat + 2u, ee = en + 2u;
+        undo_part(undo_base, eo, proj_buf, ee, &pa, &za);
+        undo_part(undo_base + eo, undo_base_len - eo, proj_buf + ee, ln - ee, &pb, &zb);
+        oa = eo - pa - za; na = ee - pa - za; ob = undo_base_len - eo - pb - zb; nb = ln - ee - pb - zb;
+        if (!oa && !na && !ob && !nb) { return; }                          /* nothing differs */
+        need = 12u + oa + ob;
+        if (need <= UNDO_RING) {
+            while (undo_cnt && (undo_used + need > UNDO_RING || undo_cnt >= UNDO_MAX)) {       /* the oldest steps make room */
+                const uint32_t f = undo_elen[0];
+                memmove(undo_ring, undo_ring + f, undo_used - f);
+                memmove(undo_elen, undo_elen + 1u, (undo_cnt - 1u) * sizeof undo_elen[0]);
+                undo_used -= f; undo_cnt--;
+            }
+            e = undo_ring + undo_used;
+            e[0] = (uint8_t)pa; e[1] = (uint8_t)(pa >> 8); e[2] = (uint8_t)na; e[3] = (uint8_t)(na >> 8); e[4] = (uint8_t)oa; e[5] = (uint8_t)(oa >> 8);
+            { const uint32_t o2 = ee + pb;                                      /* where the second part sits in the NEW bytes */
+              e[6] = (uint8_t)o2; e[7] = (uint8_t)(o2 >> 8); e[8] = (uint8_t)nb; e[9] = (uint8_t)(nb >> 8); e[10] = (uint8_t)ob; e[11] = (uint8_t)(ob >> 8); }
+            memcpy(e + 12, undo_base + pa, oa);
+            memcpy(e + 12 + oa, undo_base + eo + pb, ob);
+            undo_elen[undo_cnt++] = need; undo_used += need;
+        } else { undo_cnt = 0; undo_used = 0; }                                  /* too big to keep: the older steps would not lead back any more */
+    }
+    (void)i;
+    memcpy(undo_base, proj_buf, ln); undo_base_len = ln; undo_base_evat = en; undo_base_ok = 1;
+}
+static void undo_tick(void)                     /* main loop: a quiet moment closes the group */
 {
     if (add_aud_c >= 0) return;                 /* the Add Channel audition has a channel on loan: not part of the project */
-    if (!undo_base_ok || (undo_open && fm1_ms - undo_t > 600u)) { undo_base_len = proj_pack(undo_base); undo_base_ok = undo_base_len != 0u; undo_open = 0; }
+    if (!undo_base_ok) { undo_base_len = proj_pack(undo_base); undo_base_evat = pack_evat; undo_base_ok = undo_base_len != 0u; undo_open = 0; return; }
+    if (undo_open && fm1_ms - undo_t > 600u) { undo_close(); undo_open = 0; }
 }
-static void undo_reset(void) { undo_cnt = 0; undo_base_ok = 0; undo_open = 0; }
+static void undo_reset(void) { undo_cnt = 0; undo_used = 0; undo_base_ok = 0; undo_open = 0; }
 static int undo_go(void)                        /* 0: stepped back one */
 {
-    uint32_t i;
+    if (!undo_base_ok) return -1;
+    if (undo_open) {                            /* a group still open: back to how it was when it began */
+        if (proj_unpack(undo_base, undo_base_len) != 0) return -1;
+        undo_open = 0; proj_dirty = 1; proj_t_edit = fm1_ms;
+        return 0;
+    }
     if (!undo_cnt) return -1;
-    i = (undo_head + UNDO_N - 1u) % UNDO_N;
-    if (proj_unpack(undo_buf[i], undo_len[i]) != 0) return -1;
-    undo_head = i; undo_cnt--;
-    memcpy(undo_base, undo_buf[i], undo_len[i]); undo_base_len = undo_len[i]; undo_base_ok = 1; undo_open = 0;
+    {   const uint32_t f = undo_elen[undo_cnt - 1u], at = undo_used - f;
+        const uint8_t *e = undo_ring + at;
+        const uint32_t pa = e[0] | (uint32_t)e[1] << 8, na = e[2] | (uint32_t)e[3] << 8, oa = e[4] | (uint32_t)e[5] << 8;
+        const uint32_t pb = e[6] | (uint32_t)e[7] << 8, nb = e[8] | (uint32_t)e[9] << 8, ob = e[10] | (uint32_t)e[11] << 8;
+        uint32_t len = undo_base_len;
+        memcpy(proj_buf, undo_base, len);
+        if (pb + nb > len || pa + na > len || len - nb + ob > PROJ_BANK - PROJ_HDR || len - nb + ob - na + oa > PROJ_BANK - PROJ_HDR) return -1;
+        memmove(proj_buf + pb + ob, proj_buf + pb + nb, len - pb - nb); memcpy(proj_buf + pb, e + 12 + oa, ob); len = len - nb + ob;       /* the later part first: the earlier one keeps its place */
+        memmove(proj_buf + pa + oa, proj_buf + pa + na, len - pa - na); memcpy(proj_buf + pa, e + 12, oa); len = len - na + oa;
+        if (proj_unpack(proj_buf, len) != 0) return -1;
+        memcpy(undo_base, proj_buf, len); undo_base_len = len; undo_base_evat = pack_evat_of(proj_buf, len);
+        undo_used = at; undo_cnt--; undo_open = 0;
+    }
     proj_dirty = 1; proj_t_edit = fm1_ms;
     return 0;
 }
@@ -271,13 +363,13 @@ static void proj_preview(uint32_t slot, uint16_t *rows, uint8_t *chips, uint32_t
         *nch = chan_n;
         for (c = 0; c < chan_n; c++) {
             chips[c] = KIND_CHIP[chan[c].kind];
-            for (i = 0; i < SEQ_LEN; i++) if (pat[0][c][i].note) rows[c] |= (uint16_t)(1u << i);
+            for (i = 0; i < SEQ_LEN; i++) if (STEP_R(0, c, i)->note) rows[c] |= (uint16_t)(1u << i);
         }
         return;
     }
     b = proj_newest(slot, &h);
     if (b < 0 || pf_read(proj_base(slot, (uint32_t)b) + PROJ_HDR, proj_buf, h.len)) return;
-    if (h.len < 7u || proj_buf[0] < 2u || proj_buf[0] > 5u || proj_buf[4] > MAXCH) return;
+    if (h.len < 7u || proj_buf[0] < 2u || proj_buf[0] > 7u || proj_buf[4] > MAXCH) return;
     isz = proj_buf[0] == 2u ? 14u : PROJ_INST;
     *nch = proj_buf[4];
     for (c = 0, n = 5u; c < *nch; c++) {                    /* (version 4 and later: a length byte and extra bytes follow each channel's sound) */

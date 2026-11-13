@@ -122,5 +122,13 @@
  {
   "name": "Test: 5B and SID",
   "file": "samples/test-5b-sid.chipbox"
+ },
+ {
+  "name": "Test: meters and a waltz",
+  "file": "samples/test-meters.chipbox"
+ },
+ {
+  "name": "Meters waltz",
+  "file": "samples/meters-waltz.chipbox"
  }
 ]

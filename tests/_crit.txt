@@ -1,0 +1,14 @@
+300 held 0x100
+350 held 0
+800 midi 0xB0 106 12
+1500 midi 0xB0 106 1
+2200 midi 0xB0 106 0
+3000 shot
+23000 shot
+24000 shot
+25000 shot
+39000 shot
+40000 shot
+41000 shot
+42000 shot
+43000 end

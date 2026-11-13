@@ -29,7 +29,7 @@ static void sg_band(uint32_t b)                  /* two rows of cells */
                     for (ch = 0; ch < chan_n; ch++) {
                         uint32_t k, any = 0, dr = IS_DRUM(chan[ch].kind);
                         const theme_t *th = &THEME[KIND_CHIP[chan[ch].kind]];
-                        for (k = 0; k < SEQ_LEN; k++) any |= dr ? dstep_hits(&pat[song[i]][ch][k]) : pat[song[i]][ch][k].note;
+                        for (k = 0; k < SEQ_MAXLEN; k++) any |= dr ? dstep_hits(STEP_R(song[i], ch, k)) : STEP_R(song[i], ch, k)->note;
                         cv_rect(x + 2 + (int32_t)(ch & 7u) * 3, y + (chan_n > 8u ? 19 : 21) + (int32_t)(ch >> 3) * 4, 2, 3, any ? th->acc : mix16(play ? c : mix16(R_BG, c, 90), th->acc, 70));
                     }
                 }

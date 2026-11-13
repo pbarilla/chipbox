@@ -123,6 +123,11 @@ JOBS = [
     ("a-sd", [], "am_sd", (3, 7, 12, 14, 21, 26), False), ("a-bd", [], "am_bd", (1, 0, 4, 18, 19), False),
     ("a-play", ["PLAY"], "am_play", (), True), ("a-song", ["HOME"], "am_song", (), True), ("a-song2", ["OCT+", "PRESETS"], "am_song2", (), True),
     ("a-copy", ["EDIT"], "am_copy", (), True), ("a-bar3", [], "am_bar3", (), False), ("a-bar4", [], "am_bar4", (), False), ("a-final", ["PLAY"], "am_final", (), True),
+    ("m1-seq", ["SEQ"], "ml_step44", (), True), ("m1-notes", [], "ml_notes", (12, 14, 16), False), ("m1-meter", ["KNOB3"], "ml_meter", (), True), ("m1-crossed", [], "ml_meter2", (), True),
+    ("m1-play", ["PLAY"], "ml_play34", (), True), ("m1-68", ["KNOB3"], "ml_meter68", (), True),
+    ("m2-bars", ["KNOB4"], "ml_bars", (), True), ("m2-map", [], "ml_bars2", (), True), ("m2-select", ["SELECT"], "ml_screen2", (), True), ("m2-play", ["PLAY"], "ml_playlong", (), True),
+    ("m3-song", ["HOME"], "ml_song1", (), True), ("m3-add", ["OCT+"], "ml_song2", (), True), ("m3-tempo", ["KNOB1"], "ml_tempo", (), True),
+    ("m4-sel", ["SEL"], "ml_glide", (), True), ("m4-shape", ["SEL"], "ml_glide2", (), True), ("m4-play", ["PLAY"], "ml_glideplay", (), True),
     ("x-fx", ["FX"], "x_fx", (), True), ("x-tape", [], "x_tape", (), False), ("x-glo", ["GLO"], "m_manual", (), True),
 ]
 

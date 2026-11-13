@@ -88,7 +88,7 @@ static int32_t fx_g = 256, fx_held_l, fx_held_r, fx_lp1[2], fx_lp2[2];
 static uint32_t fx_hold_n, fx_gp, echo_pos, vb_dirty;
 static void fx_master(int32_t *out, uint32_t n)
 {
-    uint32_t m = fx_mask, i, bpm = seq_bpm < 40u ? 40u : seq_bpm > 240u ? 240u : seq_bpm;
+    uint32_t m = fx_mask, i, bpm = seq_bpm_play < 40u ? 40u : seq_bpm_play > 240u ? 240u : seq_bpm_play;
     uint32_t on = m & (FXB(FX_VERB) | FXB(FX_CRUSH) | FXB(FX_DECI) | FXB(FX_GATE) | FXB(FX_KILL) | FXB(FX_LPF) | FXB(FX_HPF) | FXB(FX_ECHO))
                   || fx_lp_i || fx_hp_i || fx_echo_tail || fx_verb_tail || fx_speed < 256 || fx_g != 256;
     uint32_t gate_p = 661500u / bpm, echo_d = 1323000u / bpm;

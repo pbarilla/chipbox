@@ -404,11 +404,13 @@ static void ico_console(uint32_t chip, int32_t x, int32_t y)
         cv_rect(x + 31, y + 13, 6, 6, RGB(10, 10, 14)); cv_rect(x + 31, y + 13, 6, 1, RGB(80, 80, 88));
     }
 }
-static void hdr_beat(void)                      /* playing: four dots under the tempo, the beat's lit (over an animation too) */
+static void hdr_beat(void)                      /* playing: a dot for each beat group of the page's meter under the tempo (4/4 four, 3/4 three, 6/8 two ...), the one the playhead is in lit (over an animation too) */
 {
-    uint32_t b = (uint32_t)seq_step / 4u & 3u, i;
+    const uint32_t sg = page_sig[seq_pat] % 6u, grp = METER_GRP[sg], at = (uint32_t)seq_step % page_bar_steps(seq_pat);
+    uint32_t n = 0, b = 0, i;
     if (!seq_run || seq_hold) return;
-    for (i = 0; i < 4u; i++) cv_rect(190 + (int32_t)i * 11, 32, 8, 4, i == b ? (b == 0u ? RGB(80, 220, 120) : R_WHITE) : RGB(60, 60, 74));
+    for (i = 0; i < page_bar_steps(seq_pat); i++) if (grp >> i & 1u) { n++; if (i <= at) b = n - 1u; }
+    for (i = 0; i < n; i++) cv_rect(234 - (int32_t)(n - i) * 11 + 3, 32, 8, 4, i == b ? (b == 0u ? RGB(80, 220, 120) : R_WHITE) : RGB(60, 60, 74));
 }
 /* the rule under the bar on the chip screens, each console's own */
 static void hdr_rule(uint32_t chip, const theme_t *t)
@@ -599,10 +601,10 @@ static void anim_frame(const theme_t *t, uint32_t chip)
         ico_file(108 + dir * (70 - off), 6, seq_view, R_BG);
         break; }
     case AN_TEMPO: {                                /* a metronome swings at the tempo, the tempo beside it as it changes */
-        uint32_t period = 60000u / (seq_bpm ? seq_bpm : 120u) * 2u;
+        uint32_t period = 60000u / (tempo_shown() ? tempo_shown() : 120u) * 2u;
         char n[8];
         ico_metro(86, 0, swing(ms + period / 4u, period) * 10 / 127, RGB(190, 190, 205));
-        fmt_u(n, seq_bpm);
+        fmt_u(n, tempo_shown());
         cv_text(124, 5, &FONT_L, n, R_WHITE);
         break; }
     case AN_REC: {                                  /* a tape deck: REC goes down, then PLAY, and they stay (arg 1: STOP is pressed and both spring up) */
@@ -647,19 +649,77 @@ static void anim_frame(const theme_t *t, uint32_t chip)
     (void)t;
 }
 
+/* the battery: its divider read every 2 s, smoothed, in four segments; the numbers are Drumlab's, calibrated on the bench (10 bit reading at 3.3 V and at 4.2 V) */
+#define BAT_EMPTY 495u
+#define BAT_FULL 650u
+static uint8_t opt_noanim, opt_nobat;           /* set.an[2] bits 5 and 6, stored inverted so a new device has both on: the critters that walk by, the battery in the top bar */
+static uint32_t bat_raw, bat_pct, bat_ms;
+static void bat_poll(void)
+{
+    int32_t v;
+    if (fm1_ms - bat_ms < 2000u && bat_raw) return;
+    bat_ms = fm1_ms;
+#ifndef CHIPBOX_HOST
+    v = fm1_adc_read(FM1_ADC_BATT);
+#else
+    v = 600;
+#endif
+    if (v < 0) return;
+    bat_raw = bat_raw ? (bat_raw * 3u + (uint32_t)v) / 4u : (uint32_t)v;
+    bat_pct = bat_raw <= BAT_EMPTY ? 0u : bat_raw >= BAT_FULL ? 100u : (bat_raw - BAT_EMPTY) * 100u / (BAT_FULL - BAT_EMPTY);
+}
+static uint32_t bat_state(void)                 /* what the top bar draws: 0 hidden, else 1 + the segments (0..4) | blink phase when nearly empty */
+{
+    uint32_t n;
+    if (opt_nobat || !bat_raw) return 0;
+    n = (bat_pct + 12u) / 25u;
+    return 1u + n + (bat_pct < 12u ? (fm1_ms / 400u & 1u) << 4 : 0u);
+}
+static void bat_draw(uint16_t fg)               /* a small battery in the bar: an outline and four segments, red when nearly empty */
+{
+    const uint32_t st = bat_state();
+    const int32_t bx = 176, by = 3;
+    uint32_t i;
+    uint16_t oc = mix16(hdr_bg, fg, 150);
+    const uint32_t n = (st & 15u) - 1u, off = st >> 4 & 1u;
+    if (!st) return;
+    cv_rect(bx, by, 24, 8, oc); cv_rect(bx + 1, by + 1, 22, 6, hdr_bg); cv_rect(bx + 24, by + 2, 2, 4, oc);
+    for (i = 0; i < 4u; i++) cv_rect(bx + 2 + (int32_t)i * 5, by + 2, 4, 4, i < n && !off ? (n <= 1u ? RGB(230, 60, 50) : RGB(80, 220, 110)) : mix16(hdr_bg, fg, 40));
+}
 /* the bar's usual face */
 static void hdr_idle(const theme_t *t, uint32_t view, uint32_t chip, uint32_t sel, uint32_t last_note)
 {
     char s[16];
-    uint32_t note = view == 1u || view == 3u ? (sel < chan_n && !IS_DRUM(chan[sel].kind) ? pat[seq_view][sel][rack_cur].note : 0u) : view == 0u ? last_note : 0u;
+    uint32_t note = view == 1u || view == 3u ? (sel < chan_n && !IS_DRUM(chan[sel].kind) ? STEP_R(seq_view, sel, rack_cur)->note : 0u) : view == 0u ? last_note : 0u;
     uint16_t fg = view == 0u ? t->fg : RGB(230, 230, 235);
     /* the same places on every screen: the chip's name on the left, the page in the middle with the note beside it, the tempo on the right */
     if (view != 2u && sel < chan_n) ico_system(chip, 6, console_y(chip), 0, 0);
     ico_file(100, 6, seq_view, R_BG);
     if (note) { note_name(s, note); cv_text(134, 14, &FONT_S, s, fg); }
-    fmt_u(s, seq_bpm);
-    cv_text(234 - text_w(&FONT_L, s), 5, &FONT_L, s, fg);
+    fmt_u(s, tempo_shown());
+    bat_draw(fg);
+    cv_text(234 - text_w(&FONT_S, METER_NAME[page_sig[seq_view]]), -1, &FONT_S, METER_NAME[page_sig[seq_view]], mix16(hdr_bg, fg, 190));       /* the page's meter above the tempo */
+    {   const uint16_t tc = page_tmp[seq_view] ? RGB(255, 190, 60) : fg;                  /* amber: this page has a tempo of its own */
+        const int32_t tx = 234 - text_w(&FONT_M, s);
+        cv_text(tx, 11, &FONT_M, s, tc);
+        if (page_gl[seq_view]) {                                                          /* a glide into the next page's tempo: a little graph, boxed: its curve going down (slower) or up (faster), a flat line when there is nowhere to go */
+            const int32_t d = glide_delta(seq_view), ax = tx - 34, ay = 13;
+            uint32_t i;
+            cv_rect(ax, ay, 29, 17, mix16(hdr_bg, tc, 45)); cv_rect(ax, ay, 29, 1, mix16(hdr_bg, tc, 160)); cv_rect(ax, ay + 16, 29, 1, mix16(hdr_bg, tc, 160));
+            cv_rect(ax, ay, 1, 17, mix16(hdr_bg, tc, 160)); cv_rect(ax + 28, ay, 1, 17, mix16(hdr_bg, tc, 160));
+            for (i = 0; i < 23u; i++) {
+                const int32_t f = (int32_t)glide_f(page_gl[seq_view], i, 22u) * 10 / 256, py = d == 0 ? 5 : d < 0 ? f : 10 - f;
+                cv_rect(ax + 3 + (int32_t)i, ay + 3 + py, 2, 3, tc);
+            }
+            cv_rect(ax + 3, ay + 3 + (d == 0 ? 5 : d < 0 ? 0 : 10), 4, 3, R_WHITE);       /* where it starts */
+        }
+    }
     if (view == 0u) hdr_rule(chip, t);              /* the chip screens keep their console's rule */
+    else if (page_steps(seq_view) > SEQ_LEN && view != 2u) {                         /* a page of more than 16 steps: a map along the bar's foot, a piece for each screen, the one on show lit */
+        const int32_t n = (int32_t)((page_steps(seq_view) + SEQ_LEN - 1u) / SEQ_LEN), w = (240 - (n - 1) * 2) / n;
+        int32_t q;
+        for (q = 0; q < n; q++) cv_rect(q * (w + 2), HDR_H - 3, w, 3, (uint32_t)q == vwin ? R_WHITE : RGB(60, 60, 78));
+    }
     else cv_rect(0, HDR_H - 1, 240, 1, rec_on ? RGB(235, 50, 40) : RGB(50, 50, 60));
     if (rec_on && view != 2u && ((fm1_ms / 350u) & 1u)) {            /* recording: a red dot that blinks */
         cv_rect(72, 15, 12, 12, RGB(235, 50, 40)); cv_rect(70, 17, 16, 8, RGB(235, 50, 40)); cv_rect(74, 13, 8, 16, RGB(235, 50, 40));
@@ -716,18 +776,20 @@ static void win_ask(const char *q)               /* a window: the question (one 
 }
 static void hdr_update(uint32_t view, uint32_t sel, const theme_t *t, uint32_t chip, uint32_t last_note)
 {
-    static uint32_t sig[16], nav_d = 9;
-    uint32_t cur[16], on = anim_on();
-    cur[0] = view; cur[1] = sel; cur[2] = view == 1u || view == 3u ? (sel < chan_n && !IS_DRUM(chan[sel].kind) ? pat[seq_view][sel][rack_cur].note : 0u) : view == 2u ? 0u : last_note;
-    cur[3] = seq_run; cur[4] = seq_bpm; cur[5] = seq_view; cur[6] = page_n; cur[7] = chip; cur[8] = on ? an_kind : 0u;
+    static uint32_t sig[19], nav_d = 9;
+    uint32_t cur[19], on = anim_on();
+    bat_poll();
+    cur[0] = view; cur[1] = sel; cur[2] = view == 1u || view == 3u ? (sel < chan_n && !IS_DRUM(chan[sel].kind) ? STEP_R(seq_view, sel, rack_cur)->note : 0u) : view == 2u ? 0u : last_note;
+    cur[3] = seq_run; cur[4] = tempo_shown() | (uint32_t)page_tmp[seq_view] << 12 | (uint32_t)page_gl[seq_view] << 22 | (glide_delta(seq_view) < 0 ? 1u : glide_delta(seq_view) > 0 ? 2u : 0u) << 24; cur[5] = seq_view; cur[6] = page_n; cur[7] = chip; cur[8] = on ? an_kind : 0u;
     cur[9] = on ? (fm1_ms - an_t0) / 50u : 0u; cur[10] = rack_rm; cur[11] = chan_n; cur[12] = rec_on ? 1u + ((fm1_ms / 350u) & 1u) : 0u; cur[13] = (uint32_t)((int32_t)seq_rate + 8) | ((uint32_t)seq_hold << 8);
     cur[14] = on ? an_arg : 0u; cur[15] = seq_run && !seq_hold ? 1u + ((uint32_t)seq_step / 4u & 3u) : 0u;
+    cur[16] = page_steps(seq_view) | (uint32_t)page_sig[seq_view] << 8 | vwin << 12; cur[17] = bat_state(); cur[18] = view ? fm1_ms / 1000u : 0u;       /* (a second's refresh: a speck on the bar, or in the rows under it, from a stalled screen transfer heals) */
     uint32_t full = hdr_force;
     if (!hdr_force && !memcmp(cur, sig, sizeof cur)) return;
     memcpy(sig, cur, sizeof cur);
     hdr_force = 0;
     hdr_bg = view ? R_BG : t->bg;
-    cv_begin(240, HDR_H, hdr_bg);
+    cv_begin(240, view == 0u ? HDR_H : view == 1u ? 44u : 48u, hdr_bg);      /* (the bar, and the rows between it and what the view draws: nothing else paints them) */
     rk_ox = 0;
     if (on) {
         anim_frame(t, chip);

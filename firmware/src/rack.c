@@ -181,8 +181,15 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
                 }
             }
             for (i = 0; i < SEQ_LEN; i++) {
-                const step_t *s = &pat[seq_view][row][i];
+                const uint32_t st = vwin * SEQ_LEN + i, plen = page_steps(seq_view);       /* a screen of 16 steps of a page that may be longer or shorter */
+                const step_t *s = STEP_R(seq_view, row, st);
                 int32_t x = rack_x(i);
+                if (st >= plen) {                                     /* past the page's end: dark and crossed out */
+                    int32_t k;
+                    rk_rect(x, y + 2, 10, 14, mix16(on_row ? R_SEL : R_BG, on, 20));
+                    for (k = 0; k < 8; k += 2) { rk_rect(x + 1 + k, y + 5 + k, 2, 2, mix16(on_row ? R_SEL : R_BG, on, 80)); rk_rect(x + 7 - k, y + 5 + k, 2, 2, mix16(on_row ? R_SEL : R_BG, on, 80)); }
+                    continue;
+                }
                 if (IS_DRUM(chan[row].kind)) {                        /* a drum step: a dot a lane, four across, three down; an accent is whiter */
                     uint32_t ln, h = dstep_hits(s), ac = dstep_acc(s);
                     for (ln = 0; ln < 11u; ln++) {
@@ -191,11 +198,12 @@ static void rack_band(uint32_t b, uint32_t sel, int32_t xa, int32_t w, int32_t l
                     }
                 } else rack_block(chip, x, y + 2, s->note ? on : off, s->note != 0);
                 if (rack_tails && !IS_DRUM(chan[row].kind) && s->note && s->gate > 6u) {            /* a long note: a line under the row, out to the step where it ends */
-                    uint32_t e = i + (s->gate + 5u) / 6u - 1u;
-                    if (e > 15u) e = 15u;
-                    rk_rect(x, y + 17, rack_x(e) + 10 - x, 2, on);
+                    uint32_t e = st + (s->gate + 5u) / 6u - 1u;
+                    if (e > plen - 1u) e = plen - 1u;
+                    if (e > vwin * SEQ_LEN + 15u) e = vwin * SEQ_LEN + 15u;
+                    rk_rect(x, y + 17, rack_x(e - vwin * SEQ_LEN) + 10 - x, 2, on);
                 }
-                if (on_row && i == rack_cur && (!seq_run || seq_hold)) {   /* the cursor, when the tape is stopped or paused: a white frame round the step the keys write to */
+                if (on_row && st == rack_cur && (!seq_run || seq_hold)) {   /* the cursor, when the tape is stopped or paused: a white frame round the step the keys write to */
                     uint16_t f = rack_rm ? RGB(235, 64, 52) : R_WHITE;
                     rk_rect(x - 2, y, 14, 2, f); rk_rect(x - 2, y + 17, 14, 2, f);
                     rk_rect(x - 2, y + 2, 2, 15, f); rk_rect(x + 10, y + 2, 2, 15, f);
@@ -229,13 +237,13 @@ static int32_t rack_line(void)                  /* the playhead's x: a step is 1
     uint32_t st, sub;
     if (!seq_run || seq_pat != seq_view) return -1;       /* the line only shows on the page that is playing */
     do { st = seq_step; sub = seq_sub; } while (st != seq_step);    /* the clock may tick between the two reads */
-    return st < 16u ? rack_x(st) + (int32_t)sub * 2 : -1;
+    return st / SEQ_LEN == vwin ? rack_x(st % SEQ_LEN) + (int32_t)sub * 2 : -1;
 }
 
 /* the whole screen when something changed (pattern, selection, play); only two slices between */
 static void rack_update(uint32_t sel, uint32_t force)
 {
-    static uint32_t view_d, run_d, sel_d, cur_d, top_d, n_d, rec_d;
+    static uint32_t view_d, run_d, sel_d, cur_d, top_d, n_d, rec_d, win_d, len_d;
     static int32_t line_d = -1;
     int32_t line;
     if (sel < rack_top) rack_top = sel;
@@ -249,7 +257,7 @@ static void rack_update(uint32_t sel, uint32_t force)
         }
         if (a != rk_bar_a) { rk_bar_a = a; rack_inval = 1; }
     }
-    if (force || rack_inval || seq_view != view_d || (seq_run | seq_hold << 1) != run_d || sel != sel_d || rack_cur != cur_d || rack_top != top_d || chan_n != n_d || rec_on != rec_d) {
+    if (force || rack_inval || seq_view != view_d || (seq_run | seq_hold << 1) != run_d || sel != sel_d || rack_cur != cur_d || rack_top != top_d || chan_n != n_d || rec_on != rec_d || vwin != win_d || (page_steps(seq_view) | (uint32_t)page_sig[seq_view] << 8) != len_d) {
         if (force) { view_clear(R_BG); hdr_force = 1; }
         rack_inval = 0;
         { const uint32_t gd = gfx_dim;                  /* (a window over the view: the rows fade; the main loop's own dim pass keeps its setting) */
@@ -258,7 +266,7 @@ static void rack_update(uint32_t sel, uint32_t force)
           gfx_dim = gd; }
         if (rack_rm == 2u) win_ask(IS_DRUM(chg_kind) ? "Switching from\nNotes to Drums\nwill clear the track" : "Switching from\nDrums to Notes\nwill clear the track");
         else if (rack_rm) win_ask("Remove channel?");
-        view_d = seq_view; run_d = seq_run | seq_hold << 1; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; rec_d = rec_on; line_d = line;
+        view_d = seq_view; run_d = seq_run | seq_hold << 1; sel_d = sel; cur_d = rack_cur; top_d = rack_top; n_d = chan_n; rec_d = rec_on; win_d = vwin; len_d = page_steps(seq_view) | (uint32_t)page_sig[seq_view] << 8; line_d = line;
     } else if (line != line_d && !rack_rm) {
         if (line_d >= 0) rack_cols(sel, line_d, 2, -1);
         if (line >= 0) rack_cols(sel, line, 2, line);

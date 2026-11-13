@@ -1,0 +1,110 @@
+# the meter and tempo lessons' screenshots, in the order a reader gets them (fresh flash)
+300 held 0x100
+370 held 0
+1370 held 0x100
+2170 held 0
+2970 enc 0 1
+3220 enc 0 1
+3820 btn 1
+5620 midi 0xB0 106 0
+7420 btn 11
+8920 shot
+9030 keys 0x1000
+9120 keys 0
+9240 enc 0 1
+9360 enc 0 1
+9480 enc 0 1
+9590 keys 0x4000
+9680 keys 0
+9800 enc 0 1
+9920 enc 0 1
+10040 enc 0 1
+10150 keys 0x10000
+10240 keys 0
+10690 enc 0 -1
+10840 enc 0 -1
+10990 enc 0 -1
+11140 enc 0 -1
+11290 enc 0 -1
+11440 enc 0 -1
+11590 enc 0 -1
+11740 enc 0 -1
+11890 enc 0 -1
+12390 shot
+12790 enc 4 -1
+13040 shot
+15240 shot
+15540 btn 12
+16940 shot
+17240 btn 12
+18140 enc 4 1
+18440 enc 4 1
+18740 enc 4 1
+19040 shot
+19340 enc 4 -1
+19640 enc 4 -1
+19940 enc 4 -1
+22540 enc 5 1
+22840 enc 5 1
+23140 enc 5 1
+23390 shot
+25590 shot
+25650 enc 0 1
+25710 enc 0 1
+25770 enc 0 1
+25830 enc 0 1
+25890 enc 0 1
+25950 enc 0 1
+26010 enc 0 1
+26070 enc 0 1
+26130 enc 0 1
+26190 enc 0 1
+26250 enc 0 1
+26310 enc 0 1
+26370 enc 0 1
+26430 enc 0 1
+26490 enc 0 1
+26550 enc 0 1
+26610 enc 0 1
+26670 enc 0 1
+26730 enc 0 1
+26790 enc 0 1
+27390 shot
+27690 held 0x100
+27760 held 0
+28960 btn 12
+28960 held 0x1000
+29560 held 0
+32360 shot
+32660 btn 12
+33560 btn 11
+35060 held 0x100
+35130 held 0
+36330 held 0x100
+36400 held 0
+37400 held 0x100
+37470 held 0
+38970 shot
+39270 btn 1
+40870 shot
+41170 held 0x40
+41290 held 0
+42790 btn 11
+44690 enc 2 24
+47290 shot
+47690 enc 1 -1
+49790 btn 3
+50290 shot
+50590 btn 3
+51090 shot
+51390 held 0x100
+51460 held 0
+52660 held 0x100
+52730 held 0
+53730 held 0x100
+53800 held 0
+55600 enc 0 -1
+63400 btn 12
+66400 shot
+66700 btn 12
+67700 end

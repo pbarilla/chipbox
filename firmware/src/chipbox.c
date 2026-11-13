@@ -447,11 +447,12 @@ static void draw_note(const theme_t *t, uint32_t note)
 #include "chipview.c"
 #include "menu.c"
 #include "addmenu.c"
+#include "lessons.c"
 #include "manual.c"
 #include "tips.c"
 #include "picker.c"
 
-static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) act_ms = fm1_ms; return v; }       /* knobs count as being touched */
+static int32_t enc_act(uint32_t e) { int32_t v = fm1_enc_take(e); if (v) { act_ms = fm1_ms; if (e >= ENC_KNOB1 && e <= ENC_KNOB1 + 3u) les_kclk += (uint32_t)(v < 0 ? -v : v); } return v; }       /* knobs count as being touched */
 #define fm1_enc_take enc_act
 
 #include "boot.c"
@@ -489,7 +490,7 @@ static void mk_off(uint32_t c, uint32_t note)
 }
 static void app_main(void)
 {
-    struct { int8_t oct; uint8_t an[3], proj, demo, unlocked; } set = {0, {AN_HW, AN_HW, 0}, 0, 0, 0};
+    struct { int8_t oct; uint8_t an[3], proj, demo, unlocked, les[12]; } set = {0, {AN_HW, AN_HW, 0}, 0, 0, 0, {0}};      /* les: the lessons you finished (a settings blob of 7 or 15 bytes, from before, still loads) */
 #define bt_pack() do { set.unlocked = (uint8_t)((clk_mode & 3u) | (brothers_mode & 3u) << 2 | bt_side << 4 | bt_patsync << 5 | bt_fxsync << 6 | bt_key << 7); dirty = 1; t_change = fm1_ms; } while (0)       /* the settings byte: MIDI clock, Bluetooth mode, sidechain, patterns */
     uint32_t prev = 0, k, t_change = 0, dirty = 0, note_drawn = ~0u, chip_drawn = ~0u;
     uint32_t last_note = 255u, view = 1, rack_force = 1, chip_page = 0, sel = 0;     /* view: 0 the chip, 1 the rack, 2 the song; sel: the channel (in the rack, one past the last is "add") */
@@ -501,19 +502,23 @@ static void app_main(void)
     uint8_t rec_hold[27] = {0}, rec_pg[27] = {0}, rec_st[27] = {0}, rec_ch[27] = {0};     /* a recorded note still held: where it went, to set its length when the key comes up */
     uint32_t rec_t0[27] = {0};
     fresh = settings_load(&set, sizeof set) != 0;      /* a new device (or a wipe): no settings yet */
+    if (fresh) { struct { int8_t oct; uint8_t an[3], proj, demo, unlocked, les[8]; } mid; if (settings_load(&mid, sizeof mid) == 0) { memcpy(&set, &mid, sizeof mid); fresh = 0; } }       /* (the settings with room for 64 lessons) */
+    if (fresh) { struct { int8_t oct; uint8_t an[3], proj, demo, unlocked; } old; if (settings_load(&old, sizeof old) == 0) { memcpy(&set, &old, sizeof old); fresh = 0; } }       /* (the settings before the lessons list had no les bytes) */
+    memcpy(les_done, set.les, sizeof les_done);
     if ((set.demo & 0xF0u) != QS_OK) set.demo = QS_OK;
     clk_mode = (set.unlocked & 3u) <= 2u ? (uint8_t)(set.unlocked & 3u) : 0u;       /* the settings byte `unlocked` (never used before): bits 0-1 the MIDI clock, 2-3 the Bluetooth sync mode, 4 sidechain, 5 follow patterns */
     bt_side = set.unlocked >> 4 & 1u; bt_patsync = set.unlocked >> 5 & 1u; bt_fxsync = set.unlocked >> 6 & 1u; bt_key = set.unlocked >> 7 & 1u;
     inst_flag = &set.demo; inst_set = &set; inst_n = sizeof set;                    /* set.demo: quick start on every start, project browser on every start */
-    rack_tails = set.an[2] >> 7;                        /* set.an[2]: the boot screen in bits 0-6, note tails in bit 7 */
+    rack_tails = set.an[2] >> 7;                        /* set.an[2]: the boot screen in bits 0-4, no critters in bit 5, no battery in bit 6, note tails in bit 7 */
+    opt_noanim = set.an[2] >> 5 & 1u; opt_nobat = set.an[2] >> 6 & 1u;
 #if !defined(CHIPBOX_HOST) || defined(BOOT_DEMO)
     {                                                   /* the next power-on screen in the list; set.an[2] (unused) remembers the last */
-        uint32_t last = (set.an[2] & 127u) < BOOT_N ? set.an[2] & 127u : 0u, n = (last + 1u) % BOOT_N;
+        uint32_t last = (set.an[2] & 31u) < BOOT_N ? set.an[2] & 31u : 0u, n = (last + 1u) % BOOT_N;
 #ifdef BOOT_DEMO
         n = BOOT_DEMO;
 #endif
         boot_seed = fm1_ticks();
-        set.an[2] = (uint8_t)(n | (set.an[2] & 128u));
+        set.an[2] = (uint8_t)(n | (set.an[2] & 0xE0u));
         settings_save(&set, sizeof set);                /* now, while it is silent: a quick power cycle must not show the same one */
         boot_screen(n);
     }
@@ -534,6 +539,7 @@ static void app_main(void)
     for (k = 0; k < 2u; k++) analog_mode[k] = set.an[k];
 
 #define FACTORY_RESET() do {                                                            /* the menu's Factory Reset, and MIDI CC 109 (a test) */ \
+    if (les_on) les_exit(); \
         seq_stop(); rec_on = 0; duck_ch = 255; \
         for (k = PROJ_DEMOS; k < PROJ_SLOTS; k++) proj_clear(k);               /* every project goes, the demos come back */ \
         if (proj_demos_free_empty() + proj_demos_free_used()) proj_demos_restore_all(); \
@@ -556,6 +562,7 @@ static void app_main(void)
         if (px_open_req) {                              /* a project came in over USB: open it */
             uint32_t sl = px_open_req - 1u;
             px_open_req = 0;
+            if (les_on) { les_exit(); proj_dirty = 0; }
             if (sl == proj_cur) proj_dirty = 0;         /* (the open one was just replaced: its unsaved copy is the old one) */
             proj_open(sl); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; rack_inval = 1; view = 1;
             pick_on = 0; menu_on = 0;
@@ -563,8 +570,17 @@ static void app_main(void)
 #endif
         if (!chan_n && !view) { view = 1; rack_force = 1; chip_drawn = ~0u; }       /* no channels: only the rack makes sense */
         if (rec_on && (view == 2u || view == 3u || !seq_run || sel >= chan_n || pick_on)) { rec_on = 0; duck_ch = 255; }     /* recording stops with the playing, the song screen, the + row */
-        if (view == 3u) rack_cur = ed_cur;
-        else if (!seq_run || seq_hold) rack_cur = seq_step;                  /* stopped or paused: the playhead is the cursor */
+        {   const uint32_t plen = page_steps(seq_view);                    /* the page on show may be longer or shorter than 16 steps */
+            if (ed_cur >= plen) ed_cur = plen - 1u;
+            if (view == 3u) rack_cur = ed_cur;
+            else if (!seq_run || seq_hold) rack_cur = seq_step < plen ? seq_step : 0u;                  /* stopped or paused: the playhead is the cursor */
+            if (rack_cur >= plen) rack_cur = plen - 1u;
+            vwin = view == 3u ? ed_cur / SEQ_LEN : seq_run && !seq_hold && seq_pat == seq_view && seq_step < plen ? seq_step / SEQ_LEN : rack_cur / SEQ_LEN;       /* the screen: the cursor's, or the playhead's while it plays */
+        }
+        les_tick(view, sel, chip_page);                 /* a lesson: has the step been done */
+        if (les_req_view != ~0u) { view = les_req_view; les_req_view = ~0u; sel = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1; }       /* a masterclass wants the CHIP screen */
+        if (les_req_page != ~0u) { chip_page = les_req_page; les_req_page = ~0u; redraw = 1; chip_drawn = ~0u; ch_drawn = 99; }       /* a masterclass patch: the CHIP screen on its first page */
+        if (les_saved) { les_saved = 0; memcpy(set.les, les_done, sizeof set.les); dirty = 1; t_change = fm1_ms; }          /* a lesson finished: the settings keep it */
         nrows = chan_n + (view == 1u && chan_n < MAXCH ? 1u : 0u);
         if (sel >= nrows) sel = nrows ? nrows - 1u : 0u;
         fm_fix(sel);
@@ -609,8 +625,8 @@ static void app_main(void)
                     if (!menu_on && !pick_on && !rack_rm) {
                         if (dr) {                                                  /* the lanes: the white keys are the 16 steps; the same hit again takes it away */
                             uint32_t p;
-                            if (view == 3u) for (p = 0; p < FXN; p++) if (FX_KEY[p] == k) {
-                                step_t *x = &pat[seq_view][sel][p];
+                            if (view == 3u) for (p = 0; p < FXN; p++) if (FX_KEY[p] == k && vwin * SEQ_LEN + p < page_steps(seq_view)) {
+                                step_t *x = STEP_W(seq_view, sel, vwin * SEQ_LEN + p);
                                 uint32_t h = dstep_hits(x), a = dstep_acc(x), bit = 1u << ed_lane, env = fm1_in.buttons >> BTN_ENV & 1u;
                                 if (env) { if (h & bit && a & bit) a &= ~bit; else { h |= bit; a |= bit; } }          /* ENV held: an accented hit (on one already there: accent on, off) */
                                 else if (h & bit) { h &= ~bit; a &= ~bit; }                                         /* the same hit again takes it away */
@@ -621,13 +637,13 @@ static void app_main(void)
                         else if (rec_on && seq_run && !seq_hold && view != 2u) {      /* recording: the note goes on the step nearest the playhead */
                             uint32_t a, sb, stp = 0, pg;
                             do { a = seq_step; sb = seq_sub; } while (a != seq_step);
-                            stp = (a * SEQ_PPS + sb + SEQ_PPS / 2u) / SEQ_PPS % SEQ_LEN; pg = seq_pat;
-                            {   step_t *x = &pat[pg][sel][stp];
+                            stp = (a * SEQ_PPS + sb + SEQ_PPS / 2u) / SEQ_PPS % (seq_len ? seq_len : SEQ_LEN); pg = seq_pat;
+                            {   step_t *x = STEP_W(pg, sel, stp);
                                 x->note = held[k]; x->vel = 100; x->gate = 5; rec_hold[k] = 1; rec_t0[k] = seq_ticks; rec_pg[k] = (uint8_t)pg; rec_st[k] = (uint8_t)stp; rec_ch[k] = (uint8_t)sel;
                             }
                             rack_inval = 1; proj_edited();
                         } else if (view == 1u && (!seq_run || seq_hold)) { seq_toggle(sel, rack_cur, held[k]); rack_inval = 1; proj_edited(); }
-                        else if (view == 3u) { step_t *x = &pat[seq_view][sel][ed_cur]; x->note = held[k]; x->vel = 100; x->gate = 5; ed_hold_k = (int32_t)k; ed_hold_step = ed_cur; ed_cur = (ed_cur + 1u) % SEQ_LEN; proj_edited(); }       /* STEP: the key sets the block and moves on */       /* stopped or paused: on the step the playhead is at */
+                        else if (view == 3u) { step_t *x = STEP_W(seq_view, sel, ed_cur); x->note = held[k]; x->vel = 100; x->gate = 5; ed_hold_k = (int32_t)k; ed_hold_step = ed_cur; ed_cur = (ed_cur + 1u) % page_steps(seq_view); proj_edited(); }       /* STEP: the key sets the block and moves on */       /* stopped or paused: on the step the playhead is at */
                     }
                 }
             }
@@ -637,7 +653,7 @@ static void app_main(void)
                 if (held_ch[k] < chan_n && last_note == held[k]) chip_off(held_ch[k]);
                 midi_send(0x80 | (held_ch[k] & 15u), held[k], 0);
                 if (rec_hold[k]) {                      /* a recorded note: its length is how long the key was down */
-                    step_t *x = &pat[rec_pg[k]][rec_ch[k]][rec_st[k]];
+                    step_t *x = STEP_W(rec_pg[k], rec_ch[k], rec_st[k]);
                     uint32_t g = seq_ticks - rec_t0[k];
                     if (x->note == held[k]) x->gate = (uint8_t)(g < 1u ? 1u : g > 96u ? 96u : g);
                     rec_hold[k] = 0; rack_inval = 1;
@@ -648,9 +664,15 @@ static void app_main(void)
         b = fm1_input_edges(&rel);
         home_now = fm1_in.buttons >> BTN_HOME & 1u;     /* HOME: a tap goes between the views, a hold opens the projects */
         if (home_now && !home_was) { home_t0 = fm1_ms; home_used = tip_on; }      /* HOME with a tip up only closes it */
+        if (les_on && les_fin && !menu_on && !pick_on && (b & (1u << BTN_OCT_UP))) {      /* the last card of a lesson: OCT+ goes on to the next */
+            b &= ~(1u << BTN_OCT_UP); les_enter((les_i + 1u) % LES_N); view = 1; sel = 0; chip_page = 0; seq_view = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1;
+        } else if (les_on && les_fin && !menu_on && !pick_on && (b & (1u << BTN_OCT_DOWN))) {      /* ... and OCT- ends the lesson: the user's project comes back */
+            b &= ~(1u << BTN_OCT_DOWN); les_exit(); view = 1; sel = 0; seq_view = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1;
+        }
+        if (les_reading() && !menu_on && !pick_on && (b & (1u << BTN_OCT_UP))) { b &= ~(1u << BTN_OCT_UP); les_read_next(view, sel, chip_page); }       /* a page to read: OCT+ goes on */
         sys_req = 0;                                    /* GLO + HOME, either one first: the menu */
         if (!pick_on && home_now && (((b & (1u << BTN_GLO)) != 0u) || (!home_was && (fm1_in.buttons >> BTN_GLO & 1u)))) { home_used = 1; sys_req = 1; b &= ~(1u << BTN_GLO); }
-        if (home_now && !home_used && !menu_on && !pick_on && fm1_ms - home_t0 >= 600u) { pick_open(); home_used = 1; }
+        if (home_now && !home_used && !menu_on && !pick_on && fm1_ms - home_t0 >= 600u) { if (les_on) { les_exit(); view = 1; sel = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; } pick_open(); home_used = 1; }
         home_tap = !home_now && home_was && !home_used;
         if (home_tap && rack_rm) { rack_rm = 0; rack_inval = 1; home_tap = 0; }          /* HOME closes the remove window */
         home_was = home_now;
@@ -695,10 +717,12 @@ static void app_main(void)
             if (view == 3u) { view = 1; anim_start(AN_VIEW, 1u); rack_force = 1; chip_drawn = ~0u; }
             else if (view != 2u && sel < chan_n) { chip_off(sel); view = 3; ed_cur = 0; anim_start(AN_VIEW, 4u); rack_force = 1; chip_drawn = ~0u; }
         }
+        if (home_tap && les_reading() && !menu_on && !pick_on && !fx_layer) { les_hide = 1; home_tap = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1; }       /* a page to read: HOME puts it away (GLO brings it back) */
         if (sys_req) {                                  /* the menu (it replaces a help list that is open) */
-            sys_open(set.demo, 1); menu_kind = MK_MENU;
+            sys_group = 0; sys_open(set.demo, 1);
         } else if (b & (1u << BTN_GLO)) {               /* the manual, at the chapter for the view you are on; GLO again is the contents, HOME leaves */
-            if (menu_on && menu_kind == MK_MANUAL) man_glo();
+            if (les_on && !menu_on && !fx_layer) { les_hide ^= 1u; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1; }        /* a lesson: GLO hides the card and brings it back */
+            else if (menu_on && menu_kind == MK_MANUAL) man_glo();
             else if (menu_on) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
             else if (fx_layer) man_open(MC_FX, 0);
             else if (view == 2u) man_open(MC_SONG, seq_run ? 4u : 0u);                                  /* the page for what you are doing: playing, adding a channel, the knobs' second page ... */
@@ -744,7 +768,7 @@ static void app_main(void)
         if (rec_on && edit_now && seq_run && sel < chan_n) {      /* recording, EDIT held: the note at the playhead goes, and each one the playhead reaches while it is held */
             uint32_t cs = seq_step;
             if (cs != edit_clr) {
-                step_t *x = &pat[seq_pat][sel][cs];
+                step_t *x = STEP_W(seq_pat, sel, cs);
                 edit_clr = cs;
                 if (x->note) { x->note = 0; rack_inval = 1; proj_edited(); }
             }
@@ -775,7 +799,7 @@ static void app_main(void)
             } else anim_start(AN_UNDO, 0);
         }
         undo_tick();
-        if ((b & (1u << BTN_SAVE)) && !proj_is_demo(proj_cur) && !proj_lock) { add_aud_stop(); if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
+        if ((b & (1u << BTN_SAVE)) && !proj_is_demo(proj_cur) && !proj_lock && !les_on) { add_aud_stop(); if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; anim_start(AN_SAVE, 0); } }
         if (in_menu) {                                  /* in a menu only SELECT does anything (and, in a pick list, OCT+ yes, OCT- no) */
             if (b & ((1u << BTN_OCT_UP) | (1u << BTN_OCT_DOWN))) add_aud_stop();          /* the audition's channel goes before anything is added */
             if (menu_on && menu_kind == MK_MANUAL) man_input(b);
@@ -787,6 +811,16 @@ static void app_main(void)
                 if (e) add_mode_step(e);
                 if (b & (1u << BTN_SEL)) { add_card ^= 1u; add_touch(); menu_dirty = 1; }
                 if (add_card && (b & (1u << BTN_OCT_DOWN))) { add_card = 0; menu_dirty = 1; b &= ~(1u << BTN_OCT_DOWN); }
+            }
+            if (menu_on && menu_kind == MK_LESSONS) {       /* the lessons list: SELECT or PRESETS moves, OCT+ starts, OCT- goes back to the menu */
+                e = fm1_enc_take(ENC_SELECT) + fm1_enc_take(ENC_PRESETS);
+                if (e) les_list_move(e);
+                if (b & (1u << BTN_OCT_UP)) {
+                    if (proj_dirty && !proj_is_demo(proj_cur) && !proj_lock && proj_save(proj_cur) == 0) proj_dirty = 0;
+                    les_enter(les_pick);
+                    menu_on = 0; view = 1; sel = 0; chip_page = 0; seq_view = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1;
+                } else if (b & (1u << BTN_OCT_DOWN)) { sys_group = 0; sys_open(set.demo, 1); }
+                b &= ~(1u << BTN_OCT_UP | 1u << BTN_OCT_DOWN);
             }
             e = fm1_enc_take(ENC_SELECT);
             if (e) { if (menu_kind == MK_ADD) add_scroll(e); else menu_scroll(e); }
@@ -802,7 +836,7 @@ static void app_main(void)
                     if (menu_sel < 3u && sel < chan_n && chan_n < MAXCH && (c = chan_add(chan[sel].kind)) >= 0) {       /* 1 patch only, 2 patch and notes */
                         uint32_t p;
                         chan[c].in = chan[sel].in; chan[c].fm = chan[sel].fm; chan[c].wcus = chan[sel].wcus; memcpy(chan[c].user, chan[sel].user, sizeof chan[c].user);
-                        if (menu_sel == 2u) for (p = 0; p < page_n; p++) memcpy(pat[p][c], pat[p][sel], sizeof pat[p][c]);
+                        if (menu_sel == 2u) for (p = 0; p < page_n; p++) seq_track_copy(p, c, sel);
                         sel = (uint32_t)c; proj_edited(); rack_inval = 1;
                         anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8);
                     }
@@ -810,7 +844,7 @@ static void app_main(void)
                     uint32_t kind = ADD_SUB[add_console].kind[menu_sel - 1u], p, any = 0;
                     sel = chg_ch; chg_ch = 255u; menu_on = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1;
                     if (IS_DRUM(kind) != IS_DRUM(chan[sel].kind))
-                        for (p = 0; p < page_n; p++) { uint32_t s; for (s = 0; s < SEQ_LEN; s++) if (pat[p][sel][s].note || pat[p][sel][s].vel) any = 1; }
+                        for (p = 0; p < page_n; p++) { uint32_t s; for (s = 0; s < SEQ_MAXLEN; s++) if (STEP_R(p, sel, s)->note || STEP_R(p, sel, s)->vel) any = 1; }
                     if (any) { chg_kind = kind; rack_rm = 2; }                                  /* notes would go: ask first */
                     else { seq_stop(); chip_off(sel); chan_set_kind(sel, kind); proj_edited(); anim_start(AN_ADD, KIND_CHIP[kind] | sel << 8); }
                 } else if (menu_kind == MK_ADD2) {
@@ -818,10 +852,17 @@ static void app_main(void)
                     if (c >= 0) { sel = (uint32_t)c; proj_edited(); anim_start(AN_ADD, KIND_CHIP[chan[c].kind] | (uint32_t)c << 8); }
                     menu_on = 0; rack_force = 1; chip_drawn = ~0u;
                 } else if (menu_kind == MK_MENU) {
-                    if (menu_sel == 5u) bt_open(1);                                                                               /* the Bluetooth page */
-                    else if (menu_sel + 1u == menu_n) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }          /* Factory Reset is the last row */
-                    else if (menu_sel == 6u) {                                                                                  /* Restore Demos: the deleted ones are made again */
+                    const uint32_t id = sys_id[menu_sel];
+                    if (id == SI_LES) {                                                                                           /* the lessons list, or the running lesson ends */
+                        if (les_on) { les_exit(); menu_on = 0; view = 1; sel = 0; seq_view = 0; rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1; }
+                        else les_list_open();
+                    }
+                    else if (id == SI_SET || id == SI_SYNC || id == SI_RST) { sys_group = id - SI_SET + 1u; sys_open(set.demo, 1); }       /* a group */
+                    else if (id == SI_BT) bt_open(1);                                                                             /* the Bluetooth page */
+                    else if (id == SI_FACT) { menu_open(CONF_FACTORY, sizeof CONF_FACTORY / sizeof CONF_FACTORY[0]); menu_kind = MK_FACTORY; }
+                    else if (id == SI_DEMO) {                                                                                   /* Restore Demos: the deleted ones are made again */
                         if (proj_demos_free_empty()) {
+                            if (les_on) les_exit();
                             seq_stop(); rec_on = 0; duck_ch = 255;
                             if (proj_dirty && proj_save(proj_cur) == 0) proj_dirty = 0;
                             proj_demos_restore();
@@ -829,10 +870,14 @@ static void app_main(void)
                             if (!proj_loaded) { if (proj_is_demo(proj_cur) && proj_cur == 0u) seq_tetris(); else if (proj_is_demo(proj_cur) && proj_cur == 1u) seq_symphony(); else proj_blank(); }
                             undo_reset(); proj_dirty = 0; rack_inval = 1; rack_force = 1; chip_drawn = ~0u;
                         }
-                        sys_open(set.demo, proj_demos_free_empty() + proj_demos_free_used() ? menu_sel : menu_sel - 1u);       /* (the last demo came back: the row is gone, the bar steps up) */
+                        sys_open(set.demo, menu_sel);       /* (the last demo came back: the row is gone, the bar steps up) */
                     }
-                    else if (menu_sel == 4u) { clk_mode = (uint8_t)((clk_mode + 1u) % 3u); bt_pack(); if (clk_mode != 2u) ext_on = 0; dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* off, send, follow */
-                    else { set.demo ^= (uint8_t)(menu_sel == 1u ? QS_ALWAYS : menu_sel == 2u ? QS_PICK : QS_NOTIPS); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* a switch: the line says Yes or No */
+                    else if (id == SI_ANIM || id == SI_BAT) {                                                                         /* Dancing Animations, Show Battery: stored inverted in set.an[2] bits 5 and 6 */
+                        if (id == SI_ANIM) opt_noanim ^= 1u; else opt_nobat ^= 1u;
+                        set.an[2] = (uint8_t)((set.an[2] & 0x9Fu) | opt_noanim << 5 | opt_nobat << 6); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); hdr_force = 1;
+                    }
+                    else if (id == SI_CLK) { clk_mode = (uint8_t)((clk_mode + 1u) % 3u); bt_pack(); if (clk_mode != 2u) ext_on = 0; dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* off, send, follow */
+                    else { set.demo ^= (uint8_t)(id == SI_QS ? QS_ALWAYS : id == SI_PICK ? QS_PICK : QS_NOTIPS); dirty = 1; t_change = fm1_ms; sys_open(set.demo, menu_sel); }       /* a switch: the line says Yes or No */
                 } else if (menu_kind == MK_BT) {                                    /* Sync, (Status), Sidechain, Patterns */
                     if (menu_sel == 1u) brothers_set(((uint32_t)brothers_mode + 1u) % 3u);
                     else if (menu_sel == 3u) bt_side ^= 1u;
@@ -846,6 +891,8 @@ static void app_main(void)
                     FACTORY_RESET();
                 }
             } else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind == MK_ADD2) { add_open(add_console); }       /* back to the consoles */
+            else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind == MK_MENU && sys_group) { const uint32_t g = sys_group; sys_group = 0; sys_open(set.demo, g + 1u); }       /* back up to the top */
+            else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && (menu_kind == MK_BT || menu_kind == MK_FACTORY)) { sys_group = menu_kind == MK_BT ? 2u : 3u; sys_open(set.demo, 99u); }       /* back to the group it came from */
             else if (menu_on && (b & (1u << BTN_OCT_DOWN)) && menu_kind != MK_MANUAL) { menu_on = 0; rack_force = 1; chip_drawn = ~0u; }
             fm1_enc_take(ENC_ALGORITHM);
             for (k = 0; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
@@ -881,36 +928,40 @@ static void app_main(void)
                 seq_view = song[song_cur]; view = 1; rack_force = 1; chip_drawn = ~0u;
             }
             e = fm1_enc_take(ENC_KNOB1);                /* knob 1: the tempo */
-            if (e) { int32_t v = (int32_t)seq_bpm + e; seq_bpm = (uint32_t)(v < 40 ? 40 : v > 240 ? 240 : v); proj_edited(); anim_tempo(); }
+            if (e) { tempo_knob(e, 0u); proj_edited(); anim_tempo(); }
             fm1_enc_take(ENC_ALGORITHM);
             for (k = 1; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
         } else if (view == 3u) {                        /* STEP: SELECT moves the cursor, PRESETS the channel, ALGORITHM the page, EDIT clears the block, the octave buttons as everywhere */
             uint32_t oct_was = (uint32_t)(set.oct + 2);
             e = fm1_enc_take(ENC_SELECT);
-            if (e) ed_cur = (ed_cur + (e < 0 ? SEQ_LEN - 1u : 1u)) % SEQ_LEN;
+            if (e) { const uint32_t pl = page_steps(seq_view), by = sel < chan_n && IS_DRUM(chan[sel].kind) ? SEQ_LEN : 1u; ed_cur = (ed_cur + (e < 0 ? pl - (by < pl ? by : 1u) : (by < pl ? by : 1u))) % pl; }       /* (a drum channel has no cursor: SELECT turns the screens) */
             e = fm1_enc_take(ENC_PRESETS);
             if (e && chan_n) { chip_off(sel); sel = e < 0 ? (sel ? sel - 1u : 0u) : (sel + 1u < chan_n ? sel + 1u : chan_n - 1u); anim_start(AN_CHAN, sel | (uint32_t)KIND_CHIP[chan[sel].kind] << 8); }
             e = fm1_enc_take(ENC_ALGORITHM);
             if (e) seq_page(e);
             e = fm1_enc_take(ENC_KNOB1);
-            if (e) { int32_t v = (int32_t)seq_bpm + e; seq_bpm = (uint32_t)(v < 40 ? 40 : v > 240 ? 240 : v); proj_edited(); anim_tempo(); }
+            if (e) { tempo_knob(e, 1u); proj_edited(); anim_tempo(); }
             e = fm1_enc_take(ENC_KNOB2);                /* KNOB 2: how long the note is, in steps: the one you are holding, or the one under the cursor */
             if (e && sel < chan_n) {
                 uint32_t st = ed_hold_k >= 0 ? ed_hold_step : ed_cur;
-                step_t *x = &pat[seq_view][sel][st];
+                step_t *x = STEP_W(seq_view, sel, st);
                 if (x->note) {
-                    int32_t n = ((int32_t)x->gate + 1) / 6 + e, mx = (int32_t)(SEQ_LEN - st);
+                    int32_t n = ((int32_t)x->gate + 1) / 6 + e, mx = (int32_t)(page_steps(seq_view) - st);
                     n = n < 1 ? 1 : n > mx ? mx : n;
                     x->gate = (uint8_t)(n * 6 - 1); proj_edited();
                 }
             }
-            for (k = 2; k < 4u; k++) fm1_enc_take(ENC_KNOB1 + k);
+            e = fm1_enc_take(ENC_KNOB1 + 2);            /* KNOB 3: the page's meter (waits for the next wrap if it plays) */
+            if (e) { page_meter_step(seq_view, e); mt_t = fm1_ms | 1u; rack_inval = 1; proj_edited(); }
+            e = fm1_enc_take(ENC_KNOB1 + 3);            /* KNOB 4: the page's length in bars */
+            if (e) { page_bars_step(seq_view, e); mt_t = fm1_ms | 1u; rack_inval = 1; proj_edited(); }
+            if (b & (1u << BTN_SEL)) { page_gl[seq_view] = (uint8_t)((page_gl[seq_view] + 1u) & 3u); rack_inval = 1; proj_edited(); }        /* SEL: glide into the next page's tempo: straight, ease in, ease out, off (a little curve by the tempo) */
             if ((b & (1u << BTN_EDIT)) && sel < chan_n && IS_DRUM(chan[sel].kind)) {         /* drums: EDIT clears the picked drum on this page */
                 uint32_t p, any = 0;
-                for (p = 0; p < SEQ_LEN; p++) { step_t *x = &pat[seq_view][sel][p]; uint32_t h = dstep_hits(x); if (h >> ed_lane & 1u) { dstep_set(x, h & ~(1u << ed_lane), dstep_acc(x) & ~(1u << ed_lane)); any = 1; } }
+                for (p = 0; p < SEQ_MAXLEN; p++) { step_t *x = STEP_W(seq_view, sel, p); uint32_t h = dstep_hits(x); if (h >> ed_lane & 1u) { dstep_set(x, h & ~(1u << ed_lane), dstep_acc(x) & ~(1u << ed_lane)); any = 1; } }
                 if (any) proj_edited();
             }
-            else if ((b & (1u << BTN_EDIT)) && sel < chan_n) { step_t *x = &pat[seq_view][sel][ed_cur]; if (x->note) { x->note = 0; proj_edited(); } }
+            else if ((b & (1u << BTN_EDIT)) && sel < chan_n) { step_t *x = STEP_W(seq_view, sel, ed_cur); if (x->note) { x->note = 0; proj_edited(); } }
             if (b & (1u << BTN_OCT_DOWN) && set.oct > -2) { set.oct--; dirty = 1; t_change = fm1_ms; }
             if (b & (1u << BTN_OCT_UP) && set.oct < 2) { set.oct++; dirty = 1; t_change = fm1_ms; }
             if ((uint32_t)(set.oct + 2) != oct_was) anim_cont(AN_OCT, oct_was << 4 | (uint32_t)(set.oct + 2), 900u);
@@ -965,16 +1016,12 @@ static void app_main(void)
             e = fm1_enc_take(ENC_KNOB1 + k);
             if (!e) continue;
             if (view == 1u) {
-                if (k == 0u) { int32_t v = (int32_t)seq_bpm + e; seq_bpm = (uint32_t)(v < 40 ? 40 : v > 240 ? 240 : v); rack_inval = 1; proj_edited(); anim_tempo(); }     /* knob 1: the tempo */
+                if (k == 0u) { tempo_knob(e, 0u); rack_inval = 1; proj_edited(); anim_tempo(); }     /* knob 1: the tempo */
                 else if (sel < chan_n) {
                     inst_t *ri = &chan[sel].in;
                     if (k == 1u) { ri->vol = (uint8_t)clamp_i((int32_t)ri->vol + e, 0, 15); rack_bar_t = fm1_ms | 1u; rack_bar_row = sel; }                  /* knob 2: the channel's level */
                     else if (k == 2u) {                                                                    /* knob 3: slide the channel's steps along this page (round the ends) */
-                        step_t tmp[SEQ_LEN];
-                        int32_t sh = e % (int32_t)SEQ_LEN, j;
-                        if (sh < 0) sh += (int32_t)SEQ_LEN;
-                        memcpy(tmp, pat[seq_view][sel], sizeof tmp);
-                        for (j = 0; j < (int32_t)SEQ_LEN; j++) pat[seq_view][sel][(j + sh) % (int32_t)SEQ_LEN] = tmp[j];
+                        seq_slide(seq_view, sel, e);
                     } else if (!IS_DRUM(chan[sel].kind)) { ri->duck = (uint8_t)clamp_i((int32_t)ri->duck + e, 0, 15); rack_bar_t = fm1_ms | 1u; rack_bar_row = sel; }      /* knob 4: the sidechain, how far a kick pulls it down */
                     rack_inval = 1; proj_edited();
                 }
@@ -994,21 +1041,22 @@ static void app_main(void)
         brothers_poll();                                                        /* a follower: the leader's packets into clock ticks */
         if (brothers_mode == 1u) {                                              /* the leader: its pattern and where the kicks are (the drums' first lane) */
             uint32_t km = 0, s2, t2;
-            for (t2 = 0; t2 < chan_n; t2++) if (IS_DRUM(chan[t2].kind)) for (s2 = 0; s2 < 16u; s2++) if (dstep_hits(&pat[seq_pat][t2][s2]) & 1u) km |= 1u << s2;
+            if (seq_len == 16u)                                                 /* the followers' sidechain counts a 16 step bar: a page of another length sends no kicks */
+                for (t2 = 0; t2 < chan_n; t2++) if (IS_DRUM(chan[t2].kind)) for (s2 = 0; s2 < 16u; s2++) if (dstep_hits(STEP_R(seq_pat, t2, s2)) & 1u) km |= 1u << s2;
             {                                                                   /* the key of what plays, every third of a second; the punch-in pads held, as the brothers' effects */
                 static uint32_t sc_ms, sc_val;
                 if (fm1_ms - sc_ms > 300u) {
                     uint8_t nt[64];
                     uint32_t nn = 0, t3, s3;
                     sc_ms = fm1_ms;
-                    for (t3 = 0; t3 < chan_n; t3++) if (!IS_DRUM(chan[t3].kind)) for (s3 = 0; s3 < 16u && nn < 64u; s3++) if (pat[seq_pat][t3][s3].note) nt[nn++] = pat[seq_pat][t3][s3].note;
+                    for (t3 = 0; t3 < chan_n; t3++) if (!IS_DRUM(chan[t3].kind)) for (s3 = 0; s3 < 16u && nn < 64u; s3++) if (STEP_R(seq_pat, t3, s3)->note) nt[nn++] = STEP_R(seq_pat, t3, s3)->note;
                     sc_val = brothers_detect(nt, nn);
                 }
-                brothers_lead_set(seq_pat, km, fx_to_shared(fx_held), sc_val, 0);
+                brothers_lead_set(seq_pat < 16u ? seq_pat : 0xFFu, km, fx_to_shared(fx_held), sc_val, 0);       /* (the link's pattern number is 0..15) */
             }
         } else if (brothers_mode == 2u && bt_patsync && seq_run && seq_loop == 1u) {                   /* a follower: the leader's pattern, at the end of this one */
             uint32_t p = brothers_pat();
-            if (p != 0xFFu && p != bt_last) { bt_last = (uint8_t)p; if (p < page_n && p != seq_pat) { seq_next = (uint8_t)p; seq_view = (uint8_t)p; } }
+            if (p != 0xFFu && p != bt_last) { bt_last = (uint8_t)p; if (p < page_n && p != seq_pat && !page_empty(p)) { seq_next = (uint8_t)p; seq_view = (uint8_t)p; } }       /* (a page with nothing in it: stay where we are) */
         } else if (brothers_mode != 2u) bt_last = 0xFFu;
         bt_scale = (uint8_t)(brothers_mode == 2u && bt_key ? brothers_scale() : 0u);                    /* a follower with Key on: the leader's key */
         { uint32_t want = brothers_mode == 2u && bt_fxsync ? fx_from_shared(brothers_fx()) : 0u; bt_fx_cur = want; if (!fx_layer && fx_held != want) fx_apply(want); }       /* the leader's punch-in pads, held as ours */
@@ -1072,7 +1120,7 @@ static void app_main(void)
             if ((st & 0xF0u) == 0xB0u && d1 == 106u) { if (chan_add(d2) >= 0) proj_edited(); continue; }              /* test: add a channel of kind d2 */
             if ((st & 0xF0u) == 0xB0u && d1 == 109u) { static uint32_t arm; if (d2 == 127u) arm = fm1_ms | 1u; else if (d2 == 1u && arm && fm1_ms - arm < 3000u) { arm = 0; FACTORY_RESET(); } continue; }                   /* test: Factory Reset: CC 109 = 127, then CC 109 = 1 within 3 s (so a controller's stray CC cannot wipe projects) */
             if ((st & 0xF0u) == 0xB0u && d1 == 107u) { if (chan_n) { seq_stop(); chan_remove(chan_n - 1u); proj_edited(); } continue; }     /* test: remove the last channel */
-            if ((st & 0xF0u) == 0xB0u && d1 == 105u && d2 < PROJ_SLOTS) { proj_open(d2); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; continue; }
+            if ((st & 0xF0u) == 0xB0u && d1 == 105u && d2 < PROJ_SLOTS) { if (les_on) les_exit(); proj_open(d2); set.proj = (uint8_t)proj_cur; dirty = 1; t_change = fm1_ms; rack_force = 1; chip_drawn = ~0u; sel = 0; continue; }
             if ((st & 0xF0u) == 0xE0u) { if (mt < chan_n) live_bend[mt] = ((int32_t)(d1 | d2 << 7) - 8192) >> 4; continue; }       /* pitch wheel: +-2 semitones */
             {                                                /* the keyboard's pads (MiniLab 3, TRS): notes 36-51 on channel 10, or in its CC pad mode CC 56-63 (127 down, 0 up); the FX pads, and on a drum channel outside the layer the kit */
                 static const uint8_t PC[8] = {0, 1, 2, 3, 6, 7, 4, 5};      /* CC 56..63 -> the pad's place in the bank */
@@ -1136,8 +1184,8 @@ static void app_main(void)
                     if (rec_on && seq_run && !seq_hold && view < 2u && mt == sel && !IS_DRUM(chan[mt].kind)) {      /* recording: the note goes on the step nearest the playhead, at the key's velocity */
                         uint32_t a, sb, stp, pg;
                         do { a = seq_step; sb = seq_sub; } while (a != seq_step);
-                        stp = (a * SEQ_PPS + sb + SEQ_PPS / 2u) / SEQ_PPS % SEQ_LEN; pg = seq_pat;
-                        { step_t *x = &pat[pg][mt][stp]; x->note = (uint8_t)d1; x->vel = (uint8_t)d2; x->gate = 5; }
+                        stp = (a * SEQ_PPS + sb + SEQ_PPS / 2u) / SEQ_PPS % (seq_len ? seq_len : SEQ_LEN); pg = seq_pat;
+                        { step_t *x = STEP_W(pg, mt, stp); x->note = (uint8_t)d1; x->vel = (uint8_t)d2; x->gate = 5; }
                         mrec_t0[d1] = seq_ticks | 1u; mrec_pg[d1] = (uint8_t)pg; mrec_st[d1] = (uint8_t)stp; mrec_ch[d1] = (uint8_t)mt;
                         rack_inval = 1; proj_edited();
                     }
@@ -1146,7 +1194,7 @@ static void app_main(void)
             else if ((st & 0xF0u) == 0x80u || (st & 0xF0u) == 0x90u) {
                 if (mt < chan_n) mk_off(mt, d1);
                 if (d1 < 128u && mrec_t0[d1]) {                    /* a recorded note: its length is how long the key was down */
-                    step_t *x = &pat[mrec_pg[d1]][mrec_ch[d1]][mrec_st[d1]];
+                    step_t *x = STEP_W(mrec_pg[d1], mrec_ch[d1], mrec_st[d1]);
                     uint32_t g = seq_ticks - (mrec_t0[d1] & ~1u);
                     if (x->note == d1) x->gate = (uint8_t)(g < 1u ? 1u : g > 96u ? 96u : g);
                     mrec_t0[d1] = 0; rack_inval = 1;
@@ -1169,14 +1217,14 @@ static void app_main(void)
             if (dr && view == 3u) {                                                  /* the lanes: the picked drum's black key, and a white key for each of its steps */
                 uint32_t p;
                 lit = 1u << BLK_KEY[ed_lane];
-                for (p = 0; p < FXN; p++) if (dstep_hits(&pat[seq_view][sel][p]) >> ed_lane & 1u) lit |= 1u << FX_KEY[p];
+                for (p = 0; p < FXN; p++) if (dstep_hits(STEP_R(seq_view, sel, vwin * SEQ_LEN + p)) >> ed_lane & 1u && vwin * SEQ_LEN + p < page_steps(seq_view)) lit |= 1u << FX_KEY[p];
             }
             for (k = 0; k < 27u; k++) { fm1_led_glow(KEY_LED(k), dr && BLK_IDX[k] >= 0); fm1_led_key(KEY_LED(k), lit >> k & 1u); }       /* a drum channel: the eight kit keys glow */
         }
         fx_solo_ch = (fx_held & FXB(FX_SOLO)) && sel < chan_n ? (uint8_t)sel : 255u;
-        fm1_led_glow(BTN_LFO, undo_cnt > 0u);
+        fm1_led_glow(BTN_LFO, undo_cnt > 0u || undo_open);
         fm1_led_key(BTN_ARP, rack_tails);
-        fm1_led_key(BTN_SEL, view == 0u && sel < chan_n && IS_FMK(chan[sel].kind) && fm_foc);
+        fm1_led_key(BTN_SEL, (view == 0u && sel < chan_n && IS_FMK(chan[sel].kind) && fm_foc) || (view == 3u && page_gl[seq_view]));
         fm1_led_glow(BTN_ENV, view == 3u && sel < chan_n && IS_DRUM(chan[sel].kind));          /* drums: ENV is the accent */
         fm1_led_key(BTN_SEQ, view == 3u);
         fm1_led_key(BTN_FX, fx_layer);
@@ -1193,31 +1241,37 @@ static void app_main(void)
         cpu = cpu_max / (58u * FM1_TICKS_PER_US);     /* percent of the 5.8 ms block */
         if (fm1_ms - cc_ms >= 500u) { cc_ms = fm1_ms; midi_send(0xB0, 100, cpu > 127u ? 127u : cpu); midi_send(0xB0, 101, proj_cur | (proj_dirty ? 0x10u : 0u) | (proj_loaded ? 0x20u : 0u) | (menu_on && menu_kind == MK_MANUAL && man_lock ? 0x40u : 0u)); }
         if (an_kind == AN_CRIT && act_ms >= an_t0) an_end = 0;           /* touched: the critter goes */
-        if (!anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && !tip_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
+        if (!opt_noanim && !les_on && !anim_on() && !rec_on && !fx_layer && !menu_on && !pick_on && !tip_on && fm1_ms - act_ms > CRIT_MS && fm1_ms >= crit_next) {
             anim_start(AN_CRIT, crit_n++ % 6u); crit_next = fm1_ms + 15000u;
         }
         if (tip_on) {                                   /* a tip is up: a touch, a timeout, or anything starting closes it */
             if (act_ms >= tip_t0 || menu_on || pick_on || seq_run || fx_layer) { tip_on = 0; rack_force = 1; chip_drawn = ~0u; }
             else if (fm1_ms - tip_t0 >= TIP_EVERY) { tip_open(); tip_redo = 1; }          /* the next tip, in the same window */
-        } else if (!(set.demo & QS_NOTIPS) && fm1_ms - act_ms > TIP_IDLE && !seq_run && quiet() && !menu_on && !pick_on && !fx_layer && !rec_on && !rack_rm && !anim_on() && add_aud_c < 0 && !start_pick) tip_open();
+        } else if (!(set.demo & QS_NOTIPS) && fm1_ms - act_ms > TIP_IDLE && !les_on && !seq_run && quiet() && !menu_on && !pick_on && !fx_layer && !rec_on && !rack_rm && !anim_on() && add_aud_c < 0 && !start_pick) tip_open();
         add_aud_tick(); add_info_tick();
+        const uint32_t les_rdn = les_reading() && !pick_on && !menu_on, les_cov = (menu_on && menu_kind != MK_ADD && menu_kind != MK_ADD2 && menu_kind != MK_COPY) || pick_on || tip_on || les_rdn, les_str = view == 3u && mt_t && fm1_ms - mt_t < MT_MS;
+        { static uint32_t rd_was; if (rd_was && !les_rdn) { rack_force = 1; chip_drawn = ~0u; rack_inval = 1; hdr_force = 1; redraw = 1; ch_drawn = 99; } rd_was = les_rdn; }       /* a page to read was put away: the screen under it is painted again */
+        { const uint32_t top = les_wants_top(view); if (top != les_top) { les_top = top; les_anim_t = fm1_ms; les_moving = 1; les_drawn = ~0u; } }
+        les_clip(les_cov, les_str);        /* the screen below never paints over the lesson card while it shows what it should */
         {   static uint32_t win_was;                    /* a window just closed: the view under it is painted again only where the window was */
-            uint32_t wu = tip_on || (menu_on && menu_kind != MK_MANUAL && menu_kind != MK_ADD);
+            uint32_t wu = tip_on || les_rdn || (menu_on && menu_kind != MK_MANUAL && menu_kind != MK_ADD);
             win_restore = win_was && !wu; win_was = wu;
             view_sig = view | (uint32_t)fx_layer << 2 | (view == 0u ? sel << 4 | chip_page << 12 : 0u);
         }
         {   static uint32_t dim_done;                   /* a window is up: the view is painted once more, faded, then the window goes on top */
             if (tip_redo) { dim_done = 0; tip_redo = 0; }
-            const uint32_t dimw = tip_on || (menu_on && (menu_kind == MK_MENU || menu_kind == MK_COPY || menu_kind == MK_FACTORY));
+            const uint32_t dimw = tip_on || les_rdn || (menu_on && (menu_kind == MK_MENU || menu_kind == MK_COPY || menu_kind == MK_FACTORY));
             const uint32_t m0 = menu_on, t0 = tip_on, dpass = dimw && !dim_done;
+            uint32_t les_rd = les_rdn;                  /* a lesson's read page is up */
             uint32_t pass;
             if (!dimw) dim_done = 0;
         for (pass = dpass ? 0u : 1u; pass < 2u; pass++) {
-        if (pass == 0u) { menu_on = 0; tip_on = 0; gfx_dim = 1; gfx_dim_bg = view == 0u && sel < chan_n ? t->bg : R_BG; rack_force = 1; chip_drawn = ~0u; redraw = 1; ch_drawn = 99; }
-        else { menu_on = m0; tip_on = t0; gfx_dim = 0; if (dpass) dim_done = 1; }
+        if (pass == 0u) { menu_on = 0; tip_on = 0; les_rd = 0; les_rdirty = 1; gfx_dim = 1; gfx_dim_bg = view == 0u && sel < chan_n ? t->bg : R_BG; rack_force = 1; chip_drawn = ~0u; redraw = 1; ch_drawn = 99; }
+        else { menu_on = m0; tip_on = t0; les_rd = les_rdn; gfx_dim = 0; if (dpass) dim_done = 1; }
         if (pick_on) { if (pick_dirty) { pick_draw(); pick_dirty = 0; } }
         else if (menu_on) { if (menu_dirty) { menu_draw(t->acc); menu_dirty = 0; }      /* (the three bands cover the whole screen: no clear first, that was the flash) */ }
         else if (tip_on) { if (tip_dirty) { tip_draw(); tip_dirty = 0; } }          /* the window stays; the view under it waits */
+        else if (les_rd) { if (les_rdirty) { les_read_draw(); les_rdirty = 0; } }       /* a lesson's page to read */
         else if (fx_layer) {
             if (rack_force) { fx_view_force = 1; hdr_force = 1; rack_force = 0; }
             fx_view_update(); hdr_update(view, sel, t, ch_chip, last_note);
@@ -1236,7 +1290,8 @@ static void app_main(void)
         }
         }
 
-        if (proj_dirty && !proj_is_demo(proj_cur) && !proj_lock && !seq_run && !pick_on && add_aud_c < 0 && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
+        les_card(les_cov, les_str);        /* the lesson's card */
+        if (proj_dirty && !les_on && !proj_is_demo(proj_cur) && !proj_lock && !seq_run && !pick_on && add_aud_c < 0 && quiet() && fm1_ms - proj_t_edit > 2000u && (!proj_t_fail || fm1_ms - proj_t_fail > 10000u)) {   /* stopped and silent: save the project */
             if (proj_save(proj_cur) == 0) { proj_dirty = 0; proj_t_saved = fm1_ms | 1u; } else proj_t_fail = fm1_ms;
         }
         if (dirty && quiet() && fm1_ms - t_change > 2000u) {

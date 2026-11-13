@@ -149,7 +149,7 @@
    "RACK": "Tape dial",
    "CHIP": "Tape dial. On the DRAW page: move along the wave",
    "SONG": "Move along the song",
-   "STEP": "Move the cursor",
+   "STEP": "Move the cursor (drums: turn the screens of a long page)",
    "FX": "Tape dial, while TAPE is held"
   },
   {
@@ -176,7 +176,7 @@
    "RACK": "Tempo",
    "CHIP": "Sound",
    "SONG": "Tempo",
-   "STEP": "Tempo",
+   "STEP": "This page's own tempo",
    "FX": ""
   },
   {
@@ -185,7 +185,7 @@
    "RACK": "KNOB 2: level. KNOB 3: slide the steps. KNOB 4: sidechain",
    "CHIP": "Sound",
    "SONG": "",
-   "STEP": "KNOB 2: note length (hold a key, or on the note under the cursor)",
+   "STEP": "KNOB 2: note length (hold a key, or on the note under the cursor). KNOB 3: the page's meter. KNOB 4: its length in bars",
    "FX": ""
   },
   {
@@ -206,7 +206,7 @@
    "id": "SEL",
    "name": "SEL",
    "RACK": "Hold: copy the channel (patch only, or patch and notes). In the project list: copy the project",
-   "CHIP": "FM chips: pick the channel or an operator for the knobs"
+   "CHIP": "FM chips: pick the channel or an operator for the knobs", "STEP": "Glide this page's tempo into the next page's: straight, ease in, ease out, off (a curve by the tempo)"
   }
  ],
  "pads": [

@@ -1,0 +1,20 @@
+300 held 0x100
+350 held 0
+900 btn 11
+2700 btn 12
+5200 shot
+5300 enc 4 -1
+7280 shot
+7380 enc 4 1
+7460 enc 4 1
+7540 enc 4 1
+9520 shot
+9620 enc 4 1
+11600 shot
+11700 enc 4 -1
+11780 enc 4 -1
+13760 shot
+13860 enc 4 -1
+13940 enc 4 -1
+15920 shot
+16020 end

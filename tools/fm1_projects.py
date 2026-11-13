@@ -4,7 +4,7 @@
 #   fm1_projects.py info                      slots, their sizes, the open one
 #   fm1_projects.py read SLOT FILE.bin        a slot's bytes
 #   fm1_projects.py write SLOT FILE.chipbox   a .chipbox file's first project (or a raw .bin) into SLOT (never slots 0 / 1: the demos; refuses a used slot unless --force)
-import base64, json, queue, sys, time
+import base64, json, os, queue, sys, time
 import mido
 
 CHUNK = 200
@@ -39,6 +39,7 @@ def unpack7(s):
 class Dev:
     def __init__(self):
         names = [n for n in mido.get_input_names() if "FM-1" in n or "Felucca" in n or "X0X" in n]
+        if os.environ.get("FM1_PORT"): names = [n for n in names if n == os.environ["FM1_PORT"]]       # two FM-1s: FM1_PORT="FM-1 Chipbox" picks one (check its identity with fm1_install.py --info --port first)
         if not names:
             raise SystemExit("FM-1 not found")
         self.out = mido.open_output(names[0])

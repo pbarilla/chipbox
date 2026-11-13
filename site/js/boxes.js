@@ -252,6 +252,27 @@
       rect(0, 0, W, H, '#f08a24') + (function () { var s = '', i; for (i = 0; i < 12; i++) s += rect(0, i * 24, W, 12, '#e07814', 'opacity=".5"'); return s; })() +
       circ(100, 104, 78, '#16161a') + (function () { var s = '', i; for (i = 1; i < 6; i++) s += circ(100, 104, 78 - i * 9, 'none', 'stroke="#2e2e36" stroke-width="1.5"'); return s; })() + circ(100, 104, 26, '#d8262c') + circ(100, 104, 3, '#f4f0e4') + txt('AMEN', 100, 100, 9, '#fff', SANS, { w: 900 }) + path('M40 60A68 68 0 0 1 100 36', 0, '#fff', 3, 'opacity=".25" stroke-linecap="round"') +
       txt('AMEN BREAK', 100, 214, 26, '#16161a', SANS, { w: 900, tl: 170 }) + txt('4 BARS · 137 BPM · DRUM LANES', 100, 236, 6, '#16161a', PX) + band(250, 20, '#16161a', 'THE FAMOUS BREAK', '#f08a24')]; },
+    meters: function () { return ['TUTORIAL 3', '#08423f', '#127a74',
+      rect(0, 0, W, H, '#0e5a5a') + rect(0, 0, W, 120, '#127a74', 'opacity=".5"') +
+      txt('3/4', 100, 112, 62, '#f4f0e4', SANS, { w: 900, s: '#06302e', sw: 3 }) + txt('6/8', 52, 168, 26, '#ffe34d', SANS, { w: 900 }) + txt('7/8', 148, 168, 26, '#ffe34d', SANS, { w: 900 }) +
+      [0, 1, 2, 3, 4, 5].map(function (i) { return rect(26 + i * 26, 186, 20, 10, i < 3 ? '#f4f0e4' : '#06302e'); }).join('') +
+      txt('ODD METERS', 100, 224, 24, '#f4f0e4', SANS, { w: 900, tl: 168 }) + txt('WALTZ · JIG · 7/8', 100, 242, 6, '#ffe34d', PX) + band(250, 20, '#06302e', 'NOT EVERYTHING IS 4')]; },
+    longpage: function () { return ['TUTORIAL 4', '#3a1a6a', '#6a3ab0',
+      rect(0, 0, W, H, '#4a2a8a') + rect(0, 0, W, 56, '#5a38a8', 'opacity=".6"') +
+      [0, 1, 2, 3].map(function (i) { return rect(14 + i * 46, 22, 42, 6, i === 2 ? '#fff' : '#2a1456'); }).join('') +
+      [0, 1, 2].map(function (r) { return [0, 1, 2, 3, 4, 5, 6, 7].map(function (c) { return rect(14 + c * 23, 44 + r * 26, 19, 22, (c + r * 3) % 5 === 0 ? '#ff6ac0' : '#2a1456'); }).join(''); }).join('') +
+      txt('64', 100, 168, 60, '#f4f0e4', SANS, { w: 900, s: '#1a0a40', sw: 3 }) + txt('STEPS', 100, 194, 12, '#ffe34d', PX) +
+      txt('LONG PAGES', 100, 224, 24, '#f4f0e4', SANS, { w: 900, tl: 168 }) + txt('BARS · SCREENS · THE MAP', 100, 242, 6, '#ffe34d', PX) + band(250, 20, '#1a0a40', 'UP TO 64 STEPS')]; },
+    tempochg: function () { return ['TUTORIAL 5', '#6a1408', '#b02a14',
+      rect(0, 0, W, H, '#d8321e') + rect(0, 0, W, 90, '#e8503a', 'opacity=".5"') +
+      poly('72,150 128,150 112,40 88,40', '#16161a') + line(100, 140, 124, 52, '#f4f0e4', 4, 'stroke-linecap="round"') + circ(124, 52, 8, '#ffe34d') + rect(84, 136, 32, 10, '#f4f0e4') +
+      txt('92', 52, 190, 30, '#f4f0e4', SANS, { w: 900 }) + txt('126', 148, 190, 30, '#ffe34d', SANS, { w: 900 }) + path('M78 182L122 182', 0, '#f4f0e4', 3, 'stroke-linecap="round"') + poly('122,176 134,182 122,188', '#f4f0e4') +
+      txt('TEMPO CHANGES', 100, 224, 20, '#f4f0e4', SANS, { w: 900, tl: 176 }) + txt('A TEMPO FOR EVERY PAGE', 100, 242, 6, '#ffe34d', PX) + band(250, 20, '#16161a', 'MID SONG')]; },
+    glide: function () { return ['TUTORIAL 6', '#0a2a58', '#1a56a8',
+      rect(0, 0, W, H, '#143e80') + (function () { var s = '', i; for (i = 0; i < 9; i++) s += rect(0, i * 24, W, 1, '#2a5aa8', 'opacity=".6"'); return s; })() +
+      path('M16 70C70 70 110 150 184 150', 0, '#ffe34d', 7, 'stroke-linecap="round"') + circ(16, 70, 9, '#f4f0e4') + circ(184, 150, 9, '#ff6ac0') +
+      poly('172,128 196,150 168,160', '#ff6ac0', 'transform="rotate(8 184 150)"') +
+      txt('GLIDE', 100, 214, 36, '#f4f0e4', SANS, { w: 900, s: '#0a1a40', sw: 3, tl: 150 }) + txt('RITARDANDO · ACCELERANDO', 100, 236, 6, '#ffe34d', PX) + band(250, 20, '#0a1a40', 'EASE INTO THE NEXT')]; },
     c64: function () { return ['COMMODORE 64', '#9a9a92', '#b8b8b0',
       rect(0, 0, W, H, '#f4f2ea') + rect(0, 0, W, 12, '#c8202a') + rect(0, 12, W, 12, '#1f4fa8') +
       txt('COMMODORE', 14, 70, 32, '#111', SANS, { w: 900, a: 'start', tl: 172 }) + txt('64', 14, 112, 46, '#111', SANS, { w: 900, a: 'start' }) + txt('Personal Computer', 14, 132, 14, '#111', SERIF, { w: 700, a: 'start' }) +

@@ -42,7 +42,7 @@ static int add(uint32_t kind, const char *lab)
 #define IN(c) (chan[c].in)
 static void put(uint32_t p, uint32_t c, uint32_t s, uint32_t note, uint32_t gate)
 {
-    step_t *x = &pat[p][c][s];
+    step_t *x = STEP_W(p, c, s);
     x->note = (uint8_t)note; x->vel = 110; x->gate = (uint8_t)gate;
 }
 static uint32_t npage;
@@ -58,7 +58,7 @@ static void drumbar(uint32_t p, uint32_t c)                      /* a plain kit 
     uint32_t s;
     for (s = 0; s < 16u; s++) {
         uint32_t hits = (s % 4u == 0u ? 1u : 0u) | (s == 4u || s == 12u ? 2u : 0u) | (s % 2u == 0u ? 128u : 0u);
-        if (hits) dstep_set(&pat[p][c][s], hits, s == 0u ? 1u : 0u);
+        if (hits) dstep_set(STEP_W(p, c, s), hits, s == 0u ? 1u : 0u);
     }
 }
 /* a page: the reference and up to three variants, four steps each, one long note; note n; c = -1 leaves a slot empty */
@@ -82,7 +82,7 @@ static void pref(uint32_t note, int a)                           /* page 1: the 
 static void pkick(uint32_t p, int c, uint32_t every)             /* kick drum steps */
 {
     uint32_t s;
-    for (s = 0; s < 16u; s += every) dstep_set(&pat[p][c][s], 1u, s == 0u ? 1u : 0u);
+    for (s = 0; s < 16u; s += every) dstep_set(STEP_W(p, c, s), 1u, s == 0u ? 1u : 0u);
 }
 
 /* ---- FM ------------------------------------------------------------------------------------------------------------------------------------------------ */
@@ -291,7 +291,7 @@ static void p_sweep(void)                                        /* sweep, vibra
     pv(60, np0, nps, -1, -1);
     {   uint32_t p = newpage(), i, k;                            /* the kits one after the other, four steps each: kick, hat, snare, hat */
         const int kc[3] = {kn, kg, ksm};
-        for (k = 0; k < 3u; k++) for (i = 0; i < 4u; i++) dstep_set(&pat[p][kc[k]][k * 4u + i], i == 0u ? 1u : i == 2u ? 2u : 128u, i == 0u ? 1u : 0u);
+        for (k = 0; k < 3u; k++) for (i = 0; i < 4u; i++) dstep_set(STEP_W(p, kc[k], k * 4u + i), i == 0u ? 1u : i == 2u ? 2u : 128u, i == 0u ? 1u : 0u);
         slotused[p][0] = slotused[p][1] = slotused[p][2] = 1;
         snprintf(pgs[p], sizeof pgs[0], "%s | %s | %s", leg[kn], leg[kg], leg[ksm]);
     }
@@ -376,6 +376,180 @@ static void p_mix(void)                                          /* the rack: le
     {   uint32_t p = newpage(); drumbar(p, kick); snprintf(pgs[p], sizeof pgs[0], "NES kit: kick snare hats"); }
 }
 
+static void hit(uint32_t p, uint32_t c, uint32_t s, uint32_t lanes) { dstep_set(STEP_W(p, c, s), lanes, lanes & 1u ? 1u : 0u); }      /* a drum step: bit 0 kick, 1 snare, 7 closed hat */
+static void setmeter(uint32_t p, uint32_t sig, uint32_t bars) { page_sig[p] = (uint8_t)sig; page_xb[p] = (uint8_t)(bars - 1u); }       /* sig: 0 4/4, 1 2/4, 2 3/4, 3 5/4, 4 6/8, 5 7/8 */
+static void p_meters(void)                                       /* a song that changes meter: for trying the page meter and length (KNOB 3 and 4 in step entry) */
+{
+    int dr, ba, me;
+    uint32_t p, s;
+    begin("Test: meters (4/4, a waltz in 3/4, 6/8, 5/4, 7/8, 2/4 and long pages)", 120);
+    dr = add(KD_DRUM0, "NES kit"); ba = add(KD_NES_TRI, "bass (triangle)"); me = add(KD_NES_PU, "melody (pulse)"); IN(me).duty = 2;
+    p = newpage(); setmeter(p, 0, 1);                            /* 4/4, one bar */
+    for (s = 0; s < 16u; s += 2u) hit(p, (uint32_t)dr, s, 128u | (s == 0u || s == 8u ? 1u : 0u) | (s == 4u || s == 12u ? 2u : 0u));
+    put(p, (uint32_t)ba, 0, 36, 23); put(p, (uint32_t)ba, 8, 43, 23);
+    put(p, (uint32_t)me, 0, 72, 17); put(p, (uint32_t)me, 4, 76, 17); put(p, (uint32_t)me, 8, 79, 17); put(p, (uint32_t)me, 12, 76, 17);
+    snprintf(pgs[p], sizeof pgs[0], "4/4, 1 bar (16 steps): march");
+    p = newpage(); setmeter(p, 2, 1);                            /* 3/4, one bar: the waltz */
+    hit(p, (uint32_t)dr, 0, 1u | 128u); hit(p, (uint32_t)dr, 4, 128u); hit(p, (uint32_t)dr, 8, 128u);
+    put(p, (uint32_t)ba, 0, 48, 11); put(p, (uint32_t)ba, 4, 55, 5); put(p, (uint32_t)ba, 8, 52, 5);
+    put(p, (uint32_t)me, 0, 67, 23); put(p, (uint32_t)me, 4, 72, 11); put(p, (uint32_t)me, 8, 76, 11);
+    put(p, (uint32_t)me, 14, 84, 11);                            /* past the end of a 12 step page: kept, greyed, silent */
+    snprintf(pgs[p], sizeof pgs[0], "3/4, 1 bar (12 steps): waltz; a note on step 15 is past the end (greyed, silent)");
+    p = newpage(); setmeter(p, 2, 2);                            /* 3/4, two bars */
+    for (s = 0; s < 24u; s += 12u) { hit(p, (uint32_t)dr, s, 1u | 128u); hit(p, (uint32_t)dr, s + 4u, 128u); hit(p, (uint32_t)dr, s + 8u, 128u); }
+    put(p, (uint32_t)ba, 0, 48, 11); put(p, (uint32_t)ba, 4, 55, 5); put(p, (uint32_t)ba, 8, 52, 5); put(p, (uint32_t)ba, 12, 41, 11); put(p, (uint32_t)ba, 16, 48, 5); put(p, (uint32_t)ba, 20, 45, 5);
+    put(p, (uint32_t)me, 0, 76, 23); put(p, (uint32_t)me, 12, 77, 11); put(p, (uint32_t)me, 16, 76, 5); put(p, (uint32_t)me, 20, 74, 5);
+    snprintf(pgs[p], sizeof pgs[0], "3/4, 2 bars (24 steps): the waltz goes on");
+    p = newpage(); setmeter(p, 4, 1);                            /* 6/8 */
+    for (s = 0; s < 12u; s += 2u) hit(p, (uint32_t)dr, s, 128u | (s == 0u || s == 6u ? 1u : 0u) | (s == 9u ? 2u : 0u));
+    put(p, (uint32_t)ba, 0, 45, 11); put(p, (uint32_t)ba, 6, 52, 11);
+    put(p, (uint32_t)me, 0, 69, 5); put(p, (uint32_t)me, 2, 72, 5); put(p, (uint32_t)me, 4, 76, 5); put(p, (uint32_t)me, 6, 74, 5); put(p, (uint32_t)me, 8, 72, 5); put(p, (uint32_t)me, 10, 69, 5);
+    snprintf(pgs[p], sizeof pgs[0], "6/8, 1 bar (12 steps): two groups of three");
+    p = newpage(); setmeter(p, 3, 1);                            /* 5/4 */
+    for (s = 0; s < 20u; s += 4u) hit(p, (uint32_t)dr, s, 128u | (s == 0u || s == 12u ? 1u : 0u) | (s == 8u || s == 16u ? 2u : 0u));
+    put(p, (uint32_t)ba, 0, 38, 23); put(p, (uint32_t)ba, 12, 38, 23);
+    put(p, (uint32_t)me, 0, 74, 11); put(p, (uint32_t)me, 4, 77, 11); put(p, (uint32_t)me, 8, 81, 11); put(p, (uint32_t)me, 12, 77, 11); put(p, (uint32_t)me, 16, 74, 11);
+    snprintf(pgs[p], sizeof pgs[0], "5/4, 1 bar (20 steps): two screens in step entry");
+    p = newpage(); setmeter(p, 5, 1);                            /* 7/8: 2 + 2 + 3 */
+    for (s = 0; s < 14u; s += 2u) hit(p, (uint32_t)dr, s, 128u | (s == 0u || s == 4u ? 1u : 0u) | (s == 8u ? 2u : 0u));
+    put(p, (uint32_t)ba, 0, 40, 5); put(p, (uint32_t)ba, 4, 40, 5); put(p, (uint32_t)ba, 8, 40, 11);
+    put(p, (uint32_t)me, 0, 76, 5); put(p, (uint32_t)me, 4, 79, 5); put(p, (uint32_t)me, 8, 83, 5); put(p, (uint32_t)me, 10, 81, 5);
+    snprintf(pgs[p], sizeof pgs[0], "7/8, 1 bar (14 steps): 2 + 2 + 3");
+    p = newpage(); setmeter(p, 1, 1);                            /* 2/4 */
+    hit(p, (uint32_t)dr, 0, 1u | 128u); hit(p, (uint32_t)dr, 2, 128u); hit(p, (uint32_t)dr, 4, 2u | 128u); hit(p, (uint32_t)dr, 6, 128u);
+    put(p, (uint32_t)ba, 0, 43, 11); put(p, (uint32_t)me, 0, 79, 5); put(p, (uint32_t)me, 4, 79, 5);
+    snprintf(pgs[p], sizeof pgs[0], "2/4, 1 bar (8 steps)");
+    p = newpage(); setmeter(p, 0, 4);                            /* 4/4, four bars: the longest page */
+    for (s = 0; s < 64u; s += 2u) hit(p, (uint32_t)dr, s, 128u | (s % 8u == 0u ? 1u : 0u) | (s % 16u == 4u || s % 16u == 12u ? 2u : 0u));
+    {   static const uint8_t SC[16] = {72, 74, 76, 77, 79, 81, 83, 84, 83, 81, 79, 77, 76, 74, 72, 67};
+        for (s = 0; s < 64u; s += 4u) put(p, (uint32_t)me, s, SC[s / 4u], 17);
+        for (s = 0; s < 64u; s += 16u) { put(p, (uint32_t)ba, s, 36, 47); put(p, (uint32_t)ba, s + 8u, 43, 23); }
+    }
+    snprintf(pgs[p], sizeof pgs[0], "4/4, 4 bars (64 steps): a scale up and down, four screens");
+    p = newpage(); setmeter(p, 0, 2);                            /* back to 4/4, two bars, the last chord */
+    for (s = 0; s < 32u; s += 4u) hit(p, (uint32_t)dr, s, 128u | (s % 8u == 0u ? 1u : 0u) | (s == 28u ? 2u : 0u));
+    put(p, (uint32_t)ba, 0, 36, 47); put(p, (uint32_t)me, 0, 72, 35); put(p, (uint32_t)me, 16, 76, 23); put(p, (uint32_t)me, 24, 79, 23);
+    snprintf(pgs[p], sizeof pgs[0], "4/4, 2 bars (32 steps): home again");
+}
+
+/* A showpiece song for the page meter (not a test): an original waltz that wanders through 3/4, 6/8, 5/4, 7/8, 4/4 and 2/4, with pages of several bars (the map line, the screens) */
+static void p_waltz(void)
+{
+    static const uint8_t BASS_A[4] = {48, 43, 45, 41}, BASS_B[4] = {48, 43, 41, 43};                  /* C G Am F, C G F G */
+    static const uint8_t ARP_A[4][2] = {{64, 67}, {59, 62}, {60, 64}, {57, 60}}, ARP_B[4][2] = {{64, 67}, {59, 62}, {57, 60}, {59, 62}};
+    static const uint8_t MEL_A[4][3][2] = {{{72, 0}, {76, 4}, {79, 8}}, {{79, 0}, {77, 8}, {0, 0}}, {{76, 0}, {72, 4}, {69, 8}}, {{72, 0}, {0, 0}, {0, 0}}};
+    static const uint8_t LEN_A[4][3] = {{4, 4, 4}, {8, 4, 0}, {4, 4, 4}, {12, 0, 0}};
+    static const uint8_t MEL_B[4][4][2] = {{{79, 0}, {84, 4}, {83, 8}, {84, 10}}, {{86, 0}, {83, 4}, {79, 8}, {0, 0}}, {{81, 0}, {84, 4}, {81, 8}, {0, 0}}, {{83, 0}, {79, 8}, {0, 0}, {0, 0}}};
+    static const uint8_t LEN_B[4][4] = {{4, 4, 2, 2}, {4, 4, 4, 0}, {4, 4, 4, 0}, {8, 4, 0, 0}};
+    int dr, ba, me, ar;
+    uint32_t p, s, b, k;
+    begin("Meters waltz (an original waltz that changes meter and tempo)", 126);
+    dr = add(KD_DRUM0, "NES kit"); ba = add(KD_NES_TRI, "bass (triangle)"); me = add(KD_NES_PU, "melody (pulse)"); IN(me).duty = 1; ar = add(KD_GB_PU, "accompaniment (Game Boy pulse)"); IN(ar).duty = 2; IN(ar).vol = 9;
+    /* 1: 3/4 x 2, the intro: an arpeggio and a bass */
+    p = newpage(); setmeter(p, 2, 2); page_tmp[p] = 92; page_gl[p] = 1;       /* a slow start that speeds up into the waltz */
+    put(p, (uint32_t)ba, 0, 48, 23); put(p, (uint32_t)ba, 12, 43, 23);
+    { static const uint8_t AR[2][6] = {{60, 64, 67, 72, 67, 64}, {59, 62, 67, 71, 67, 62}};
+      for (b = 0; b < 2u; b++) for (k = 0; k < 6u; k++) put(p, (uint32_t)ar, b * 12u + k * 2u, AR[b][k], 11); }
+    snprintf(pgs[p], sizeof pgs[0], "3/4, 2 bars (24 steps): the intro, an arpeggio over a bass");
+    /* 2 and 3: the waltz, four bars of 3/4 (48 steps: three screens) */
+    for (k = 0; k < 2u; k++) {
+        p = newpage(); setmeter(p, 2, 4); if (k) page_tmp[p] = 138;           /* the second time round, livelier */
+        for (b = 0; b < 4u; b++) {
+            const uint32_t o = b * 12u;
+            hit(p, (uint32_t)dr, o, 1u | 128u); hit(p, (uint32_t)dr, o + 4u, 128u); hit(p, (uint32_t)dr, o + 8u, 128u | (b == 3u ? 2u : 0u));
+            put(p, (uint32_t)ba, o, k ? BASS_B[b] : BASS_A[b], 23); put(p, (uint32_t)ba, o + 6u, (k ? BASS_B[b] : BASS_A[b]) + 7u, 11);
+            put(p, (uint32_t)ar, o + 4u, k ? ARP_B[b][0] : ARP_A[b][0], 11); put(p, (uint32_t)ar, o + 8u, k ? ARP_B[b][1] : ARP_A[b][1], 11);
+            if (!k) { uint32_t j; for (j = 0; j < 3u; j++) if (MEL_A[b][j][0]) put(p, (uint32_t)me, o + MEL_A[b][j][1], MEL_A[b][j][0], (uint32_t)LEN_A[b][j] * 6u - 1u); }
+            else { uint32_t j; for (j = 0; j < 4u; j++) if (MEL_B[b][j][0]) put(p, (uint32_t)me, o + MEL_B[b][j][1], MEL_B[b][j][0], (uint32_t)LEN_B[b][j] * 6u - 1u); }
+        }
+        snprintf(pgs[p], sizeof pgs[0], k ? "3/4, 4 bars (48 steps): the waltz again, the tune higher" : "3/4, 4 bars (48 steps): the waltz");
+    }
+    /* 4: 6/8 x 2, a jig: two groups of three */
+    p = newpage(); setmeter(p, 4, 2); page_tmp[p] = 156;                 /* the jig is quick */
+    for (b = 0; b < 2u; b++) {
+        static const uint8_t M6[2][6][2] = {{{69, 0}, {72, 2}, {76, 4}, {81, 6}, {76, 10}, {0, 0}}, {{80, 0}, {76, 2}, {71, 4}, {76, 6}, {80, 10}, {0, 0}}};
+        static const uint8_t L6[2][6] = {{2, 2, 2, 4, 2, 0}, {2, 2, 2, 4, 2, 0}};
+        const uint32_t o = b * 12u;
+        for (s = 0; s < 12u; s += 2u) hit(p, (uint32_t)dr, o + s, 128u | (s == 0u || s == 6u ? 1u : 0u) | (s == 9u ? 2u : 0u));
+        put(p, (uint32_t)ba, o, b ? 40 : 45, 23); put(p, (uint32_t)ba, o + 6u, b ? 47 : 52, 23);
+        put(p, (uint32_t)ar, o + 2u, b ? 56 : 60, 5); put(p, (uint32_t)ar, o + 4u, b ? 59 : 64, 5); put(p, (uint32_t)ar, o + 8u, b ? 56 : 60, 5); put(p, (uint32_t)ar, o + 10u, b ? 59 : 64, 5);
+        for (k = 0; k < 6u; k++) if (M6[b][k][0]) put(p, (uint32_t)me, o + M6[b][k][1], M6[b][k][0], (uint32_t)L6[b][k] * 6u - 1u);
+    }
+    snprintf(pgs[p], sizeof pgs[0], "6/8, 2 bars (24 steps): a jig, two groups of three");
+    /* 5: 5/4 x 2, a bridge */
+    p = newpage(); setmeter(p, 3, 2); page_tmp[p] = 118;                 /* the bridge lets go a little */
+    for (b = 0; b < 2u; b++) {
+        static const uint8_t M5[2][5] = {{74, 77, 81, 77, 74}, {79, 83, 86, 83, 79}};
+        const uint32_t o = b * 20u;
+        for (s = 0; s < 20u; s += 4u) hit(p, (uint32_t)dr, o + s, 128u | (s == 0u || s == 12u ? 1u : 0u) | (s == 8u || s == 16u ? 2u : 0u));
+        put(p, (uint32_t)ba, o, b ? 43 : 38, 23); put(p, (uint32_t)ba, o + 12u, b ? 43 : 38, 23);
+        put(p, (uint32_t)ar, o + 4u, b ? 59 : 53, 11); put(p, (uint32_t)ar, o + 8u, b ? 62 : 57, 11); put(p, (uint32_t)ar, o + 16u, b ? 59 : 53, 11);
+        for (k = 0; k < 5u; k++) put(p, (uint32_t)me, o + k * 4u, M5[b][k], 17);
+    }
+    snprintf(pgs[p], sizeof pgs[0], "5/4, 2 bars (40 steps): a bridge in five");
+    /* 6: 7/8 x 2, a dance: 2 + 2 + 3 */
+    p = newpage(); setmeter(p, 5, 2); page_tmp[p] = 144;
+    for (b = 0; b < 2u; b++) {
+        static const uint8_t M7[2][7] = {{76, 79, 83, 79, 76, 74, 76}, {72, 76, 81, 76, 72, 71, 69}};
+        const uint32_t o = b * 14u;
+        for (s = 0; s < 14u; s += 2u) hit(p, (uint32_t)dr, o + s, 128u | (s == 0u || s == 4u ? 1u : 0u) | (s == 8u ? 2u : 0u));
+        put(p, (uint32_t)ba, o, b ? 45 : 40, 11); put(p, (uint32_t)ba, o + 4u, b ? 45 : 40, 11); put(p, (uint32_t)ba, o + 8u, b ? 45 : 40, 17);
+        put(p, (uint32_t)ar, o + 2u, b ? 60 : 55, 5); put(p, (uint32_t)ar, o + 6u, b ? 64 : 59, 5); put(p, (uint32_t)ar, o + 10u, b ? 60 : 55, 5);
+        for (k = 0; k < 7u; k++) put(p, (uint32_t)me, o + k * 2u, M7[b][k], 11);
+    }
+    snprintf(pgs[p], sizeof pgs[0], "7/8, 2 bars (28 steps): a dance in 2 + 2 + 3");
+    /* 7: 4/4 x 4, the long page: a scale up and down (four screens) */
+    p = newpage(); setmeter(p, 0, 4); page_tmp[p] = 132; page_gl[p] = 2;   /* the long page speeds up into the stutter, late (ease in) */
+    for (s = 0; s < 64u; s += 2u) hit(p, (uint32_t)dr, s, 128u | (s % 8u == 0u ? 1u : 0u) | (s % 16u == 4u || s % 16u == 12u ? 2u : 0u));
+    {   static const uint8_t SC[16] = {72, 74, 76, 77, 79, 81, 83, 84, 83, 81, 79, 77, 76, 74, 72, 67}, RT[4] = {48, 43, 41, 48};
+        static const uint8_t CH[4][4] = {{64, 67, 72, 67}, {59, 62, 67, 62}, {57, 60, 65, 60}, {64, 67, 72, 67}};
+        for (s = 0; s < 64u; s += 4u) put(p, (uint32_t)me, s, SC[s / 4u], 17);
+        for (b = 0; b < 4u; b++) { put(p, (uint32_t)ba, b * 16u, RT[b], 47); put(p, (uint32_t)ba, b * 16u + 8u, RT[b] + 7u, 23); for (k = 0; k < 8u; k++) put(p, (uint32_t)ar, b * 16u + k * 2u, CH[b][k & 3u], 5); }
+    }
+    snprintf(pgs[p], sizeof pgs[0], "4/4, 4 bars (64 steps): a scale up and down, four screens");
+    /* 8: 2/4 x 2, a stutter */
+    p = newpage(); setmeter(p, 1, 2); page_tmp[p] = 160;               /* the stutter is fast */
+    for (b = 0; b < 2u; b++) {
+        const uint32_t o = b * 8u;
+        hit(p, (uint32_t)dr, o, 1u | 128u); hit(p, (uint32_t)dr, o + 2u, 128u); hit(p, (uint32_t)dr, o + 4u, 2u | 128u); hit(p, (uint32_t)dr, o + 6u, 128u);
+        put(p, (uint32_t)ba, o, 43, 11); put(p, (uint32_t)ba, o + 4u, 43, 11);
+    }
+    put(p, (uint32_t)me, 0, 79, 5); put(p, (uint32_t)me, 2, 79, 5); put(p, (uint32_t)me, 4, 79, 11); put(p, (uint32_t)me, 8, 77, 5); put(p, (uint32_t)me, 10, 76, 5); put(p, (uint32_t)me, 12, 74, 5); put(p, (uint32_t)me, 14, 72, 5);
+    snprintf(pgs[p], sizeof pgs[0], "2/4, 2 bars (16 steps): a stutter");
+    /* 9: the waltz once more, slowing into the end */
+    p = newpage(); setmeter(p, 2, 4); page_gl[p] = 2;                    /* slowing into the end, the slowdown coming late (ease in) */
+    for (b = 0; b < 4u; b++) {
+        const uint32_t o = b * 12u;
+        uint32_t j;
+        hit(p, (uint32_t)dr, o, 1u | 128u); hit(p, (uint32_t)dr, o + 4u, 128u); hit(p, (uint32_t)dr, o + 8u, 128u | (b == 3u ? 2u : 0u));
+        put(p, (uint32_t)ba, o, BASS_A[b], 23); put(p, (uint32_t)ba, o + 6u, BASS_A[b] + 7u, 11);
+        put(p, (uint32_t)ar, o + 4u, ARP_A[b][0], 11); put(p, (uint32_t)ar, o + 8u, ARP_A[b][1], 11);
+        for (j = 0; j < 3u; j++) if (MEL_A[b][j][0]) put(p, (uint32_t)me, o + MEL_A[b][j][1], MEL_A[b][j][0], (uint32_t)LEN_A[b][j] * 6u - 1u);
+    }
+    snprintf(pgs[p], sizeof pgs[0], "3/4, 4 bars (48 steps): the waltz, reprise");
+    /* 10: 4/4 x 2, the end */
+    p = newpage(); setmeter(p, 0, 2); page_tmp[p] = 78;
+    for (s = 0; s < 32u; s += 4u) hit(p, (uint32_t)dr, s, 128u | (s % 8u == 0u ? 1u : 0u) | (s == 28u ? 2u : 0u));
+    put(p, (uint32_t)ba, 0, 36, 95); put(p, (uint32_t)ba, 16, 43, 95);
+    put(p, (uint32_t)me, 0, 72, 95); put(p, (uint32_t)me, 16, 76, 47); put(p, (uint32_t)me, 24, 79, 47);
+    put(p, (uint32_t)ar, 0, 64, 5); put(p, (uint32_t)ar, 4, 67, 5); put(p, (uint32_t)ar, 8, 72, 5); put(p, (uint32_t)ar, 12, 67, 5); put(p, (uint32_t)ar, 16, 64, 5); put(p, (uint32_t)ar, 20, 67, 5); put(p, (uint32_t)ar, 24, 72, 5); put(p, (uint32_t)ar, 28, 76, 5);
+    snprintf(pgs[p], sizeof pgs[0], "4/4, 2 bars (32 steps): the end");
+}
+static void waltz_level(void)                                    /* the song through the engine: the loudest sample, and clipping */
+{
+    static int32_t blk[512];
+    uint32_t p, steps = 0, i, n, bi, clip = 0;
+    double pk = 0;
+    for (p = 0; p < page_n; p++) steps += page_steps(p);
+    n = 0;
+    for (p = 0; p < page_n; p++) n += (uint32_t)((double)page_steps(p) * 6.0 * (double)FS * 2.5 / (double)page_bpm(p) / 256.0);
+    seq_play(0, 0);
+    for (bi = 0; bi < n; bi++) { memset(blk, 0, sizeof blk); chip_render(blk, 256); for (i = 0; i < 512; i++) { double v = (double)blk[i] / 32768.0; if (v < 0) v = -v; if (v > pk) pk = v; if (blk[i] >= 32767 || blk[i] <= -32768) clip++; } }
+    seq_stop();
+    printf("meters-waltz: %u steps, about %.1f s, peak %.1f dBFS, clip %u\n", steps, (double)n * 256.0 / (double)FS, 20.0 * log10(pk + 1e-9), clip);
+    if (clip) fail = 1;
+}
+
 /* ---- the check: load the bytes back, play the song, level per page ----------------------------------------------------------------------------------- */
 static void check(const char *file, const uint8_t *b, uint32_t len)
 {
@@ -415,6 +589,7 @@ static void check(const char *file, const uint8_t *b, uint32_t len)
         if (bad || cl) fail = 1;
     }
 }
+static int no_level;                                             /* the level check assumes 16 step pages */
 static void finish(const char *dir, const char *fn)
 {
     static uint8_t a[PROJ_BANK];
@@ -429,7 +604,8 @@ static void finish(const char *dir, const char *fn)
     for (c = 0; c < chan_n; c++) fprintf(lf, "    %2u  %s\n", c + 1u, leg[c]);
     fprintf(lf, "  pages (steps 1-4 | 5-8 | 9-12 | 13-16):\n");
     for (p = 0; p < page_n; p++) fprintf(lf, "    %2u  %s\n", p + 1u, pgs[p]);
-    check(fn, a, len);
+    if (no_level) { if (proj_check(a, len) || proj_unpack(a, len)) { printf("%s: DOES NOT LOAD\n", fn); fail = 1; } else printf("%-22s %u bytes, %u pages, loads\n", fn, len, (unsigned)page_n); }
+    else check(fn, a, len);
 }
 int main(int argc, char **argv)
 {
@@ -448,6 +624,8 @@ int main(int argc, char **argv)
     npage = 0; p_mix(); finish(dir, "test-rack-mix");
     npage = 0; p_psg2(); finish(dir, "test-psg-knobs-2");
     npage = 0; p_psg3(); finish(dir, "test-5b-sid");
+    npage = 0; no_level = 1; p_meters(); finish(dir, "test-meters");
+    npage = 0; no_level = 1; p_waltz(); finish(dir, "meters-waltz"); waltz_level();
     fclose(lf);
     return fail;
 }

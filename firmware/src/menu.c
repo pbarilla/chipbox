@@ -62,7 +62,7 @@ static uint32_t add_console;
 
 static const mline_t CONF_FACTORY[] = {MH("Factory Reset?"), ML("OCT+ Yes"), ML("OCT- No")};
 static const mline_t COPY_MENU[] = {MH("Copy Channel"), ML("Patch Only"), ML("Patch And Notes"), ML("Cancel")};
-enum { MK_MANUAL, MK_ADD, MK_ADD2, MK_MENU, MK_FACTORY, MK_COPY, MK_BT };
+enum { MK_MANUAL, MK_ADD, MK_ADD2, MK_MENU, MK_FACTORY, MK_COPY, MK_BT, MK_LESSONS };
 static uint32_t menu_kind;                       /* what the open list is: help, the add-channel list, the menu, a confirm */
 static const mline_t *menu_lines;
 static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     /* menu_pick: a list you choose from (SELECT moves the bar, OCT+ yes) */
@@ -72,7 +72,10 @@ static uint32_t menu_n, menu_top, menu_on, menu_dirty, menu_pick, menu_sel;     
 #define QS_PICK 2u                               /* the project browser at every start */
 #define QS_NOTIPS 4u                             /* tips off (a new device has them on) */
 #define QS_INSTALLED 8u                          /* an install started from here: the next boot of Chipbox is a fresh one (if there are no projects) */
-static mline_t SYSM[8] = {MH("Menu"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Factory Reset")};
+static mline_t SYSM[7] = {MH("Menu"), ML(""), ML(""), ML(""), ML(""), ML(""), ML("")};
+enum { SI_NONE, SI_LES, SI_SET, SI_SYNC, SI_RST, SI_QS, SI_PICK, SI_TIPS, SI_ANIM, SI_BAT, SI_CLK, SI_BT, SI_DEMO, SI_FACT };      /* what a menu line does */
+static uint8_t sys_id[7];                        /* the id of each line of the open menu */
+static uint32_t sys_group;                       /* 0 the top, 1 Settings, 2 Sync and Link, 3 Reset */
 static mline_t BTM[8] = {MH("Brothers Link"), ML(""), ML(""), ML(""), ML(""), ML(""), ML(""), ML("Demo: Load")};            /* the Bluetooth page: Sync, Status, Sidechain, Patterns, Punch-in FX, Key */
 static void bt_texts(void)
 {
@@ -85,22 +88,41 @@ static void bt_texts(void)
 static void menu_open(const mline_t *l, uint32_t n) { menu_lines = l; menu_n = n; menu_top = 0; menu_on = 1; menu_dirty = 1; menu_pick = 0; }
 static void menu_open_pick(const mline_t *l, uint32_t n) { menu_open(l, n); menu_pick = 1; menu_sel = 1; }
 static void bt_open(uint32_t at) { bt_texts(); menu_open_pick(BTM, 8); menu_sel = at; menu_kind = MK_BT; }
+static const char *les_row(void);               /* (lessons.c, included after this file) */
+static void les_list_draw(void);
 static void sys_open(uint32_t fl, uint32_t at)
 {
-    SYSM[1].text = fl & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No";
-    SYSM[2].text = fl & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No";
-    SYSM[3].text = fl & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes";
-    SYSM[4].text = clk_mode == 1u ? "MIDI Clock: Send" : clk_mode == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off";
-    SYSM[5].text = "Brothers Link";
-    if (proj_demos_free_empty() + proj_demos_free_used()) {                       /* a demo was deleted: the Restore Demos row shows (it is hidden otherwise), Factory Reset is the last row */
-        SYSM[6].text = proj_demos_free_empty() ? "Restore Demos" : "Restore Demos: Slot In Use";
-        SYSM[7].text = "Factory Reset";
-        menu_open_pick(SYSM, 8);
+    uint32_t n = 1;
+    static const char *const HEAD[4] = {"Menu", "Settings", "Sync and Link", "Reset"};
+#define SYS_LINE(id, txt) do { sys_id[n] = (id); SYSM[n].text = (txt); n++; } while (0)
+    SYSM[0].text = HEAD[sys_group & 3u];
+    if (sys_group == 0u) {
+        SYS_LINE(SI_LES, les_row()); SYS_LINE(SI_SET, "Settings"); SYS_LINE(SI_SYNC, "Sync and Link"); SYS_LINE(SI_RST, "Reset");
+    } else if (sys_group == 1u) {
+        SYS_LINE(SI_QS, fl & QS_ALWAYS ? "Quick Start Always: Yes" : "Quick Start Always: No");
+        SYS_LINE(SI_PICK, fl & QS_PICK ? "Projects At Start: Yes" : "Projects At Start: No");
+        SYS_LINE(SI_TIPS, fl & QS_NOTIPS ? "Show Tips: No" : "Show Tips: Yes");
+        SYS_LINE(SI_ANIM, opt_noanim ? "Dancing Animations: No" : "Dancing Animations: Yes");
+        SYS_LINE(SI_BAT, opt_nobat ? "Show Battery: No" : "Show Battery: Yes");
+    } else if (sys_group == 2u) {
+        SYS_LINE(SI_CLK, clk_mode == 1u ? "MIDI Clock: Send" : clk_mode == 2u ? "MIDI Clock: Follow" : "MIDI Clock: Off");
+        SYS_LINE(SI_BT, "Brothers Link");
     } else {
-        SYSM[6].text = "Factory Reset";
-        menu_open_pick(SYSM, 7);
+        if (proj_demos_free_empty() + proj_demos_free_used()) SYS_LINE(SI_DEMO, proj_demos_free_empty() ? "Restore Demos" : "Restore Demos: Slot In Use");      /* a demo was deleted: the row shows */
+        SYS_LINE(SI_FACT, "Factory Reset");
     }
-    menu_sel = at;
+#undef SYS_LINE
+    menu_open_pick(SYSM, n); menu_kind = MK_MENU;
+    menu_sel = at < n ? at : n - 1u;
+}
+static uint32_t menu_vis(void) { return menu_kind == MK_BT || menu_kind == MK_MENU ? 7u : 4u; }      /* the lines a pick window shows under its heading */
+static void menu_follow(void)                   /* the list follows the bar: menu_top is the first line shown (never the heading) */
+{
+    const uint32_t vis = menu_vis();
+    if (menu_top < 1u) menu_top = 1;
+    if (menu_sel < menu_top) menu_top = menu_sel;
+    else if (menu_sel >= menu_top + vis) menu_top = menu_sel + 1u - vis;
+    if (menu_top < 1u) menu_top = 1;
 }
 static void menu_scroll(int32_t d)
 {
@@ -109,8 +131,7 @@ static void menu_scroll(int32_t d)
         while (d < 0 ? v > 0u : v + 1u < menu_n) { v = d < 0 ? v - 1u : v + 1u; if (!menu_lines[v].head) break; }          /* no wrap */
         if (menu_lines[v].head) v = menu_sel;
         menu_sel = v; menu_dirty = 1;
-        if (v < menu_top + 1u) menu_top = v > 1u ? v : 0u;                                  /* the list follows the bar (the heading shows at the top) */
-        else if (v >= menu_top + MENU_ROWS) menu_top = v + 1u - MENU_ROWS;
+        menu_follow();
         return;
     }
     uint32_t max = menu_n > MENU_ROWS ? menu_n - MENU_ROWS : 0u, top = menu_top;
@@ -122,18 +143,23 @@ static void add_draw(uint16_t accent);
 static void man_draw(void);
 static void menu_win(void)                      /* a pick list as a window: the heading is the title, the bar is the choice, the confirm button at the bottom */
 {
-    const int32_t big = menu_kind == MK_BT || (menu_kind == MK_MENU && menu_n > 7u), w = 232, h = big ? 200 : menu_kind == MK_MENU ? 190 : 156, x = 4, y0 = big ? 34 : menu_kind == MK_MENU ? 38 : 42;      /* the Brothers Link page and the menu with the Restore Demos row have the most lines */
+    const int32_t big = menu_kind == MK_BT || (menu_kind == MK_MENU && menu_n > 6u), w = 232, h = big ? 200 : menu_kind == MK_MENU ? 190 : 156, x = 4, y0 = big ? 34 : menu_kind == MK_MENU ? 38 : 42;      /* the Brothers Link page and the menu with the Restore Demos row have the most lines */
     const uint16_t col = menu_kind == MK_FACTORY ? RGB(235, 64, 52) : M_ACC;
+    if (menu_pick) menu_follow();
     const char *hint = menu_kind == MK_ADD2 ? (chg_ch < chan_n ? "OCT+  Change" : "OCT+  Add") : menu_pick ? "OCT+  Select" : 0;
-    uint32_t b, i;
+    uint32_t b, i, first = menu_top < 1u ? 1u : menu_top;
     win_shadow(x, y0, w, h);
     for (b = 0; b * 80u < (uint32_t)h; b++) {
         win_band(b, w, h);
         win_chrome(w, h, menu_lines[0].text, col);
-        for (i = 1; i < menu_n && i < (menu_kind == MK_BT || menu_kind == MK_MENU ? 8u : 5u); i++) {
-            int32_t pitch = menu_kind == MK_MENU || menu_kind == MK_BT ? 21 : 24, y = 29 + ((int32_t)i - 1) * pitch;
+        for (i = first; i < menu_n && i < first + menu_vis(); i++) {
+            int32_t pitch = menu_kind == MK_MENU || menu_kind == MK_BT ? 21 : 24, y = 29 + ((int32_t)i - (int32_t)first) * pitch;
             if (menu_pick && i == menu_sel) { mR(4, y - 3, w - 8, pitch - 2, R_SEL); mR(4, y - 3, 3, pitch - 2, col); }
             mT(14, y, menu_lines[i].text, menu_pick && i == menu_sel ? R_WHITE : RGB(200, 200, 210));
+        }
+        if (menu_n > menu_vis() + 1u) {                                         /* more lines than the window shows: a thin bar along the right edge, the lit part is what shows */
+            const int32_t bh = 7 * 21 - 6, th = bh * (int32_t)menu_vis() / (int32_t)(menu_n - 1u), ty = (bh - th) * ((int32_t)first - 1) / (int32_t)(menu_n - 1u - menu_vis());
+            mR(w - 7, 26, 3, bh, RGB(50, 50, 64)); mR(w - 7, 26 + ty, 3, th, col);
         }
         win_foot(w, h, hint);
         cv_blit(x, y0 + b * 80u);
@@ -143,5 +169,6 @@ static void menu_draw(uint16_t accent)
 {
     if (menu_kind == MK_MANUAL) { man_draw(); return; }             /* the manual is drawn by manual.c */
     if (menu_kind == MK_ADD) { add_draw(accent); return; }          /* the Add Channel list is drawn by addmenu.c */
+    if (menu_kind == MK_LESSONS) { les_list_draw(); return; }       /* the lessons: lessons.c */
     menu_win();
 }

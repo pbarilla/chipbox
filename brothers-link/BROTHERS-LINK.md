@@ -104,6 +104,7 @@ A follower calls `brothers_poll()` often. It takes new packets from the scan rin
 - If playing and run = 0: `bt_rt(0xFC)`.
 - More than 24 ticks behind (a long stall): skip ahead (`emitted = c`).
 - Tempo: `brothers_bpm()` = `(2,500,000 + per_us / 2) / per_us`. Chipbox and Smileyface set their tempo from this (kept to 30..255). Drumlab measures tick spacing (smoothed 3:1) and displays the same.
+- The leader's tempo may change at any time: Chipbox changes it at a page boundary, or at every step while a glide plays. The followers take it from the tick spacing, so nothing more is needed. Tested with Smileyface and Drumlab following Chipbox through 92 to 126, 132 to 160 and 126 to 78 bpm: no drift over a loop.
 - **No `0xFB` (continue) is ever generated.** A restart is a new `0xFA` at the next bar line.
 
 **When the leader goes away**: 1.5 s without a valid packet (`fol_run()`): `bt_rt(0xFC)` if playing, then the lock is dropped. The follower scans again and will lock onto the next leader it hears (any, joining at a bar line). The host should fall back to its own clock then (Chipbox, Smileyface and Drumlab drop back to their own clock about 0.4 s after the last tick). Changing the mode with `brothers_set()` also clears the lock and sends `0xFC` if playing.
@@ -124,12 +125,12 @@ All of these are in the same packet. The leader sends every field every time; a 
 - For each of the last 4 steps `st` with its kick bit set, age = time since that step began, from the position and `per_us`. If age < 200 ms: `g = 256 - depth + depth x age / 200000 us`. The lowest `g` wins.
 - Only while the leader is running and the mask is not 0. Otherwise 256.
 - Effect: at the kick the volume drops at once to `256 - depth`, then climbs back linearly in **200 ms**. All three firmwares call it with `depth = 190`: down to 66/256 (about -11.7 dB) at the kick. The gain steps per audio block (5.8 ms); there is no per-sample smoothing (unverified whether that is audible).
-- The mask assumes the leader plays a 16 step bar of 96 ticks and the follower is bar-locked. A leader pattern of another length would not line up. How a leader fills the mask: Drumlab, lane 0 hits; Chipbox, drum channels' kick hits; Smileyface has no drums and sends 0.
+- The mask assumes the leader plays a 16 step bar of 96 ticks and the follower is bar-locked. A leader pattern of another length would not line up, so a leader whose playing page is not 16 steps long sends mask 0 (Chipbox pages can be 8 to 64 steps). How a leader fills the mask: Drumlab, lane 0 hits; Chipbox, drum channels' kick hits; Smileyface has no drums and sends 0.
 - What a follower ducks is the host's choice: Drumlab the whole mix, Chipbox its note channels but not its drums, Smileyface the bass.
 
 ### Pattern follow
 
-`p[9]` carries the leader's current pattern (0..15 with bit 7). `brothers_pat()` gives 0xFF when there is none or no lock. The packet says nothing about *when*: the three followers apply it at the end of their own loop, which is the leader's bar line because both are bar-locked and loops are 16 steps. They only act when the pattern changes. A start from the leader also moves Chipbox to the leader's page. A pattern number the follower does not have is ignored.
+`p[9]` carries the leader's current pattern (0..15 with bit 7). `brothers_pat()` gives 0xFF when there is none or no lock. A leader whose page number does not fit (Chipbox has up to 64 pages) sends none. A follower stays where it is when the number is out of its range or the pattern has nothing in it (all three firmwares do). The packet says nothing about the length of the leader's page: a follower counts 16 step bars on the leader's ticks, so against a leader page of another length its bar line drifts from the leader's, while its tempo stays locked. The packet says nothing about *when*: the three followers apply it at the end of their own loop, which is the leader's bar line because both are bar-locked and loops are 16 steps. They only act when the pattern changes. A start from the leader also moves Chipbox to the leader's page. A pattern number the follower does not have is ignored.
 
 ### Punch-in FX
 

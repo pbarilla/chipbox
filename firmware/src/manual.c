@@ -16,7 +16,7 @@ static const mpage_t MP_QUICK[] = {
     {"", M_GLO | M_SELECT | M_HOME | M_SMALL, "Press GLO at any time to open the manual. Spin SELECT to flip the pages. When you're ready, hit HOME to close this guide!"},
     {"", M_HOME | M_SELECT | M_SMALL, "Hold HOME to open the project browser. Use the SELECT knob to pick an existing project, or start a new one. When you're ready, hit HOME to open it!"},
     {"", M_QR, "Find the full manual at"},
-    {"", M_GLO | M_HOME | M_SMALL, "To see this quick start every time, or to adjust other settings, press GLO and HOME."},
+    {"", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME for the menu. Its first line starts a lesson, and it holds the quick start and other settings."},
     {"", M_NOPANEL, "I hope you make some really cool stuff! Have fun!"},
 };
 enum { MRP_PICK, MRP_ADD, MRP_LIST, MRP_REMOVE, MRP_PAGES, MRP_PLAY, MRP_TAPE, MRP_REC, MRP_SEQ, MRP_TAILS, MRP_COPY, MRP_CHANGE };      /* GLO opens one of these by what you are doing */
@@ -36,6 +36,9 @@ static const mpage_t MP_RACK[] = {
     {"Level", M_K2, "Turn KNOB 2 to set the channel's level. A bar under its name shows it for a moment."},
     {"Slide steps", M_K3, "Turn KNOB 3 to slide the channel's steps along this page."},
     {"Sidechain", M_K4, "Turn KNOB 4 to let a kick duck this channel. Drum channels set it off."},
+    {"Page meter", M_SEQ | M_K3 | M_K4 | M_SMALL, "The top bar shows the page's meter above the tempo. In step entry, turn KNOB 3 for the meter and KNOB 4 for the bars."},
+    {"Page tempo", M_K1 | M_SEQ | M_SMALL, "A tempo in amber belongs to this page alone. Turn KNOB 1 to change the one you see. In step entry, a page can get its own."},
+    {"Lessons", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together, then press OCT+ on Lessons, the first line. Turn SELECT to pick one and press OCT+ to start it."},
 };
 static const mpage_t MP_CHIP[] = {
     {"Knobs", M_KNOBS, "Turn KNOB 1 to 4 to change the sound. Watch the screen to see what each one does."},
@@ -49,17 +52,24 @@ static const mpage_t MP_SONG[] = {
     {"Add a slot", M_OCTU | M_OCTD, "Press OCT+ to add a slot with a new blank page. Press OCT- to remove the slot."},
     {"Open a page", M_EDIT, "Tap EDIT to open a page in the rack. Hold EDIT to copy the page."},
     {"Play", M_PLAY | M_K1, "Press PLAY to play the song in order. Turn KNOB 1 to change the tempo."},
+    {"Page meter", M_K1 | M_SMALL, "The top bar shows the meter and tempo of the page under the cursor. Amber means the page has a tempo of its own."},
 };
 static const mpage_t MP_STEP[] = {
     {"Step entry", M_HOME, "Press HOME to go back to the rack when you are done."},
     {"Notes", M_KEYS | M_SELECT, "Press a key to write a note and move on. Turn SELECT to skip a step and leave a rest."},
     {"Length", M_K2 | M_EDIT, "Turn KNOB 2 to make a note longer. Press EDIT to clear the note under the cursor."},
     {"Channel and page", M_PRESETS | M_ALGO, "Turn PRESETS to pick another channel. Turn ALGORITHM to flip through your pages."},
+    {"Meter", M_K3, "Turn KNOB 3 to pick the page's meter, like 3/4 or 7/8. Steps past the end are crossed out."},
+    {"Bars", M_K4, "Turn KNOB 4 to make the page longer, a bar at a time. A page can reach 64 steps."},
+    {"Long pages", M_SELECT | M_SMALL, "Turn SELECT to step past 16. The line under the top bar shows which screen of the page you are on."},
+    {"Page tempo", M_K1 | M_SMALL, "Turn KNOB 1 to give this page its own tempo. It shows in amber. Turn it back to the song's tempo to let go."},
+    {"Glide", M_SEL | M_SMALL, "Tap SEL to glide this page's tempo into the next page's. A curve by the tempo shows how. Tap again for the next shape: ease in, ease out, then off."},
 };
 static const mpage_t MP_DRUM[] = {
     {"Pick a drum", M_KEYS, "Press a black key to pick a drum and hear it. Turn PRESETS to pick another channel."},
     {"Place hits", M_KEYS, "Press a white key to place the drum on a step. Press it again to take it away."},
     {"Accents", M_ENV | M_EDIT, "Hold ENV and press a white key to add an accent. Press EDIT to clear this drum."},
+    {"Long pages", M_SELECT | M_K3 | M_K4 | M_SMALL, "Turn SELECT to flip to the next 16 steps of a long page. Turn KNOB 3 and KNOB 4 to set its meter and bars."},
 };
 static const mpage_t MP_FX[] = {
     {"Punch in", M_FX, "Press FX to turn the punch-in layer on. Press FX or HOME to leave it."},
@@ -77,11 +87,14 @@ static const mpage_t MP_PROJ[] = {
     {"Save", M_SAVE | M_SMALL, "Press SAVE to save your project. Stop the music and leave it alone for two seconds and it saves by itself."},
 };
 static const mpage_t MP_MENU[] = {
-    {"Menu", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together to open the menu. Turn SELECT to pick a line. Press OCT+ to change it."},
+    {"Menu", M_GLO | M_HOME | M_SMALL, "Press GLO and HOME together to open the menu. Turn SELECT to pick a line. OCT+ opens a group or changes a line. OCT- goes back."},
+    {"Lessons", M_OCTU | M_GLO | M_SMALL, "The first line of the menu opens the lessons. A tick marks the ones you finished, and the list opens on the next one. Turn SELECT to pick one and press OCT+. A card tells you what to do next. Press GLO to hide it or bring it back."},
+    {"Masterclasses", M_OCTU | M_HOME | M_SMALL, "The gold lessons are masterclasses. A page to read comes up: press OCT+ to go on, HOME to put it away, GLO to bring it back."},
     {"Switches", M_OCTU | M_SMALL, "Quick Start Always and Projects At Start act when you switch on. Show Tips turns the tips on or off."},
+    {"Look", M_OCTU | M_SMALL, "Dancing Animations lets the little critters walk across the top bar when nothing happens. Show Battery puts the battery in the top bar."},
     {"MIDI Clock", M_OCTU | M_SMALL, "Press OCT+ to cycle Off, Send and Follow. Send gives the clock to other gear. Follow takes tempo, start and stop from it."},
     {"Brothers Link", M_OCTU | M_SMALL, "Open Brothers Link in the menu. Set Sync to Lead on one FM-1 and Follow on the others. Press OCT+ to change it. Sync is Off every time you switch on."},
-    {"Link options", M_OCTU | M_SMALL, "Sidechain ducks to the leader's kicks. Patterns follows its page. Punch-in FX copies its pads 1 to 8. Key moves your notes to its key."},
+    {"Link options", M_OCTU | M_SMALL, "Sidechain ducks to the leader's kicks. Patterns follows its page, and skips one with nothing in it. Punch-in FX copies its pads 1 to 8. Key moves your notes to its key."},
     {"Link demo", M_OCTU | M_SMALL, "Demo: Load opens a locked song to play along with the others. Nothing in it is saved."},
     {"Restore Demos", M_OCTU | M_SMALL, "Once you delete a demo, the menu gets a Restore Demos row. Press OCT+ on it to bring the demo back. A slot that holds your project stays yours."},
     {"Factory Reset", M_OCTU | M_SMALL, "Pick Factory Reset and press OCT+ to confirm. Your projects go and the quick start comes back. The demos come back too."},
@@ -174,11 +187,12 @@ static void man_draw(void)
                 mWords(8, ty, p->text, 224);
                 man_k = 13; man_x0 = 16;
             }
-            {   int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 224 - (int32_t)c->n * 10;          /* the dots: centred, or at the right with GLO Menu at the left */
-                for (i = 0; i < c->n; i++) mR(d0 + (int32_t)i * 10, 226, 6, 4, i <= man_pg ? c->col : RGB(58, 58, 74));
+            {   const int32_t pt = man_lock || (int32_t)c->n * 10 <= 146 ? 10 : 146 / (int32_t)c->n, dw = pt >= 8 ? 6 : pt - 2;      /* the dots: 10 px apart, closer when the chapter is long so they stay clear of GLO Menu */
+                int32_t d0 = man_lock ? 120 - (int32_t)c->n * 5 : 224 - (int32_t)c->n * pt;          /* centred, or at the right with GLO Menu at the left */
+                for (i = 0; i < c->n; i++) mR(d0 + (int32_t)i * pt, 226, dw, 4, i <= man_pg ? c->col : RGB(58, 58, 74));
                 if (!man_lock) mT(8, 218, "GLO Menu", RGB(138, 138, 154));
                 else { mT(8, 207, "HOME  Close", RGB(138, 138, 154)); mT(232 - text_w(&FONT_S, "OCT-  Hide"), 207, "OCT-  Hide", RGB(138, 138, 154)); }       /* the quick start: HOME leaves it, OCT- leaves it and keeps it away */
-                if (man_pg > 0u || (!man_lock && man_ch > 0u)) mT(man_lock ? 4 : d0 - 14, 216, "<", RGB(138, 138, 154));
+                if (man_pg > 0u || (!man_lock && man_ch > 0u)) mT(man_lock ? 4 : d0 - 10, 216, "<", RGB(138, 138, 154));
                 if (man_pg + 1u < c->n || (!man_lock && man_ch + 1u < MCHN)) mT(228, 216, ">", RGB(138, 138, 154));
             }
         }

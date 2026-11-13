@@ -231,6 +231,8 @@ For your follower, the test is the other way round: let a brother lead and watch
 13. The sidechain assumes a 16 step bar. For another length, send kick mask 0.
 14. A host simulator build must have stubs, or it will not link.
 15. After you flash for the first time, check that the USB installer still reaches your firmware and that OCT- at power-on still gives the rescue. A running radio can hide both.
+16. The pattern number is 0..15. If yours does not fit, send none. As a follower, stay where you are when the number is out of range or the pattern has nothing in it.
+17. The leader's tempo can change at a page boundary or every step (a glide). Follow the tick spacing and it just works; do not cache the tempo.
 
 ## 8. Done when
 

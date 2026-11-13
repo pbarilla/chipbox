@@ -39,6 +39,12 @@ static const tip_t TIPS[] = {
     {"Get updates here:", QR_SITE},
     {"Turn on Projects At Start in the system menu to pick a project each time you switch on.", -1},
     {"Press FX, then hold the TAPE pad and turn SELECT to slow your song down.", -1},
+    {"New to this? Press GLO and HOME together and start a lesson.", -1},
+    {"In step entry, turn KNOB 3 to give a page its own meter, from 2/4 to 7/8.", -1},
+    {"In step entry, turn KNOB 4 to make a page longer: up to four bars.", -1},
+    {"In step entry, turn KNOB 1 to give a page a tempo of its own. It shows in amber.", -1},
+    {"In step entry, tap SEL to glide the tempo into the next page's, and again to change the curve.", -1},
+    {"Turn KNOB 3 in the rack to slide a channel's steps along the page.", -1},
 };
 #define TIPN (sizeof TIPS / sizeof TIPS[0])
 #define TIP_IDLE 300000u                         /* untouched this long */

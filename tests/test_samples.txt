@@ -268,3 +268,39 @@ Test: 5B and SID
      4  SID plain (pulse) | SID low-pass CUT 5 RES 9 | SID band-pass CUT 8 RES 12 | SID high-pass CUT 6
      5  SID plain (pulse) | SID LP CUT 3 FENV 12 | SID SYNC 6 | SID RING 5, triangle
      6  SID plain (pulse) | SID PW 3 PWM 9
+
+Test: meters (4/4, a waltz in 3/4, 6/8, 5/4, 7/8, 2/4 and long pages)
+  1013 bytes, 3 channels, 9 pages
+  channels:
+     1  NES kit
+     2  bass (triangle)
+     3  melody (pulse)
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  4/4, 1 bar (16 steps): march
+     2  3/4, 1 bar (12 steps): waltz; a note on step 15 is past the end (greyed, silent)
+     3  3/4, 2 bars (24 steps): the waltz goes on
+     4  6/8, 1 bar (12 steps): two groups of three
+     5  5/4, 1 bar (20 steps): two screens in step entry
+     6  7/8, 1 bar (14 steps): 2 + 2 + 3
+     7  2/4, 1 bar (8 steps)
+     8  4/4, 4 bars (64 steps): a scale up and down, four screens
+     9  4/4, 2 bars (32 steps): home again
+
+Meters waltz (an original waltz that changes meter and tempo)
+  2274 bytes, 4 channels, 10 pages
+  channels:
+     1  NES kit
+     2  bass (triangle)
+     3  melody (pulse)
+     4  accompaniment (Game Boy pulse)
+  pages (steps 1-4 | 5-8 | 9-12 | 13-16):
+     1  3/4, 2 bars (24 steps): the intro, an arpeggio over a bass
+     2  3/4, 4 bars (48 steps): the waltz
+     3  3/4, 4 bars (48 steps): the waltz again, the tune higher
+     4  6/8, 2 bars (24 steps): a jig, two groups of three
+     5  5/4, 2 bars (40 steps): a bridge in five
+     6  7/8, 2 bars (28 steps): a dance in 2 + 2 + 3
+     7  4/4, 4 bars (64 steps): a scale up and down, four screens
+     8  2/4, 2 bars (16 steps): a stutter
+     9  3/4, 4 bars (48 steps): the waltz, reprise
+    10  4/4, 2 bars (32 steps): the end
