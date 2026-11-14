@@ -100,3 +100,5 @@ GPL-3.0-only, see `LICENSING.md`. Built on [Dinghy](https://github.com/zvenson/d
 [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita (Hügelton Instruments) with the changes of
 [SLOOP](https://github.com/isod89/sloop-fm1) (isod89). `docs/API.md` and `docs/RULES.md` describe the platform and
 come from Dinghy.
+
+You can also try Chipbox in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
